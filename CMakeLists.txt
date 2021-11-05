@@ -213,8 +213,8 @@ if (CMAKE_BUILD_TYPE MATCHES "Release")
     set_property(TARGET rdf2ids PROPERTY INTERPROCEDURAL_OPTIMIZATION True)
 endif ()
 
-option(TENTRIS_BUILD_TESTS "build tests alongside the project" OFF)
-if (TENTRIS_BUILD_TESTS)
-    enable_testing() # enable this to enable testing
+if (CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND BUILD_TESTING)
+    include(CTest)
+    enable_testing()# enable this to enable testing
     add_subdirectory(tests)
 endif ()
