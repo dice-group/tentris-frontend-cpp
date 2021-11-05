@@ -1,0 +1,19 @@
+[requires]
+boost/1.77.0
+fmt/8.0.1
+restinio/0.6.13
+hypertrie/0.7.0@dice-group/stable
+rdf-parser/0.14.0@dice-group/stable
+sparql-parser/0.3.0@dice-group/rc2
+# override for conflict between sparql-parser and rdf-parser
+robin-hood-hashing/3.11.3
+
+[options]
+restinio:asio=boost
+restinio:with_zlib=True
+boost:shared=False
+*:shared=False
+
+[generators]
+cmake_find_package
+cmake_paths
