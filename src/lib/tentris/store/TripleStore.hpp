@@ -2,7 +2,7 @@
 #define TENTRIS_STORE_TRIPLESTORE
 
 #include "tentris/store/RDF/TermStore.hpp"
-#include "tentris/store/RDF/SerdParser.hpp"
+#include "tentris/store/RDF/SerdParser2.hpp"
 #include "tentris/util/LogHelper.hpp"
 #include "tentris/tensor/BoolHypertrie.hpp"
 
@@ -50,39 +50,7 @@ namespace tentris::store {
 		}
 
 		void bulkloadRDF(const std::string &file_path, size_t bulk_size = 1'000'000) {
-			using namespace ::fmt::literals;
-			using namespace ::tentris::tensor;
-			using namespace ::tentris::logging;
-
-			try {
-				HypertrieBulkInserter bulk_inserter{trie, bulk_size,
-													[]([[maybe_unused]] size_t processed_entries,
-													   [[maybe_unused]] size_t inserted_entries,
-													   [[maybe_unused]] size_t hypertrie_size_after) noexcept {
-														logDebug("{:>10.3} mio triples processed."_format(double(processed_entries)/1'000'000));
-														logDebug("{:>10.3} mio triples loaded."_format(double(hypertrie_size_after)/1'000'000));
-													}
-				};
-				unsigned long count = 0;
-				for (const Triple &triple : rdf::SerdParser{file_path}) {
-					if (not triple.subject().isLiteral() and triple.predicate().isURIRef()) {
-						auto subject_id = termIndex[triple.subject()];
-						auto predicate_id = termIndex[triple.predicate()];
-						auto object_id = termIndex[triple.object()];
-						using RawEntry = typename HypertrieBulkInserter::template RawEntry<3>;
-						bulk_inserter.add(RawEntry{{{subject_id, predicate_id, object_id}}});
-					} else
-						throw std::invalid_argument{
-								"Subject or predicate of the triple have a term type that is not allowed there."};
-					++count;
-
-				}
-				bulk_inserter.flush();
-				log("{:>10.3} mio triples processed."_format(double(count)/1'000'000));
-				log("{:>10.3} mio triples loaded."_format(double(trie.size())/1'000'000));
-			} catch (...) {
-				throw std::invalid_argument{"A parsing error occurred while parsing {}"_format(file_path)};
-			}
+			rdf::SerdParser2::parse(trie, file_path, bulk_size, termIndex);
 		}
 
 		void add(const std::tuple<std::string, std::string, std::string> &triple) {
