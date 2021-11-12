@@ -77,10 +77,10 @@ RUN cmake \
     ..
 RUN make -j $(nproc)
 FROM scratch
-COPY --from=builder /tentris/build/tentris_server /tentris_server
-COPY --from=builder /tentris/build/tentris_terminal /tentris_terminal
-COPY --from=builder /tentris/build/ids2hypertrie /ids2hypertrie
-COPY --from=builder /tentris/build/rdf2ids /rdf2ids
+COPY --from=builder /tentris/build/bin/tentris_server /tentris_server
+COPY --from=builder /tentris/build/bin/tentris_terminal /tentris_terminal
+COPY --from=builder /tentris/build/bin/ids2hypertrie /ids2hypertrie
+COPY --from=builder /tentris/build/bin/rdf2ids /rdf2ids
 COPY LICENSE LICENSE
 COPY README.MD README.MD
 ENTRYPOINT ["/tentris_server"]

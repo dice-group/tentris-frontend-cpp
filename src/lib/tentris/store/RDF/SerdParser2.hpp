@@ -35,6 +35,7 @@ namespace tentris::store::rdf {
 			prefixes_map_type prefixes{};
 			tensor::HypertrieBulkInserter &bulk_inserter;
 			TermStore &term_index;
+			bool done = false;
 		};
 
 		static inline SerdStatus on_base(SerdHandle *handle, const SerdNode *uri) {
@@ -149,13 +150,15 @@ namespace tentris::store::rdf {
 		}
 
 		static inline SerdStatus on_end([[maybe_unused]] SerdHandle *handle, [[maybe_unused]] const SerdNode *node) {
-			return SERD_SUCCESS;
+			handle->done = true;
+			return SERD_FAILURE;
 		}
 
 
 	public:
 		static void inline parse(tensor::BoolHypertrie &hypertrie, const std::string &path, size_t bulkSize, TermStore &term_index) {
 
+			std::cout << "before?" <<std::flush;
 			tensor::HypertrieBulkInserter bulk_inserter{hypertrie, bulkSize,
 														[]([[maybe_unused]] size_t processed_entries,
 														   [[maybe_unused]] size_t inserted_entries,
@@ -164,26 +167,33 @@ namespace tentris::store::rdf {
 															logging::logDebug(fmt::format("{:>10.3} mio triples inserted in this batch.", double(inserted_entries) / 1'000'000));
 															logging::logDebug(fmt::format("{:>10.3} mio triples in storage.", (double(hypertrie_size_after) / 1'000'000)));
 														}};
+			std::cout << " or " <<std::flush;
 			SerdHandle serd_handle{
 					.prefixes = {},
 					.bulk_inserter = bulk_inserter,
 					.term_index = term_index};
 
-			FILE *file = fopen(path.c_str(), "r");
+//			FILE *file = fopen(path.c_str(), "r");
+			std::cout << "I " <<std::flush;
 			SerdReader *reader = serd_reader_new(SERD_TURTLE, (void *) &serd_handle,
 												 nullptr,
-												 reinterpret_cast<SerdBaseSink>(on_base),
-												 reinterpret_cast<SerdPrefixSink>(on_prefix),
-												 reinterpret_cast<SerdStatementSink>(on_statement),
-												 reinterpret_cast<SerdEndSink>(on_end));
-
-			serd_reader_start_stream(reader, file, nullptr, true);
-			SerdStatus status = SERD_SUCCESS;
-			while (status == SERD_SUCCESS)
-				status = serd_reader_read_chunk(reader);
-			serd_reader_end_stream(reader);
+												 reinterpret_cast<SerdBaseSink>(&on_base),
+												 reinterpret_cast<SerdPrefixSink>(&on_prefix),
+												 reinterpret_cast<SerdStatementSink>(&on_statement),
+												 reinterpret_cast<SerdEndSink>(&on_end));
+			std::cout << " died " <<std::flush;
+			serd_reader_read_file(reader, reinterpret_cast<const uint8_t *>(path.c_str()));
+			std::cout << " here" <<std::flush;
+//			SerdStatus status = serd_reader_start_stream(reader, file, nullptr, false);
+//			if (status == SERD_SUCCESS) {
+//				do
+//					status = serd_reader_read_chunk(reader);
+//				while (not serd_handle.done and (status == SERD_SUCCESS or status == SERD_FAILURE));
+////				serd_reader_end_stream(reader);
+//			}
+			std::cout << " here." <<std::flush;
 			serd_reader_free(reader);
-			fclose(file);
+//			fclose(file);
 		}
 	};
 }// namespace tentris::store::rdf
