@@ -22,10 +22,7 @@ namespace tentris::tensor {
 	using NonZeroEntry = Dice::hypertrie::NonZeroEntry<tr>;
 
 	template<typename result_type>
-	using Einsum = Dice::einsum::Einsum<result_type, tr>;
-
-	template<typename result_type>
-	using EinsumEntry = Dice::einsum::EinsumEntry<result_type, tr>;
+	using EinsumEntry = Dice::einsum::Entry<result_type, tr>;
 	using DISTINCT_t = bool;
 	using COUNTED_t = std::size_t;
 	using Subscript = Dice::einsum::Subscript;

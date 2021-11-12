@@ -163,14 +163,6 @@ namespace tentris::http {
 			};
 
 			template<typename RESULT_TYPE>
-			static void async_cleanup(std::shared_ptr<void> raw_results) {
-				std::thread([raw_results{move(raw_results)}]() {
-					auto &results = *static_cast<Einsum<RESULT_TYPE> *>(raw_results.get());
-					results.clear();
-				}).detach();
-			}
-
-			template<typename RESULT_TYPE>
 			static Status
 			runQuery(restinio::request_handle_t &req, std::shared_ptr<QueryExecutionPackage> &query_package,
 					 const time_point_t timeout) {
@@ -199,32 +191,20 @@ namespace tentris::http {
 					restinio::response_builder_t<output_type_t> resp = req->create_response<output_type_t>();
 					resp.append_header(restinio::http_field::content_type, "application/sparql-results+json");
 
-					std::shared_ptr<void> raw_results = query_package->getEinsum(timeout);
-					auto &results = *static_cast<Einsum<RESULT_TYPE> *>(raw_results.get());
-
 					SparqlJsonResultSAXWriter<RESULT_TYPE> json_result(vars, chunk_size);
 
-					auto timout_check = 0;
-					for (const EinsumEntry<RESULT_TYPE> &result : results) {
-						json_result.add(result);
-						if (++timout_check == 100) {
-							if (steady_clock::now() >= timeout) {
-								async_cleanup<RESULT_TYPE>(std::move(raw_results));
-								return Status::PROCESSING_TIMEOUT;
-							}
-							timout_check = 0;
-						}
-						if constexpr(chunked_output) {
-							if (json_result.full()) {
-								resp.append_chunk(std::string{json_result.string_view()});
-								resp.flush();
-								json_result.clear();
+					try {
+						for ( EinsumEntry<RESULT_TYPE> const &result : Dice::einsum::einsum<RESULT_TYPE, tr>(query_package->getSubscript(), query_package->getOperands(), timeout)) {
+							json_result.add(result);
+							if constexpr(chunked_output) {
+								if (json_result.full()) {
+									resp.append_chunk(std::string{json_result.string_view()});
+									resp.flush();
+									json_result.clear();
+								}
 							}
 						}
-					}
-
-					if (steady_clock::now() >= timeout) {
-						async_cleanup<RESULT_TYPE>(std::move(raw_results));
+					} catch (Dice::einsum::TimeoutException const &te){
 						return Status::PROCESSING_TIMEOUT;
 					}
 
@@ -237,7 +217,6 @@ namespace tentris::http {
 					}
 					resp.done();
 
-					async_cleanup<RESULT_TYPE>(std::move(raw_results));
 					return Status::OK;
 				}
 			}

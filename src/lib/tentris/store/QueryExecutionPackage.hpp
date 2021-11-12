@@ -95,32 +95,10 @@ namespace tentris::store::cache {
 			}
 		}
 
-	private:
-		/**
-		 * Builds the operator tree for this query.
-		 * @tparam RESULT_TYPE the type returned by the operand tree
-		 * @param slice_keys slice keys to extract the operands from the hypertries. slice_keys and hypertries must be
-		 * of equal length.
-		 * @param subscript the subscript that spans the operator tree.
-		 * @param hypertries a list of hypertries. typically this is a list containing the data base hypertrie multiple
-		 * times.
-		 * @return
-		 */
-		template<typename RESULT_TYPE>
-		static std::shared_ptr<void> generateEinsum(const std::shared_ptr<Subscript> &subscript,
-													const std::vector<const_BoolHypertrie> &hypertries,
-													const time_point_t &timeout) {
-			using namespace tensor;
-			return std::make_shared<Einsum<RESULT_TYPE>>(subscript, hypertries, timeout);
-		}
 
 	public:
-		std::shared_ptr<void> getEinsum(const time_point_t &timeout = time_point_t::max()) const {
-			using namespace tensor;
-			if (select_modifier == SelectModifier::NONE)
-				return generateEinsum<COUNTED_t>(subscript, operands, timeout);
-			else
-				return generateEinsum<DISTINCT_t>(subscript, operands, timeout);
+		const std::vector<const_BoolHypertrie> &getOperands() const {
+			return operands;
 		}
 
 		const std::string &getSparqlStr() const {
