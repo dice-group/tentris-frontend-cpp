@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.13)
+cmake_minimum_required(VERSION 3.18)
 project(tentris
         LANGUAGES CXX
         VERSION 1.2.0)
@@ -206,11 +206,19 @@ target_link_libraries(ids2hypertrie
 add_dependencies(ids2hypertrie tentris)
 
 if (CMAKE_BUILD_TYPE MATCHES "Release")
-    set_property(TARGET tentris_server PROPERTY INTERPROCEDURAL_OPTIMIZATION True)
-    set_property(TARGET tentris_terminal PROPERTY INTERPROCEDURAL_OPTIMIZATION True)
 
-    set_property(TARGET ids2hypertrie PROPERTY INTERPROCEDURAL_OPTIMIZATION True)
-    set_property(TARGET rdf2ids PROPERTY INTERPROCEDURAL_OPTIMIZATION True)
+    include(CheckIPOSupported)
+    check_ipo_supported(RESULT result LANGUAGES CXX) # fatal error if IPO is not supported
+    message("LTO supported ${result}")
+    add_link_options(tentris_server PRIVATE -flto)
+    add_link_options(tentris_terminal PRIVATE -flto)
+    add_link_options(ids2hypertrie PRIVATE -flto)
+    add_link_options(rdf2ids PRIVATE -flto)
+    # disabled for now because thinLTO is used by CMake which causes segfaults with cmake
+    #    set_property(TARGET tentris_server PROPERTY INTERPROCEDURAL_OPTIMIZATION True)
+    #    set_property(TARGET tentris_terminal PROPERTY INTERPROCEDURAL_OPTIMIZATION True)
+    #    set_property(TARGET ids2hypertrie PROPERTY INTERPROCEDURAL_OPTIMIZATION True)
+    #    set_property(TARGET rdf2ids PROPERTY INTERPROCEDURAL_OPTIMIZATION True)
 endif ()
 
 if (CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND BUILD_TESTING)
