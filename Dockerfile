@@ -55,7 +55,7 @@ RUN conan user ${CONAN_USER} -p ${CONAN_PW} -r tentris-private
 # build and cache dependencies via conan
 WORKDIR /conan_cache
 COPY conanfile.txt conanfile.txt
-RUN conan install . --build=missing --profile default > conan_build.log
+RUN conan install . --build=missing --profile default
 
 # import project files
 WORKDIR /tentris
@@ -67,7 +67,6 @@ COPY conanfile.txt conanfile.txt
 
 ##build
 WORKDIR /tentris/build
-# TODO: wait for patch for restinio
 # todo: should be replaced with toolchain file like https://github.com/ruslo/polly/blob/master/clang-libcxx17-static.cmake
 RUN cmake \
     -DCMAKE_EXE_LINKER_FLAGS="${CMAKE_EXE_LINKER_FLAGS}" \
@@ -77,10 +76,10 @@ RUN cmake \
     ..
 RUN make -j $(nproc)
 FROM scratch
-COPY --from=builder /tentris/build/tentris_server /tentris_server
-COPY --from=builder /tentris/build/tentris_terminal /tentris_terminal
-COPY --from=builder /tentris/build/ids2hypertrie /ids2hypertrie
-COPY --from=builder /tentris/build/rdf2ids /rdf2ids
+COPY --from=builder /tentris/build/bin/tentris_server /tentris_server
+COPY --from=builder /tentris/build/bin/tentris_terminal /tentris_terminal
+COPY --from=builder /tentris/build/bin/ids2hypertrie /ids2hypertrie
+COPY --from=builder /tentris/build/bin/rdf2ids /rdf2ids
 COPY LICENSE LICENSE
 COPY README.MD README.MD
 ENTRYPOINT ["/tentris_server"]
