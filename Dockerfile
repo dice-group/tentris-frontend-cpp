@@ -55,7 +55,7 @@ RUN conan user ${CONAN_USER} -p ${CONAN_PW} -r tentris-private
 # build and cache dependencies via conan
 WORKDIR /conan_cache
 COPY conanfile.txt conanfile.txt
-RUN conan install . --build=missing --profile default > conan_build.log
+RUN conan install . --build=missing --profile default
 
 # import project files
 WORKDIR /tentris
@@ -67,7 +67,6 @@ COPY conanfile.txt conanfile.txt
 
 ##build
 WORKDIR /tentris/build
-# TODO: wait for patch for restinio
 # todo: should be replaced with toolchain file like https://github.com/ruslo/polly/blob/master/clang-libcxx17-static.cmake
 RUN cmake \
     -DCMAKE_EXE_LINKER_FLAGS="${CMAKE_EXE_LINKER_FLAGS}" \
