@@ -82,12 +82,6 @@ set(CXXOPTS_ENABLE_INSTALL OFF CACHE BOOL "" FORCE)
 set(CXXOPTS_ENABLE_WARNINGS OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(cxxopts)
 
-add_library(csv-parser INTERFACE)
-target_include_directories(csv-parser INTERFACE
-        thirdparty/csv-parser
-        )
-
-
 add_library(rapidjson INTERFACE)
 target_include_directories(rapidjson INTERFACE
         thirdparty/RapidJSON/include
@@ -97,6 +91,7 @@ find_package(fmt REQUIRED)
 find_package(hypertrie REQUIRED)
 find_package(sparql-parser REQUIRED)
 find_package(rdf-parser REQUIRED)
+find_package(vincentlaucsb-csv-parser REQUIRED)
 if (TENTRIS_STATIC)
     SET(Boost_USE_STATIC_LIBS ON)
 endif ()
@@ -200,7 +195,7 @@ target_link_libraries(ids2hypertrie
         ${TENTRIS_STATIC_DEF}
         ${TENTRIS_PTHREAD_DEF}
         tentris
-        csv-parser
+        vincentlaucsb-csv-parser::vincentlaucsb-csv-parser
         )
 
 add_dependencies(ids2hypertrie tentris)
