@@ -78,9 +78,7 @@ writeNTriple(std::ostream &stream, const std::shared_ptr<QueryExecutionPackage> 
 	bool first = true;
 
 	if (not query_package->is_trivial_empty) {
-		std::shared_ptr<void> raw_results = query_package->getEinsum(timeout);
-		auto &results = *static_cast<Einsum<RESULT_TYPE> *>(raw_results.get());
-		for (const auto &result : results) {
+		for ( EinsumEntry<RESULT_TYPE> const &result : Dice::einsum::einsum<RESULT_TYPE, tr>(query_package->getSubscript(), query_package->getOperands(), timeout)) {
 			if (first) {
 				first = false;
 				execute_end = steady_clock::now();

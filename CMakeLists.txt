@@ -22,7 +22,8 @@ conan_cmake_autodetect(settings)
 conan_cmake_run(CONANFILE conanfile.txt
         GENERATORS cmake_find_package
         BASIC_SETUP CMAKE_TARGETS
-        BUILD missing)
+        BUILD missing
+        SETTINGS ${settings})
 
 include(${CMAKE_CURRENT_BINARY_DIR}/conan_paths.cmake)
 
@@ -194,7 +195,6 @@ set_target_properties(rdf2ids PROPERTIES LINK_FLAGS_RELEASE -s)
 
 add_dependencies(rdf2ids tentris)
 
-
 add_executable(ids2hypertrie src/exec/tools/IDs2Hypertrie.cpp)
 target_link_libraries(ids2hypertrie
         ${TENTRIS_STATIC_DEF}
@@ -205,20 +205,24 @@ target_link_libraries(ids2hypertrie
 
 add_dependencies(ids2hypertrie tentris)
 
-if (CMAKE_BUILD_TYPE MATCHES "Release")
 
+if (CMAKE_BUILD_TYPE MATCHES "Release")
     include(CheckIPOSupported)
     check_ipo_supported(RESULT result LANGUAGES CXX) # fatal error if IPO is not supported
-    message("LTO supported ${result}")
-    add_link_options(tentris_server PRIVATE -flto)
-    add_link_options(tentris_terminal PRIVATE -flto)
-    add_link_options(ids2hypertrie PRIVATE -flto)
-    add_link_options(rdf2ids PRIVATE -flto)
-    # disabled for now because thinLTO is used by CMake which causes segfaults with cmake
-    #    set_property(TARGET tentris_server PROPERTY INTERPROCEDURAL_OPTIMIZATION True)
-    #    set_property(TARGET tentris_terminal PROPERTY INTERPROCEDURAL_OPTIMIZATION True)
-    #    set_property(TARGET ids2hypertrie PROPERTY INTERPROCEDURAL_OPTIMIZATION True)
-    #    set_property(TARGET rdf2ids PROPERTY INTERPROCEDURAL_OPTIMIZATION True)
+    if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "13")
+        message("Use full lto for clang >=13 instead of thinlto because otherwise the executable cause a SIGSEGV.")
+        add_link_options(tentris_server PRIVATE -flto)
+        add_link_options(tentris_terminal PRIVATE -flto)
+        add_link_options(ids2hypertrie PRIVATE -flto)
+        add_link_options(rdf2ids PRIVATE -flto)
+    else()
+        message("INTERPROCEDURAL_OPTIMIZATION")
+#     disabled for now because thinLTO is used by CMake which causes segfaults with cmake
+        set_property(TARGET tentris_server PROPERTY INTERPROCEDURAL_OPTIMIZATION True)
+        set_property(TARGET tentris_terminal PROPERTY INTERPROCEDURAL_OPTIMIZATION True)
+        set_property(TARGET ids2hypertrie PROPERTY INTERPROCEDURAL_OPTIMIZATION True)
+        set_property(TARGET rdf2ids PROPERTY INTERPROCEDURAL_OPTIMIZATION True)
+        endif()
 endif ()
 
 if (CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND BUILD_TESTING)
