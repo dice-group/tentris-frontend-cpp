@@ -170,7 +170,6 @@ namespace tentris::store::rdf {
 					.bulk_inserter = bulk_inserter,
 					.term_index = term_index};
 
-//			FILE *file = fopen(path.c_str(), "r");
 			SerdReader *reader = serd_reader_new(SERD_TURTLE, (void *) &serd_handle,
 												 nullptr,
 												 reinterpret_cast<SerdBaseSink>(&on_base),
@@ -178,15 +177,7 @@ namespace tentris::store::rdf {
 												 reinterpret_cast<SerdStatementSink>(&on_statement),
 												 reinterpret_cast<SerdEndSink>(&on_end));
 			serd_reader_read_file(reader, reinterpret_cast<const uint8_t *>(path.c_str()));
-//			SerdStatus status = serd_reader_start_stream(reader, file, nullptr, false);
-//			if (status == SERD_SUCCESS) {
-//				do
-//					status = serd_reader_read_chunk(reader);
-//				while (not serd_handle.done and (status == SERD_SUCCESS or status == SERD_FAILURE));
-////				serd_reader_end_stream(reader);
-//			}
 			serd_reader_free(reader);
-//			fclose(file);
 		}
 	};
 }// namespace tentris::store::rdf

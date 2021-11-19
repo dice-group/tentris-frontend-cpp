@@ -2,7 +2,10 @@ cmake_minimum_required(VERSION 3.18)
 project(tentris
         LANGUAGES CXX
         VERSION 1.2.0)
+
 set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/version.hpp.in ${CMAKE_CURRENT_SOURCE_DIR}/src/lib/tentris/tentris_version.hpp)
 
@@ -39,9 +42,9 @@ if (NOT EXISTS ${CMAKE_BINARY_DIR}/CMakeCache.txt)
     endif ()
 endif ()
 
-if(DEFINED ${TENTRIS_MARCH})
+if (DEFINED ${TENTRIS_MARCH})
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=${TENTRIS_MARCH}")
-endif()
+endif ()
 
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -fomit-frame-pointer -momit-leaf-frame-pointer")
@@ -57,31 +60,18 @@ if (TENTRIS_BUILD_WITH_TCMALLOC)
     find_library(TCMALLOCMINIMAL tcmalloc_minimal)
     if (NOT TCMALLOCMINIMAL)
         find_library(TCMALLOCMINIMAL tcmalloc-minimal)
-    endif()
+    endif ()
     if (NOT TCMALLOCMINIMAL)
         message(FATAL_ERROR "Neither tcmalloc-minimal nor tcmalloc_minimal was found")
-    endif()
+    endif ()
     message("tcmalloc minimal ${TCMALLOCMINIMAL}")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${TCMALLOCMINIMAL}")
-    if(TENTRIS_STATIC)
+    if (TENTRIS_STATIC)
         set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--eh-frame-hdr")
-    endif()
-endif()
+    endif ()
+endif ()
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -Wextra -g -O0")
 
-# Lightweight C++ command line option parser   https://github.com/jarro2783/cxxopts
-include(FetchContent)
-FetchContent_Declare(
-        cxxopts
-        GIT_REPOSITORY https://github.com/jarro2783/cxxopts.git
-        GIT_TAG        v2.2.1
-        GIT_SHALLOW    TRUE
-)
-set(CXXOPTS_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-set(CXXOPTS_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-set(CXXOPTS_ENABLE_INSTALL OFF CACHE BOOL "" FORCE)
-set(CXXOPTS_ENABLE_WARNINGS OFF CACHE BOOL "" FORCE)
-FetchContent_MakeAvailable(cxxopts)
 
 add_library(rapidjson INTERFACE)
 target_include_directories(rapidjson INTERFACE
@@ -93,6 +83,7 @@ find_package(hypertrie REQUIRED)
 find_package(sparql-parser REQUIRED)
 find_package(rdf-parser REQUIRED)
 find_package(vincentlaucsb-csv-parser REQUIRED)
+find_package(cxxopts REQUIRED)
 if (TENTRIS_STATIC)
     SET(Boost_USE_STATIC_LIBS ON)
 endif ()
@@ -122,7 +113,7 @@ FetchContent_MakeAvailable(cppitertools)
 target_link_libraries(tentris
         INTERFACE
         stdc++fs # for #include <filesystem>
-        cxxopts
+        cxxopts::cxxopts
         rapidjson
         sparql-parser::sparql-parser
         fmt::fmt
@@ -145,14 +136,13 @@ target_include_directories(tentris INTERFACE
 if (TENTRIS_STATIC)
     set(TENTRIS_STATIC_DEF -static)
     set(TENTRIS_PTHREAD_DEF -Wl,--whole-archive -lrt -lpthread -Wl,--no-whole-archive)
-else()
+else ()
     set(TENTRIS_PTHREAD_DEF -lpthread)
 endif ()
 
 
 # main executable targets
 add_executable(tentris_server src/exec/TentrisServer.cpp src/exec/config/ServerConfig.hpp src/exec/config/TerminalConfig.hpp)
-
 target_link_libraries(tentris_server
         PRIVATE
         ${TENTRIS_STATIC_DEF}
@@ -163,9 +153,6 @@ target_link_libraries(tentris_server
         nonstd::optional-lite
         nonstd::variant-lite
         )
-
-set_target_properties(tentris_server PROPERTIES LINK_FLAGS_RELEASE -s)
-
 add_dependencies(tentris_server tentris)
 
 add_executable(tentris_terminal src/exec/TentrisTerminal.cpp src/exec/config/ServerConfig.hpp src/exec/config/TerminalConfig.hpp)
@@ -174,9 +161,6 @@ target_link_libraries(tentris_terminal
         ${TENTRIS_PTHREAD_DEF}
         tentris
         )
-
-set_target_properties(tentris_terminal PROPERTIES LINK_FLAGS_RELEASE -s)
-
 add_dependencies(tentris_terminal tentris)
 
 add_executable(rdf2ids src/exec/tools/RDF2IDs.cpp)
@@ -185,9 +169,6 @@ target_link_libraries(rdf2ids
         ${TENTRIS_PTHREAD_DEF}
         tentris
         )
-
-set_target_properties(rdf2ids PROPERTIES LINK_FLAGS_RELEASE -s)
-
 add_dependencies(rdf2ids tentris)
 
 add_executable(ids2hypertrie src/exec/tools/IDs2Hypertrie.cpp)
@@ -197,27 +178,28 @@ target_link_libraries(ids2hypertrie
         tentris
         vincentlaucsb-csv-parser::vincentlaucsb-csv-parser
         )
-
 add_dependencies(ids2hypertrie tentris)
 
-
 if (CMAKE_BUILD_TYPE MATCHES "Release")
+    set_target_properties(tentris_server PROPERTIES LINK_FLAGS_RELEASE -s)
+    set_target_properties(tentris_terminal PROPERTIES LINK_FLAGS_RELEASE -s)
+    set_target_properties(rdf2ids PROPERTIES LINK_FLAGS_RELEASE -s)
+    set_target_properties(ids2hypertrie PROPERTIES LINK_FLAGS_RELEASE -s)
     include(CheckIPOSupported)
     check_ipo_supported(RESULT result LANGUAGES CXX) # fatal error if IPO is not supported
-    if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "13")
+    if ((CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "13"))
         message("Use full lto for clang >=13 instead of thinlto because otherwise the executable cause a SIGSEGV.")
         add_link_options(tentris_server PRIVATE -flto)
         add_link_options(tentris_terminal PRIVATE -flto)
         add_link_options(ids2hypertrie PRIVATE -flto)
         add_link_options(rdf2ids PRIVATE -flto)
-    else()
-        message("INTERPROCEDURAL_OPTIMIZATION")
-#     disabled for now because thinLTO is used by CMake which causes segfaults with cmake
+    else ()
+        message("INTERPROCEDURAL_OPTIMIZATION enabled.")
         set_property(TARGET tentris_server PROPERTY INTERPROCEDURAL_OPTIMIZATION True)
         set_property(TARGET tentris_terminal PROPERTY INTERPROCEDURAL_OPTIMIZATION True)
         set_property(TARGET ids2hypertrie PROPERTY INTERPROCEDURAL_OPTIMIZATION True)
         set_property(TARGET rdf2ids PROPERTY INTERPROCEDURAL_OPTIMIZATION True)
-        endif()
+    endif ()
 endif ()
 
 if (CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND BUILD_TESTING)
