@@ -255,8 +255,8 @@ namespace tentris::IDs2Hypertrie {
 
 					// break apart the depth 2 single entry nodes and a Hash for each of both key parts
 					for (auto[hash, node] : storage_2_sen) {
-						sen_d1_hashes.template emplace(Dice::hypertrie::internal::raw::SingleEntry<1, tri>({{node->key()[0]}}));
-						sen_d1_hashes.template emplace(Dice::hypertrie::internal::raw::SingleEntry<1, tri>({{node->key()[1]}}));
+						sen_d1_hashes.template emplace(Dice::hypertrie::internal::raw::SingleEntry<1, tri>(Dice::hypertrie::internal::raw::RawKey<1, tri>{node->key()[0]}));
+						sen_d1_hashes.template emplace(Dice::hypertrie::internal::raw::SingleEntry<1, tri>(Dice::hypertrie::internal::raw::RawKey<1, tri>{node->key()[1]}));
 					}
 
 					return sen_d1_hashes.size();
