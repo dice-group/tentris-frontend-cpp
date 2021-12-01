@@ -70,8 +70,7 @@ if (TENTRIS_BUILD_WITH_TCMALLOC)
         set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--eh-frame-hdr")
     endif ()
 endif ()
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -Wextra -g -O0")
-
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -Wextra -g -O0 -fcoroutines")
 
 add_library(rapidjson INTERFACE)
 target_include_directories(rapidjson INTERFACE
@@ -80,8 +79,6 @@ target_include_directories(rapidjson INTERFACE
 
 find_package(fmt REQUIRED)
 find_package(hypertrie REQUIRED)
-find_package(sparql-parser REQUIRED)
-find_package(rdf-parser REQUIRED)
 find_package(vincentlaucsb-csv-parser REQUIRED)
 find_package(cxxopts REQUIRED)
 if (TENTRIS_STATIC)
@@ -95,7 +92,6 @@ endif ()
 find_package(restinio REQUIRED)
 find_package(string-view-lite REQUIRED)
 find_package(optional-lite REQUIRED)
-find_package(hypertrie REQUIRED)
 
 # make a library of the code
 add_library(tentris INTERFACE)
@@ -110,18 +106,28 @@ FetchContent_Declare(
         GIT_SHALLOW TRUE)
 FetchContent_MakeAvailable(cppitertools)
 
+set(rdf4cpp_INSTALL_CMAKE_DIR share CACHE INTERNAL "")
+FetchContent_Declare(
+        rdf4cpp
+        GIT_REPOSITORY https://github.com/rdf4cpp/rdf4cpp.git
+        GIT_TAG addition/node_equality_operator
+        GIT_SHALLOW TRUE)
+FetchContent_MakeAvailable(rdf4cpp)
+
+add_subdirectory(libs)
+
 target_link_libraries(tentris
         INTERFACE
         stdc++fs # for #include <filesystem>
         cxxopts::cxxopts
         rapidjson
-        sparql-parser::sparql-parser
         fmt::fmt
         hypertrie::hypertrie
-        rdf-parser::rdf-parser
         Boost::Boost
         serd-0
         cppitertools::cppitertools
+        rdf4cpp::rdf4cpp
+        Dice::sparql
         )
 
 target_include_directories(tentris INTERFACE

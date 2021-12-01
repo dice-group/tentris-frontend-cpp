@@ -2,19 +2,20 @@
 #define TENTRIS_SPARQLENDPOINT_HPP
 
 #include <chrono>
+#include <random>
 #include <sstream>
 #include <string>
 #include <tuple>
 #include <utility>
-#include <random>
 
 #include <fmt/ostream.h>
+#include <rdf4cpp/rdf.hpp>
 #include <restinio/all.hpp>
 
 #include "tentris/http/QueryResultState.hpp"
 #include "tentris/store/AtomicQueryExecutionPackageCache.hpp"
-#include "tentris/store/SparqlJsonResultSAXWriter.hpp"
 #include "tentris/store/AtomicTripleStore.hpp"
+#include "tentris/store/SparqlJsonResultSAXWriter.hpp"
 #include "tentris/util/LogHelper.hpp"
 
 namespace tentris::http {
@@ -28,7 +29,7 @@ namespace tentris::http {
 
 		using namespace ::tentris::logging;
 		using namespace ::tentris::store;
-        using SelectModifier = Dice::sparql::Nodes::QueryNodes::SelectNodes::SelectModifier;
+		//        using SelectModifier = Dice::sparql::Nodes::QueryNodes::SelectNodes::SelectModifier;
 		using namespace ::tentris::tensor;
 
 		using namespace std::string_literals;
@@ -38,19 +39,20 @@ namespace tentris::http {
 		 * Main SPARQL endpoint. Parses HTTP queries and returns SPARQL JSON Results.
 		 */
 
-		template<typename output_type_t> requires std::is_same_v<output_type_t, restinio::chunked_output_t> or
-												  std::is_same_v<output_type_t, restinio::restinio_controlled_output_t>
+		template<typename output_type_t>
+		requires std::is_same_v<output_type_t, restinio::chunked_output_t> or
+				std::is_same_v<output_type_t, restinio::restinio_controlled_output_t>
 		struct SparqlEndpoint {
 		private:
-			using Term = Dice::rdf::Term;
-			using BNode = Dice::rdf::BNode;
-			using Literal = Dice::rdf::Literal;
-			using URIRef = Dice::rdf::URIRef;
-			using Triple = Dice::rdf::Triple;
-			using TriplePattern = Dice::sparql::TriplePattern;
-			using Variable = Dice::sparql::Variable;
-		public:
+			using Term = rdf4cpp::rdf::Node;
+			using BNode = rdf4cpp::rdf::BlankNode;
+			using Literal = rdf4cpp::rdf::Literal;
+			using URIRef = rdf4cpp::rdf::IRI;
+			using Triple = rdf4cpp::rdf::Statement;
+			using TriplePattern = rdf4cpp::rdf::query::TriplePattern;
+			using Variable = rdf4cpp::rdf::query::Variable;
 
+		public:
 			constexpr static bool chunked_output = std::is_same_v<output_type_t, restinio::chunked_output_t>;
 			constexpr static size_t chunk_size = 100'000'000UL;
 
@@ -90,8 +92,7 @@ namespace tentris::http {
 					// if the execution of the query should fail return an internal server error
 					status = Status::UNEXPECTED;
 					error_message = exc.what();
-				}
-				catch (...) {
+				} catch (...) {
 					// if the execution of the query should fail return an internal server error
 					status = Status::SEVERE_UNEXPECTED;
 				}
@@ -102,10 +103,10 @@ namespace tentris::http {
 						break;
 					case UNPARSABLE:
 						logError(" ## unparsable query\n"
-								 "    query_string: {}"_format(query_string)
-						);
+								 "    query_string: {}"_format(query_string));
 						handled = req->create_response(restinio::http_status_line_t{restinio::status_code::bad_request,
-																					"Could not parse the requested query."s}).done();
+																					"Could not parse the requested query."s})
+										  .done();
 						break;
 					case UNKNOWN_REQUEST:
 						logError("unknown HTTP command. Only HTTP GET and POST are supported.");
@@ -122,16 +123,18 @@ namespace tentris::http {
 						handled = restinio::request_accepted();
 						break;
 					case UNEXPECTED:
-						logError(" ## unexpected internal error, exception_message: {}"_format(error_message)
-						);
+						logError(" ## unexpected internal error, exception_message: {}"_format(error_message));
 						handled = req->create_response(
-								restinio::status_internal_server_error()).connection_close().done();
+											 restinio::status_internal_server_error())
+										  .connection_close()
+										  .done();
 						break;
 					case SEVERE_UNEXPECTED:
-						logError(" ## severe unexpected internal error,  exception_message: {}"_format(error_message)
-						);
+						logError(" ## severe unexpected internal error,  exception_message: {}"_format(error_message));
 						handled = req->create_response(
-								restinio::status_internal_server_error()).connection_close().done();
+											 restinio::status_internal_server_error())
+										  .connection_close()
+										  .done();
 						break;
 				}
 				if (handled == restinio::request_rejected())
@@ -144,25 +147,16 @@ namespace tentris::http {
 				return handled;
 			};
 
-			Status
-			static runQuery(restinio::request_handle_t &req, std::shared_ptr<QueryExecutionPackage> &query_package,
-							const time_point_t timeout) {
+			Status static runQuery(restinio::request_handle_t &req, std::shared_ptr<QueryExecutionPackage> &query_package,
+								   const time_point_t timeout) {
 
-				switch (query_package->getSelectModifier()) {
-					case SelectModifier::NONE: {
-						return runQuery < COUNTED_t > (req, query_package, timeout);
-					}
-					case SelectModifier::DISTINCT: {
-						return runQuery < DISTINCT_t > (req, query_package, timeout);
-					}
-					default:
-						break;
-				}
-				logTrace("Query type is not yet supported.");
-				return Status::UNPARSABLE;
+									if (not query_package->getQuery().distinct)
+										return runQuery<false>(req, query_package, timeout);
+									else
+										return runQuery<true>(req, query_package, timeout);
 			};
 
-			template<typename RESULT_TYPE>
+			template<bool Distinct>
 			static Status
 			runQuery(restinio::request_handle_t &req, std::shared_ptr<QueryExecutionPackage> &query_package,
 					 const time_point_t timeout) {
@@ -170,18 +164,15 @@ namespace tentris::http {
 					return Status::PROCESSING_TIMEOUT;
 				}
 
-
 				// check if it timed out
-				const std::vector<Variable> &vars = query_package->getQueryVariables();
-
-
+				const std::vector<Variable> &vars = query_package->getQuery().projected_variables;
 
 				if (query_package->is_trivial_empty) {
 					// create HTTP response object
 					auto resp = req->create_response();
 					resp.append_header(restinio::http_field::content_type, "application/sparql-results+json");
 
-					SparqlJsonResultSAXWriter<RESULT_TYPE> json_result(vars, 1'000UL);
+					SparqlJsonResultSAXWriter<RESULT_TYPE<Distinct>> json_result(vars, 1'000UL);
 					json_result.close();
 					resp.set_body(std::string{json_result.string_view()});
 					resp.done();
@@ -191,12 +182,17 @@ namespace tentris::http {
 					restinio::response_builder_t<output_type_t> resp = req->create_response<output_type_t>();
 					resp.append_header(restinio::http_field::content_type, "application/sparql-results+json");
 
-					SparqlJsonResultSAXWriter<RESULT_TYPE> json_result(vars, chunk_size);
+					SparqlJsonResultSAXWriter<RESULT_TYPE<Distinct>> json_result(vars, chunk_size);
 
 					try {
-						for ( EinsumEntry<RESULT_TYPE> const &result : Dice::einsum::einsum<RESULT_TYPE, tr>(query_package->getSubscript(), query_package->getOperands(), timeout)) {
+						std::vector<char> proj_vars_id{};
+						for (auto const &proj_var : query_package->getQuery().projected_variables) {
+							proj_vars_id.push_back(query_package->getQuery().var_to_id[proj_var]);
+						}
+						Query query(query_package->getQuery().odg, query_package->getOperands(), proj_vars_id);
+						for (auto const &result : Dice::query::Evaluation::evaluate<tr, Distinct>(query)) {
 							json_result.add(result);
-							if constexpr(chunked_output) {
+							if constexpr (chunked_output) {
 								if (json_result.full()) {
 									resp.append_chunk(std::string{json_result.string_view()});
 									resp.flush();
@@ -204,13 +200,13 @@ namespace tentris::http {
 								}
 							}
 						}
-					} catch (Dice::einsum::TimeoutException const &te){
+					} catch (...) {
 						return Status::PROCESSING_TIMEOUT;
 					}
 
 					json_result.close();
 
-					if constexpr(chunked_output) {
+					if constexpr (chunked_output) {
 						resp.append_chunk(std::string{json_result.string_view()});
 					} else {
 						resp.set_body(std::string{json_result.string_view()});
@@ -223,8 +219,8 @@ namespace tentris::http {
 		};
 
 
-	};
+	};// namespace sparql_endpoint
 
 
-} // namespace tentris::http
-#endif // TENTRIS_SPARQLENDPOINT_HPP
+}// namespace tentris::http
+#endif// TENTRIS_SPARQLENDPOINT_HPP

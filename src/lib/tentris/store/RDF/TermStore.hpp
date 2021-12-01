@@ -1,10 +1,10 @@
 #ifndef TENTRIS_STORE_RDFTERMINDEX
 #define TENTRIS_STORE_RDFTERMINDEX
 
-#include <tsl/sparse_set.h>
-
-#include <Dice/RDF/Term.hpp>
 #include <Dice/hash/DiceHash.hpp>
+#include <fmt/format.h>
+#include <rdf4cpp/rdf.hpp>
+#include <tsl/sparse_set.h>
 
 #include <memory>
 #include <tuple>
@@ -17,39 +17,47 @@ namespace tentris::store::rdf {
 	 */
 	struct TermHash {
 	private:
-		using Term = Dice::rdf::Term;
+		using Term = rdf4cpp::rdf::Node;
+
+		template<typename T>
+		[[nodiscard]] std::size_t call_diceHash(T const &t) const noexcept {
+			Dice::hash::DiceHash<T> hashing;
+			return hashing(t);
+		}
+
 	public:
-		size_t operator()(Term const  &term) const noexcept{
-			return term.hash();
+		size_t operator()(Term const &term) const noexcept {
+			return call_diceHash(std::string(term));
 		}
 
-		size_t operator()(std::unique_ptr<Term> const &term_ptr) const noexcept{
-			return term_ptr->hash();
+		size_t operator()(std::unique_ptr<Term> const &term_ptr) const noexcept {
+			return call_diceHash(std::string(*term_ptr));
 		}
 
-		size_t operator()(Term const *const term_ptr) const noexcept{
-			return term_ptr->hash();
+		size_t operator()(Term const *const term_ptr) const noexcept {
+			return call_diceHash(std::string(*term_ptr));
 		}
 	};
 
 
 	class TermStore {
-		using Term = Dice::rdf::Term;
-		using BNode = Dice::rdf::BNode;
-		using Literal = Dice::rdf::Literal;
-		using URIRef = Dice::rdf::URIRef;
+		using Term = rdf4cpp::rdf::Node;
+		using BNode = rdf4cpp::rdf::BlankNode;
+		using Literal = rdf4cpp::rdf::Literal;
+		using URIRef = rdf4cpp::rdf::IRI;
+
 	public:
 		using set_type = tsl::sparse_set<std::unique_ptr<Term>,
-				TermHash,
-				std::equal_to<>,
-				std::allocator<std::unique_ptr<Term>>,
-				tsl::sh::power_of_two_growth_policy<2>,
-				tsl::sh::exception_safety::basic>;
+										 TermHash,
+										 std::equal_to<>,
+										 std::allocator<std::unique_ptr<Term>>,
+										 tsl::sh::power_of_two_growth_policy<2>,
+										 tsl::sh::exception_safety::basic>;
 		using const_iterator = set_type::const_iterator;
 
 	private:
-
 		set_type terms{};
+
 	public:
 		using ptr_type = Term const *;
 
@@ -59,14 +67,12 @@ namespace tentris::store::rdf {
 		}
 
 		[[nodiscard]] bool contains(const Term &term, const std::size_t &term_hash) const {
-			auto found = terms.find(term, term_hash);
-			return found != terms.end();
+			return terms.contains(term, term_hash);
 		}
 
 		[[nodiscard]] bool valid(ptr_type term_ptr) const {
 			auto term_hash = TermHash()(term_ptr);
-			auto found = terms.find(*term_ptr, term_hash);
-			return found != terms.end();
+			return terms.contains(*term_ptr, term_hash);
 		}
 
 		[[nodiscard]] ptr_type get(const Term &term) const {
@@ -113,9 +119,8 @@ namespace tentris::store::rdf {
 		[[nodiscard]] std::size_t size() const {
 			return terms.size();
 		}
-
 	};
-};
+}
 
 template<>
 struct fmt::formatter<tentris::store::rdf::TermStore> {
@@ -132,5 +137,4 @@ struct fmt::formatter<tentris::store::rdf::TermStore> {
 };
 
 
-#endif //TENTRIS_STORE_RDFTERMINDEX
-
+#endif//TENTRIS_STORE_RDFTERMINDEX

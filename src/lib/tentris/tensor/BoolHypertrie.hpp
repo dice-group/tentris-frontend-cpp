@@ -2,8 +2,8 @@
 #define TENTRIS_BOOLHYPERTRIE_HPP
 
 #include "tentris/store/RDF/TermStore.hpp"
-#include <Dice/einsum.hpp>
 #include <Dice/hypertrie.hpp>
+#include <Dice/query.hpp>
 
 namespace tentris::tensor {
 	using key_part_type = store::rdf::TermStore::ptr_type;
@@ -21,11 +21,14 @@ namespace tentris::tensor {
 	using Key = Dice::hypertrie::Key<tr>;
 	using NonZeroEntry = Dice::hypertrie::NonZeroEntry<tr>;
 
+	template<bool Distinct>
+	using RESULT_TYPE = std::conditional_t<Distinct, bool, std::size_t>;
 	template<typename result_type>
-	using EinsumEntry = Dice::einsum::Entry<result_type, tr>;
+	using Solution = Dice::query::Entry<result_type, tr>;
+	using Query = Dice::query::Query<tr>;
 	using DISTINCT_t = bool;
 	using COUNTED_t = std::size_t;
-	using Subscript = Dice::einsum::Subscript;
+
 }// namespace tentris::tensor
 
 #endif//TENTRIS_BOOLHYPERTRIE_HPP

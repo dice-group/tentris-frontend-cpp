@@ -1,11 +1,10 @@
 #ifndef TENTRIS_SERDPARSER2_H
 #define TENTRIS_SERDPARSER2_H
 
-#include <Dice/RDF/Term.hpp>
-#include <Dice/RDF/Triple.hpp>
 #include <Dice/hash/DiceHash.hpp>
 #include <fmt/core.h>
 #include <fmt/format.h>
+#include <rdf4cpp/rdf.hpp>
 #include <serd-0/serd/serd.h>
 
 #include "tentris/store/RDF/TermStore.hpp"
@@ -21,11 +20,10 @@ namespace tentris::store::rdf {
 
 	class SerdParser2 {
 
-		using Triple = Dice::rdf::Triple;
-		using Term = Dice::rdf::Term;
-		using BNode = Dice::rdf::BNode;
-		using Literal = Dice::rdf::Literal;
-		using URIRef = Dice::rdf::URIRef;
+		using Triple = rdf4cpp::rdf::Statement;
+		using BNode = rdf4cpp::rdf::BlankNode;
+		using Literal = rdf4cpp::rdf::Literal;
+		using URIRef = rdf4cpp::rdf::IRI;
 
 		using prefixes_map_type = robin_hood::unordered_map<std::string, std::string>;
 
@@ -71,13 +69,11 @@ namespace tentris::store::rdf {
 		static inline Literal getLiteral(const SerdNode *literal, const SerdNode *type_node, const SerdNode *lang_node) {
 			std::string literal_value = std::string{(char *) (literal->buf), size_t(literal->n_bytes)};
 			if (type_node != nullptr)
-				return Literal(literal_value, std::nullopt,
-							   std::string{(char *) (type_node->buf), size_t(type_node->n_bytes)});
+				return Literal{literal_value, URIRef(std::string{(char *) (type_node->buf), size_t(type_node->n_bytes)})};
 			else if (lang_node != nullptr)
-				return Literal(literal_value, std::string{(char *) (lang_node->buf), size_t(lang_node->n_bytes)},
-							   std::nullopt);
+				return Literal{literal_value, std::string{(char *) (lang_node->buf), size_t(lang_node->n_bytes)}};
 			else
-				return Literal(literal_value, std::nullopt, std::nullopt);
+				return Literal(literal_value);
 		};
 
 		static inline SerdStatus on_statement(SerdHandle *handle,
@@ -88,7 +84,7 @@ namespace tentris::store::rdf {
 											  const SerdNode *object,
 											  const SerdNode *object_datatype,
 											  const SerdNode *object_lang) {
-			Dice::rdf::Triple triple;
+			Triple triple;
 			if (graph != nullptr) {
 				std::cerr << "WARNING: File uses graph but graphs are not yet supported." << std::endl;
 			}
@@ -135,7 +131,7 @@ namespace tentris::store::rdf {
 					return SERD_ERR_BAD_SYNTAX;
 			}
 			using RawEntry = tensor::HypertrieBulkInserter::RawEntry<3>;
-			if (not triple.subject().isLiteral() and triple.predicate().isURIRef()) {
+			if (not triple.subject().is_literal() and triple.predicate().is_iri()) {
 				auto subject_id = handle->term_index[triple.subject()];
 				auto predicate_id = handle->term_index[triple.predicate()];
 				auto object_id = handle->term_index[triple.object()];
