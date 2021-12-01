@@ -152,6 +152,73 @@ int main(int argc, char *argv[]) {
 				}
 			});
 
+	router->http_get(
+			R"(/ask)",
+			[&](restinio::request_handle_t req, auto const &params) -> restinio::request_handling_status_t {
+				using AtomicTripleStoreConfig = ::tentris::store::config::AtomicTripleStoreConfig;
+				using AtomicQueryExecutionCache = ::tentris::store::AtomicQueryExecutionCache;
+				using QueryExecutionPackage = ::tentris::store::cache::QueryExecutionPackage;
+				using Status = ResultState;
+
+				using namespace ::tentris::logging;
+				using namespace ::tentris::store;
+				using SelectModifier = Dice::sparql::Nodes::QueryNodes::SelectNodes::SelectModifier;
+				using namespace ::tentris::tensor;
+
+				using namespace std::string_literals;
+				using namespace ::std::chrono;
+				using Term = Dice::rdf::Term;
+				using BNode = Dice::rdf::BNode;
+				using Literal = Dice::rdf::Literal;
+				using URIRef = Dice::rdf::URIRef;
+				using Triple = Dice::rdf::Triple;
+				using TriplePattern = Dice::sparql::TriplePattern;
+				using Variable = Dice::sparql::Variable;
+
+				auto start_time = steady_clock::now();
+				log("request started.");
+				auto start_memory = get_memory_usage();
+				logDebug("ram: {:d} kB"_format(start_memory));
+				auto timeout = start_time + AtomicTripleStoreConfig::getInstance().timeout;
+				std::shared_ptr<QueryExecutionPackage> query_package;
+				std::string query_string{};
+				try {
+					const auto query_params = restinio::parse_query<restinio::parse_query_traits::javascript_compatible>(
+							req->header().query());
+					query_string = std::string(query_params["query"]);
+					log("query: {}"_format(query_string));
+					// check if there is actually an query
+					try {
+						query_package = AtomicQueryExecutionCache::getInstance()[query_string];
+					} catch (const std::invalid_argument &exc) {
+						logDebug(exc.what());
+						return req->create_response(status_bad_request()).set_body("Query could not be parsed.").done();
+					}
+					try {
+						auto ask_subscript = std::make_shared<Dice::einsum::Subscript>(query_package->getSubscript()->getRawSubscript().operands, Subscript::ResultSc{});
+						bool ask = false;
+						for (auto const &entry : Dice::einsum::einsum<DISTINCT_t, tr>(query_package->getSubscript(), query_package->getOperands(), timeout)) {
+							if (entry.value()) {
+								ask = true;
+								break;
+							}
+						}
+						log("ask: {}"_format(ask));
+						return req->create_response().set_body(fmt::format("{}", ask)).done();
+
+					} catch (Dice::einsum::TimeoutException const &ex) {
+						return req->create_response(status_request_time_out())
+								.set_body(fmt::format("Timed out after {} s.",
+													  duration_cast<seconds>(AtomicTripleStoreConfig::getInstance().timeout).count()))
+								.done();
+					}
+				} catch (const std::exception &exc) {
+					// if the execution of the query should fail return an internal server error
+					logDebug(exc.what());
+					return req->create_response(status_bad_request()).set_body("?query parameter missing or faulty.").done();
+				}
+			});
+
 	router->non_matched_request_handler(
 			[](auto req) -> restinio::request_handling_status_t {
 				return req->create_response(restinio::status_not_found()).connection_close().done();
