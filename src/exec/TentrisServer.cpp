@@ -85,29 +85,17 @@ int main(int argc, char *argv[]) {
 			tentris::http::sparql_endpoint::SparqlEndpoint<restinio::chunked_output_t>{});
 	router->http_get(
 			R"(/count)",
-			[&](restinio::request_handle_t req, auto const &params) -> restinio::request_handling_status_t {
-				using AtomicTripleStoreConfig = ::tentris::store::config::AtomicTripleStoreConfig;
-				using AtomicQueryExecutionCache = ::tentris::store::AtomicQueryExecutionCache;
-				using QueryExecutionPackage = ::tentris::store::cache::QueryExecutionPackage;
-				using Status = ResultState;
-
-				using namespace ::tentris::logging;
-				using namespace ::tentris::store;
-				using SelectModifier = Dice::sparql::Nodes::QueryNodes::SelectNodes::SelectModifier;
-				using namespace ::tentris::tensor;
-
-				using namespace std::string_literals;
+			[&](restinio::request_handle_t req, auto const &) -> restinio::request_handling_status_t {
 				using namespace ::std::chrono;
-				using Term = Dice::rdf::Term;
-				using BNode = Dice::rdf::BNode;
-				using Literal = Dice::rdf::Literal;
-				using URIRef = Dice::rdf::URIRef;
-				using Triple = Dice::rdf::Triple;
-				using TriplePattern = Dice::sparql::TriplePattern;
-				using Variable = Dice::sparql::Variable;
+				using namespace ::tentris::logging;
+				using namespace ::tentris::tensor;
+				using AtomicQueryExecutionCache = ::tentris::store::AtomicQueryExecutionCache;
+				using AtomicTripleStoreConfig = ::tentris::store::config::AtomicTripleStoreConfig;
+				using QueryExecutionPackage = ::tentris::store::cache::QueryExecutionPackage;
+				using SelectModifier = Dice::sparql::Nodes::QueryNodes::SelectNodes::SelectModifier;
 
 				auto start_time = steady_clock::now();
-				log("request started.");
+				log("count request started.");
 				auto start_memory = get_memory_usage();
 				logDebug("ram: {:d} kB"_format(start_memory));
 				auto timeout = start_time + AtomicTripleStoreConfig::getInstance().timeout;
@@ -129,7 +117,7 @@ int main(int argc, char *argv[]) {
 					try {
 
 						if (query_package->getSelectModifier() == SelectModifier::DISTINCT) {
-							for (auto const &entry : Dice::einsum::einsum<DISTINCT_t, tr>(query_package->getSubscript(), query_package->getOperands(), timeout))
+							for ([[maybe_unused]] auto const &entry : Dice::einsum::einsum<DISTINCT_t, tr>(query_package->getSubscript(), query_package->getOperands(), timeout))
 								++count;
 						} else {
 							for (auto const &entry : Dice::einsum::einsum<DISTINCT_t, tr>(query_package->getSubscript(), query_package->getOperands(), timeout))
@@ -154,29 +142,16 @@ int main(int argc, char *argv[]) {
 
 	router->http_get(
 			R"(/ask)",
-			[&](restinio::request_handle_t req, auto const &params) -> restinio::request_handling_status_t {
-				using AtomicTripleStoreConfig = ::tentris::store::config::AtomicTripleStoreConfig;
-				using AtomicQueryExecutionCache = ::tentris::store::AtomicQueryExecutionCache;
-				using QueryExecutionPackage = ::tentris::store::cache::QueryExecutionPackage;
-				using Status = ResultState;
-
-				using namespace ::tentris::logging;
-				using namespace ::tentris::store;
-				using SelectModifier = Dice::sparql::Nodes::QueryNodes::SelectNodes::SelectModifier;
-				using namespace ::tentris::tensor;
-
-				using namespace std::string_literals;
+			[&](restinio::request_handle_t req, auto const &) -> restinio::request_handling_status_t {
 				using namespace ::std::chrono;
-				using Term = Dice::rdf::Term;
-				using BNode = Dice::rdf::BNode;
-				using Literal = Dice::rdf::Literal;
-				using URIRef = Dice::rdf::URIRef;
-				using Triple = Dice::rdf::Triple;
-				using TriplePattern = Dice::sparql::TriplePattern;
-				using Variable = Dice::sparql::Variable;
+				using namespace ::tentris::logging;
+				using namespace ::tentris::tensor;
+				using AtomicQueryExecutionCache = ::tentris::store::AtomicQueryExecutionCache;
+				using AtomicTripleStoreConfig = ::tentris::store::config::AtomicTripleStoreConfig;
+				using QueryExecutionPackage = ::tentris::store::cache::QueryExecutionPackage;
 
 				auto start_time = steady_clock::now();
-				log("request started.");
+				log("ask request started.");
 				auto start_memory = get_memory_usage();
 				logDebug("ram: {:d} kB"_format(start_memory));
 				auto timeout = start_time + AtomicTripleStoreConfig::getInstance().timeout;
