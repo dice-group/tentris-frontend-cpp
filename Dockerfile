@@ -73,6 +73,7 @@ RUN cmake \
     -DCMAKE_BUILD_TYPE=Release \
     -DTENTRIS_BUILD_WITH_TCMALLOC=true \
     -DTENTRIS_STATIC=true \
+    -DTENTRIS_MARCH=${TENTRIS_MARCH} \
     ..
 RUN make -j $(nproc)
 FROM scratch
