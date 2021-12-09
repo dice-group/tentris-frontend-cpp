@@ -24,6 +24,8 @@ namespace tentris::store {
 	class SparqlJsonResultSAXWriter {
 		using Term = rdf4cpp::rdf::Node;
 		using Literal = rdf4cpp::rdf::Literal;
+		using BNode = rdf4cpp::rdf::BlankNode;
+		using URIRef = rdf4cpp::rdf::IRI;
 		using Variable = rdf4cpp::rdf::query::Variable;
 		using Solution = ::tentris::tensor::Solution<result_type>;
 
@@ -90,26 +92,34 @@ namespace tentris::store {
 					}
 					writer.Key("value");
 
-					auto value = std::string(*term);
-					writer.String(value.data(), value.size());
-
 					if (term->is_literal()) {
-						auto literal_term = rdf4cpp::rdf::Literal(*term);
-						if (not literal_term.datatype().null()) {
-							auto data_type = literal_term.datatype().identifier();
+						auto literal_term = (Literal *) term;
+						writer.String(literal_term->lexical_form().data(), literal_term->lexical_form().size());
+						if (not literal_term->datatype().null()) {
+							auto data_type = literal_term->datatype().identifier();
 							writer.Key("datatype");
 							writer.String(data_type.data(), data_type.size());
-						} else if (not literal_term.language_tag().empty()) {
-							auto lang = literal_term.language_tag();
+						} else if (not literal_term->language_tag().empty()) {
+							auto lang = literal_term->language_tag();
 							writer.Key("xml:lang");
 							writer.String(lang.data(), lang.size());
 						}
+					} else if (term->is_iri()) {
+						auto iri_term = (URIRef *) term;
+						writer.String(iri_term->identifier().data(), iri_term->identifier().size());
+					} else if (term->is_blank_node()) {
+						auto bnode_term = (BNode *) term;
+						writer.String(bnode_term->identifier().data(), bnode_term->identifier().size());
+					} else {
+						logging::log("Incomplete term with no type (Literal, BNode, URI) detected.");
+						assert(false);
 					}
+
 					writer.EndObject();
 					term_count_++;
 				}
+				writer.EndObject();
 			}
-			writer.EndObject();
 
 			result_count += solution.value();
 		}

@@ -27,15 +27,15 @@ namespace tentris::store::rdf {
 
 	public:
 		size_t operator()(Term const &term) const noexcept {
-			return call_diceHash(std::string(term));
+			return std::hash<rdf4cpp::rdf::Node>()(term);
 		}
 
 		size_t operator()(std::unique_ptr<Term> const &term_ptr) const noexcept {
-			return call_diceHash(std::string(*term_ptr));
+			return std::hash<rdf4cpp::rdf::Node>()(*term_ptr);
 		}
 
 		size_t operator()(Term const *const term_ptr) const noexcept {
-			return call_diceHash(std::string(*term_ptr));
+			return std::hash<rdf4cpp::rdf::Node>()(*term_ptr);
 		}
 	};
 

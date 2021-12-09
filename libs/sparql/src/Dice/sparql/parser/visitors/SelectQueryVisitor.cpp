@@ -251,7 +251,6 @@ namespace Dice::sparql::parser::visitors {
 
 	antlrcpp::Any SelectQueryVisitor::visitRdfLiteral(SparqlParser::RdfLiteralContext *ctx) {
 		std::string value = visitString(ctx->string());
-		std::cout << value << std::endl;
 		if (ctx->iri())
 			return rdf4cpp::rdf::Literal(value, visitIri(ctx->iri()).as<rdf4cpp::rdf::IRI>());
 		else if (ctx->LANGTAG())
@@ -323,12 +322,13 @@ namespace Dice::sparql::parser::visitors {
 					query->odg.addDependency(var_depth_tp[id][depth], tp_count, id);
 				}
 			} else {
-				if (depth_tp.contains(depth)) {
+				if (depth_tp.contains(depth) and tp_count != depth_tp[depth]) {
 					query->odg.addDependency(tp_count, depth_tp[depth]);
 					query->odg.addDependency(depth_tp[depth], tp_count);
 				}
 			}
 			var_depth_tp[id][depth] = tp_count;
+			depth_tp[depth] = tp_count;
 		}
 	}
 

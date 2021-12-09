@@ -70,7 +70,7 @@ if (TENTRIS_BUILD_WITH_TCMALLOC)
         set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--eh-frame-hdr")
     endif ()
 endif ()
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -Wextra -g -O0 -fcoroutines")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -Wextra -g -O0")
 
 add_library(rapidjson INTERFACE)
 target_include_directories(rapidjson INTERFACE

@@ -62,7 +62,6 @@ namespace tentris::store {
 					++slice_count;
 
 			SliceKey slice_key(3, std::nullopt);
-			std::cout << tp << std::endl;
 			for (const auto &[pos, entry] : iter::enumerate(tp)) {
 				if (not entry.is_variable()) {
 					try {
