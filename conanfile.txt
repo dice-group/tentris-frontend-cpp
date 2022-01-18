@@ -1,15 +1,17 @@
 [requires]
 boost/1.77.0
-restinio/0.6.13
-hypertrie/0.7.1@dice-group/experimental
+fmt/8.0.1
+restinio/0.6.14
+hypertrie/0.7.3@dice-group/experimental
 rdf-parser/0.14.0@dice-group/stable
 sparql-parser/0.3.0@dice-group/rc2
-vincentlaucsb-csv-parser/2.1.3
 cxxopts/2.2.1
 # override for conflict between sparql-parser and rdf-parser
 robin-hood-hashing/3.11.3
-# override until restinio/0.6.14 with support for fmt/8.0.1 is available
-fmt/7.1.3
+taskflow/3.2.0
+nlohmann_json/3.10.4
+spdlog/1.9.2
+vincentlaucsb-csv-parser/2.1.3
 
 [options]
 restinio:asio=boost

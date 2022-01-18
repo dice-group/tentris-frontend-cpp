@@ -97,10 +97,17 @@ find_package(string-view-lite REQUIRED)
 find_package(optional-lite REQUIRED)
 find_package(hypertrie REQUIRED)
 
-# make a library of the code
-add_library(tentris INTERFACE)
-
 include(FetchContent)
+FetchContent_Declare(
+        RDF4CPP
+        GIT_REPOSITORY "https://github.com/rdf4cpp/rdf4cpp"
+        GIT_TAG "559bf3742871fdf5c2f9dad634193f97e1198c9b"
+        UPDATE_COMMAND ""
+)
+FetchContent_MakeAvailable(RDF4CPP)
+
+add_subdirectory(libs)
+add_subdirectory(execs)
 
 set(cppitertools_INSTALL_CMAKE_DIR share CACHE INTERNAL "")
 FetchContent_Declare(
@@ -109,98 +116,98 @@ FetchContent_Declare(
         GIT_TAG b2b98e60438f1ed6b04b77cdb6cc5d5516af301b
         GIT_SHALLOW TRUE)
 FetchContent_MakeAvailable(cppitertools)
+#
+#target_link_libraries(tentris
+#        INTERFACE
+#        stdc++fs # for #include <filesystem>
+#        cxxopts::cxxopts
+#        rapidjson
+#        sparql-parser::sparql-parser
+#        fmt::fmt
+#        hypertrie::hypertrie
+#        rdf-parser::rdf-parser
+#        Boost::Boost
+#        serd-0
+#        cppitertools::cppitertools
+#        )
+#
+#target_include_directories(tentris INTERFACE
+#        # todo: move code to include/Dice/tentris
+#        src/lib/
+#        ${Boost_INCLUDE_DIRS}
+#        )
+#
+## for rt and pthread linkage see:
+## * https://stackoverflow.com/questions/58848694/gcc-whole-archive-recipe-for-static-linking-to-pthread-stopped-working-in-rec
+## * https://stackoverflow.com/questions/35116327/when-g-static-link-pthread-cause-segmentation-fault-why
+#if (TENTRIS_STATIC)
+#    set(TENTRIS_STATIC_DEF -static)
+#    set(TENTRIS_PTHREAD_DEF -Wl,--whole-archive -lrt -lpthread -Wl,--no-whole-archive)
+#else ()
+#    set(TENTRIS_PTHREAD_DEF -lpthread)
+#endif ()
 
-target_link_libraries(tentris
-        INTERFACE
-        stdc++fs # for #include <filesystem>
-        cxxopts::cxxopts
-        rapidjson
-        sparql-parser::sparql-parser
-        fmt::fmt
-        hypertrie::hypertrie
-        rdf-parser::rdf-parser
-        Boost::Boost
-        serd-0
-        cppitertools::cppitertools
-        )
+#
+## main executable targets
+#add_executable(tentris_server src/exec/TentrisServer.cpp src/exec/config/ServerConfig.hpp src/exec/config/TerminalConfig.hpp)
+#target_link_libraries(tentris_server
+#        PRIVATE
+#        ${TENTRIS_STATIC_DEF}
+#        ${TENTRIS_PTHREAD_DEF}
+#        tentris
+#        restinio::restinio
+#        nonstd::string-view-lite
+#        nonstd::optional-lite
+#        nonstd::variant-lite
+#        )
+#add_dependencies(tentris_server tentris)
+#
+#add_executable(tentris_terminal src/exec/TentrisTerminal.cpp src/exec/config/ServerConfig.hpp src/exec/config/TerminalConfig.hpp)
+#target_link_libraries(tentris_terminal
+#        ${TENTRIS_STATIC_DEF}
+#        ${TENTRIS_PTHREAD_DEF}
+#        tentris
+#        )
+#add_dependencies(tentris_terminal tentris)
+#
+#add_executable(rdf2ids src/exec/tools/RDF2IDs.cpp)
+#target_link_libraries(rdf2ids
+#        ${TENTRIS_STATIC_DEF}
+#        ${TENTRIS_PTHREAD_DEF}
+#        tentris
+#        )
+#add_dependencies(rdf2ids tentris)
+#
+#add_executable(ids2hypertrie src/exec/tools/IDs2Hypertrie.cpp)
+#target_link_libraries(ids2hypertrie
+#        ${TENTRIS_STATIC_DEF}
+#        ${TENTRIS_PTHREAD_DEF}
+#        tentris
+#        vincentlaucsb-csv-parser::vincentlaucsb-csv-parser
+#        )
+#add_dependencies(ids2hypertrie tentris)
 
-target_include_directories(tentris INTERFACE
-        # todo: move code to include/Dice/tentris
-        src/lib/
-        ${Boost_INCLUDE_DIRS}
-        )
-
-# for rt and pthread linkage see:
-# * https://stackoverflow.com/questions/58848694/gcc-whole-archive-recipe-for-static-linking-to-pthread-stopped-working-in-rec
-# * https://stackoverflow.com/questions/35116327/when-g-static-link-pthread-cause-segmentation-fault-why
-if (TENTRIS_STATIC)
-    set(TENTRIS_STATIC_DEF -static)
-    set(TENTRIS_PTHREAD_DEF -Wl,--whole-archive -lrt -lpthread -Wl,--no-whole-archive)
-else ()
-    set(TENTRIS_PTHREAD_DEF -lpthread)
-endif ()
-
-
-# main executable targets
-add_executable(tentris_server src/exec/TentrisServer.cpp src/exec/config/ServerConfig.hpp src/exec/config/TerminalConfig.hpp)
-target_link_libraries(tentris_server
-        PRIVATE
-        ${TENTRIS_STATIC_DEF}
-        ${TENTRIS_PTHREAD_DEF}
-        tentris
-        restinio::restinio
-        nonstd::string-view-lite
-        nonstd::optional-lite
-        nonstd::variant-lite
-        )
-add_dependencies(tentris_server tentris)
-
-add_executable(tentris_terminal src/exec/TentrisTerminal.cpp src/exec/config/ServerConfig.hpp src/exec/config/TerminalConfig.hpp)
-target_link_libraries(tentris_terminal
-        ${TENTRIS_STATIC_DEF}
-        ${TENTRIS_PTHREAD_DEF}
-        tentris
-        )
-add_dependencies(tentris_terminal tentris)
-
-add_executable(rdf2ids src/exec/tools/RDF2IDs.cpp)
-target_link_libraries(rdf2ids
-        ${TENTRIS_STATIC_DEF}
-        ${TENTRIS_PTHREAD_DEF}
-        tentris
-        )
-add_dependencies(rdf2ids tentris)
-
-add_executable(ids2hypertrie src/exec/tools/IDs2Hypertrie.cpp)
-target_link_libraries(ids2hypertrie
-        ${TENTRIS_STATIC_DEF}
-        ${TENTRIS_PTHREAD_DEF}
-        tentris
-        vincentlaucsb-csv-parser::vincentlaucsb-csv-parser
-        )
-add_dependencies(ids2hypertrie tentris)
-
-if (CMAKE_BUILD_TYPE MATCHES "Release")
-    set_target_properties(tentris_server PROPERTIES LINK_FLAGS_RELEASE -s)
-    set_target_properties(tentris_terminal PROPERTIES LINK_FLAGS_RELEASE -s)
-    set_target_properties(rdf2ids PROPERTIES LINK_FLAGS_RELEASE -s)
-    set_target_properties(ids2hypertrie PROPERTIES LINK_FLAGS_RELEASE -s)
-    include(CheckIPOSupported)
-    check_ipo_supported(RESULT result LANGUAGES CXX) # fatal error if IPO is not supported
-    if ((CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "13"))
-        message("Use full lto for clang >=13 instead of thinlto because otherwise the executable cause a SIGSEGV.")
-        add_link_options(tentris_server PRIVATE -flto)
-        add_link_options(tentris_terminal PRIVATE -flto)
-        add_link_options(ids2hypertrie PRIVATE -flto)
-        add_link_options(rdf2ids PRIVATE -flto)
-    else ()
-        message("INTERPROCEDURAL_OPTIMIZATION enabled.")
-        set_property(TARGET tentris_server PROPERTY INTERPROCEDURAL_OPTIMIZATION True)
-        set_property(TARGET tentris_terminal PROPERTY INTERPROCEDURAL_OPTIMIZATION True)
-        set_property(TARGET ids2hypertrie PROPERTY INTERPROCEDURAL_OPTIMIZATION True)
-        set_property(TARGET rdf2ids PROPERTY INTERPROCEDURAL_OPTIMIZATION True)
-    endif ()
-endif ()
+#if (CMAKE_BUILD_TYPE MATCHES "Release")
+#    set_target_properties(tentris_server PROPERTIES LINK_FLAGS_RELEASE -s)
+#    set_target_properties(tentris_terminal PROPERTIES LINK_FLAGS_RELEASE -s)
+#    set_target_properties(rdf2ids PROPERTIES LINK_FLAGS_RELEASE -s)
+#    set_target_properties(ids2hypertrie PROPERTIES LINK_FLAGS_RELEASE -s)
+#    include(CheckIPOSupported)
+#    check_ipo_supported(RESULT result LANGUAGES CXX) # fatal error if IPO is not supported
+#    if ((CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "13"))
+#        message("Use full lto for clang >=13 instead of thinlto because otherwise the executable cause a SIGSEGV.")
+#        add_link_options(tentris_server PRIVATE -flto)
+#        add_link_options(tentris_terminal PRIVATE -flto)
+#        add_link_options(ids2hypertrie PRIVATE -flto)
+#        add_link_options(rdf2ids PRIVATE -flto)
+#    else ()
+#        message("INTERPROCEDURAL_OPTIMIZATION enabled.")
+#        set_property(TARGET tentris_server PROPERTY INTERPROCEDURAL_OPTIMIZATION True)
+#        set_property(TARGET tentris_terminal PROPERTY INTERPROCEDURAL_OPTIMIZATION True)
+#        set_property(TARGET ids2hypertrie PROPERTY INTERPROCEDURAL_OPTIMIZATION True)
+#        set_property(TARGET rdf2ids PROPERTY INTERPROCEDURAL_OPTIMIZATION True)
+#    endif ()
+#endif ()
 
 if (CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND BUILD_TESTING)
     include(CTest)
