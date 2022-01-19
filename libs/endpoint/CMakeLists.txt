@@ -4,7 +4,8 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 include(GNUInstallDirs)
 
 add_library(endpoint
-        src/Dice/endpoint/dummy.cpp
+        src/Dice/endpoint/HTTPServer.cpp
+        src/Dice/endpoint/SparqlEndpoint.cpp
         )
 
 find_package(Taskflow REQUIRED)
@@ -14,6 +15,7 @@ add_library(Dice::endpoint ALIAS endpoint)
 
 target_link_libraries(endpoint PUBLIC
         Dice::sparql2tensor
+        Dice::triple_store
         restinio::restinio
         Taskflow::Taskflow
         rapidjson

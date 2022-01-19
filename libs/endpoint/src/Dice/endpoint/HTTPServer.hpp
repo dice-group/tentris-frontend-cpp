@@ -1,5 +1,5 @@
-#ifndef TENTRIS_ENDPOINT_HPP
-#define TENTRIS_ENDPOINT_HPP
+#ifndef TENTRIS_HTTPSERVER_HPP
+#define TENTRIS_HTTPSERVER_HPP
 
 #include <restinio/all.hpp>
 #include <taskflow/taskflow.hpp>
@@ -12,7 +12,7 @@ namespace Dice::endpoint {
 		uint16_t threads;
 	};
 
-	class Endpoint {
+	class HTTPServer {
 		struct tentris_restinio_traits : public restinio::traits_t<
 												 restinio::null_timer_manager_t,
 												 restinio::null_logger_t,
@@ -27,7 +27,7 @@ namespace Dice::endpoint {
 
 
 	public:
-		Endpoint(tf::Executor &executor, const EndpointCfg &cfg)
+		HTTPServer(tf::Executor &executor, const EndpointCfg &cfg)
 			: executor_(executor),
 			  router_(std::make_unique<restinio::router::express_router_t<>>()),
 			  cfg_(cfg) {
@@ -43,6 +43,10 @@ namespace Dice::endpoint {
 
 
 		void operator()() {
+			router_->non_matched_request_handler(
+			[](auto req) -> restinio::request_handling_status_t {
+				return req->create_response(restinio::status_not_found()).connection_close().done();
+			});
 			restinio::run(
 					restinio::on_thread_pool<tentris_restinio_traits>(cfg_.threads)
 							.max_parallel_connections(cfg_.threads)
@@ -53,4 +57,4 @@ namespace Dice::endpoint {
 	};
 }// namespace Dice::endpoint
 
-#endif//TENTRIS_ENDPOINT_HPP
+#endif//TENTRIS_HTTPSERVER_HPP

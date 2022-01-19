@@ -19,7 +19,8 @@
 #include <spdlog/stopwatch.h>
 #include <taskflow/taskflow.hpp>
 
-#include "Dice/endpoint/Endpoint.hpp"
+#include "Dice/endpoint/HTTPServer.hpp"
+#include "Dice/endpoint/SparqlEndpoint.hpp"
 #include "Dice/endpoint/SparqlJsonResultSAXWriter.hpp"
 #include <memory>
 
@@ -130,40 +131,11 @@ int main(int argc, char *argv[]) {
 
 	tf::Executor executor(endpoint_cfg.threads);
 
-	endpoint::Endpoint endpoint{executor, endpoint_cfg};
+	endpoint::HTTPServer endpoint{executor, endpoint_cfg};
 
 	endpoint.router()
 			.http_get(R"(/sparql)",
-					  [&](restinio::request_handle_t req, const auto &) -> restinio::request_handling_status_t {
-						  if (executor.num_topologies() < endpoint_cfg.threads) {
-							  executor.silent_async([&triplestore, timeout_duration](restinio::request_handle_t req) {
-								  using namespace Dice::sparql2tensor;
-
-								  const auto qp = restinio::parse_query(req->header().query());
-								  if (not qp.has("query"))
-									  return req->create_response(restinio::status_bad_request()).set_body("Query parameter 'query' is missing.").done();
-								  std::string sparql_query_str = std::string{qp["query"]};
-								  SPARQLQuery sparql_query;
-								  try {
-									  sparql_query = SPARQLQuery::parse(sparql_query_str);
-								  } catch (std::exception &ex) {
-									  return req->create_response(restinio::status_bad_request()).set_body("Failed to parse query.").done();
-								  }
-
-
-								  endpoint::SparqlJsonResultSAXWriter json_writer{sparql_query.projected_variables_, 100'000};
-
-								  for (auto const &entry : triplestore.query(sparql_query, std::chrono::steady_clock::now() + timeout_duration)) {
-									  json_writer.add(entry);
-								  }
-								  return req->create_response(restinio::status_ok()).set_body(std::string{json_writer.string_view()}).done();
-							  },
-													std::move(req));
-							  return restinio::request_accepted();
-						  } else {
-							  return restinio::request_rejected();
-						  }
-					  });
+					  endpoint::SPARQLEndpoint{executor, triplestore, timeout_duration});
 
 	endpoint();
 
@@ -288,23 +260,10 @@ int main(int argc, char *argv[]) {
 	//				}
 	//			});
 	//
-	//	router->non_matched_request_handler(
-	//			[](auto req) -> restinio::request_handling_status_t {
-	//				return req->create_response(restinio::status_not_found()).connection_close().done();
-	//			});
-	//
 	//	// Launching a server with custom traits.
 	//
 	//	log("SPARQL endpoint serving sparkling linked data treasures on {} threads at http://0.0.0.0:{}/sparql2tensor?query="_format(cfg.threads, cfg.port));
 	//
-	//	restinio::run(
-	//			restinio::on_thread_pool<tentris_restinio_traits>(cfg.threads)
-	//					.max_parallel_connections(cfg.threads)
-	//					.address("0.0.0.0")
-	//					.port(cfg.port)
-	//					.request_handler(std::move(router))
-	//					.handle_request_timeout(cfg.timeout)
-	//					.write_http_response_timelimit(cfg.timeout));
 	//	log("Shutdown successful.");
 	return EXIT_SUCCESS;
 }
