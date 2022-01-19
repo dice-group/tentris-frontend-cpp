@@ -321,7 +321,6 @@ namespace Dice::sparql2tensor::parser::visitors {
 				continue;
 			var_ids.push_back(query->var_to_id_[rdf4cpp::rdf::query::Variable(node)]);
 		}
-		query->triple_patterns_.push_back(tp);
 	}
 
 }// namespace Dice::sparql2tensor::parser::visitors

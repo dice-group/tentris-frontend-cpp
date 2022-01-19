@@ -119,7 +119,7 @@ namespace Dice::triple_store {
 
 	void TripleStore::load_ttl(const std::string &file_path, uint32_t bulk_size, sparql2tensor::HypertrieBulkInserter::BulkInserted_callback const &call_back) {
 		sparql2tensor::HypertrieBulkInserter bulk_inserter{hypertrie_, bulk_size, call_back};
-		SerdHandle serd_handle{.bulk_inserter = &bulk_inserter};
+		SerdHandle serd_handle{.prefixes = {}, .bulk_inserter = &bulk_inserter};
 
 		SerdReader *reader = serd_reader_new(SERD_TURTLE, (void *) &serd_handle,
 											 nullptr,
@@ -151,15 +151,16 @@ namespace Dice::triple_store {
 					operands.push_back(std::move(operand));
 			}
 		}
+		auto subscript = query.get_subscript();
 		if (query.distinct_) {
 			sparql2tensor::EinsumEntry<sparql2tensor::COUNTED_t> entry;
 			entry.key().resize(query.projected_variables_.size());
-			for (auto const &distinct_entry : einsum::einsum<sparql2tensor::DISTINCT_t, sparql2tensor::tr>(query.get_subscript(), operands)) {
+			for (auto const &distinct_entry : einsum::einsum<sparql2tensor::DISTINCT_t, sparql2tensor::tr>(query.get_subscript(), operands, endtime)) {
 				std::copy(distinct_entry.key().begin(), distinct_entry.key().end(), entry.key().begin());
 				co_yield entry;
 			}
 		} else {
-			for (auto const &entry : einsum::einsum<sparql2tensor::COUNTED_t, sparql2tensor::tr>(query.get_subscript(), operands))
+			for (auto const &entry : einsum::einsum<sparql2tensor::COUNTED_t, sparql2tensor::tr>(subscript, operands, endtime))
 				co_yield entry;
 		}
 	}

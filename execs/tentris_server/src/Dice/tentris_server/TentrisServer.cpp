@@ -91,6 +91,7 @@ int main(int argc, char *argv[]) {
 
 	triple_store::TripleStore triplestore{};
 
+	// TODO: load after everything is initialized
 	if (parsed_args.count("file")) {
 		fs::path ttl_file(parsed_args["file"].as<std::string>());
 
@@ -101,7 +102,7 @@ int main(int argc, char *argv[]) {
 		size_t total_inserted_entries = 0;
 		size_t final_hypertrie_size_after = 0;
 		triplestore.load_ttl(parsed_args["file"].as<std::string>(),
-							 parsed_args["bulksize"].as<long>(),
+							 parsed_args["bulksize"].as<size_t>(),
 							 [&](size_t processed_entries,
 								 size_t inserted_entries,
 								 size_t hypertrie_size_after) -> void {
@@ -114,15 +115,16 @@ int main(int argc, char *argv[]) {
 								 total_processed_entries = processed_entries;
 								 total_inserted_entries = inserted_entries;
 								 final_hypertrie_size_after = hypertrie_size_after;
+								 batch_loading_time.reset();
 							 });
-		spdlog::info("loading finished: {} triples proces sed, {} triples added, {} elapsed | {} triples in storage.",
+		spdlog::info("loading finished: {} triples processed, {} triples added, {} elapsed | {} triples in storage.",
 					 total_processed_entries, total_inserted_entries, loading_time.elapsed(), final_hypertrie_size_after);
 	}
 
 	const endpoint::EndpointCfg endpoint_cfg{
 			.port = parsed_args["port"].as<uint16_t>(),
 			.threads = parsed_args["port"].as<uint16_t>()};
-
+	std::chrono::seconds timeout_duration{parsed_args["timeout"].as<uint>()};
 
 	tf::Executor executor(endpoint_cfg.threads);
 
@@ -132,7 +134,7 @@ int main(int argc, char *argv[]) {
 			.http_get(R"(/sparql)",
 					  [&](restinio::request_handle_t req, const auto &) -> restinio::request_handling_status_t {
 						  if (executor.num_topologies() < endpoint_cfg.threads) {
-							  executor.silent_async([&triplestore](restinio::request_handle_t req) {
+							  executor.silent_async([&triplestore, timeout_duration](restinio::request_handle_t req) {
 								  using namespace Dice::sparql2tensor;
 
 								  const auto qp = restinio::parse_query(req->header().query());
@@ -149,7 +151,7 @@ int main(int argc, char *argv[]) {
 
 								  endpoint::SparqlJsonResultSAXWriter json_writer{sparql_query.projected_variables_, 100'000};
 
-								  for (auto const &entry : triplestore.query(sparql_query)) {
+								  for (auto const &entry : triplestore.query(sparql_query, std::chrono::steady_clock::now() + timeout_duration)) {
 									  json_writer.add(entry);
 								  }
 								  return req->create_response(restinio::status_ok()).set_body(json_writer.string_view()).done();
