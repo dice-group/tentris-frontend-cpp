@@ -156,7 +156,7 @@ int main(int argc, char *argv[]) {
 								  for (auto const &entry : triplestore.query(sparql_query, std::chrono::steady_clock::now() + timeout_duration)) {
 									  json_writer.add(entry);
 								  }
-								  return req->create_response(restinio::status_ok()).set_body(json_writer.string_view()).done();
+								  return req->create_response(restinio::status_ok()).set_body(std::string{json_writer.string_view()}).done();
 							  },
 													std::move(req));
 							  return restinio::request_accepted();
