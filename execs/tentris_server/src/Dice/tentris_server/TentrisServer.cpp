@@ -85,9 +85,11 @@ int main(int argc, char *argv[]) {
 	auto logger = std::make_shared<spdlog::logger>("tentris logger", sinks.begin(), sinks.end());
 	logger->set_level(log_level);
 	spdlog::set_default_logger(logger);
-	spdlog::info("Starting tentris_server");
+	spdlog::set_pattern("%Y-%m-%dT%T.%e%z | %n | %t | %l | %v");
 	spdlog::info(version);
 	spdlog::flush_every(std::chrono::seconds{5});
+
+
 
 	triple_store::TripleStore triplestore{};
 
@@ -107,7 +109,7 @@ int main(int argc, char *argv[]) {
 								 size_t inserted_entries,
 								 size_t hypertrie_size_after) -> void {
 								 std::chrono::duration<double> batch_duration = batch_loading_time.elapsed();
-								 spdlog::info("batch: {:>10.3} mio triples processed, {:>10.3} mio triples added, {} elapsed | {:>10.3} mio triples in storage.",
+								 spdlog::info("batch: {:>10.3} mio triples processed, {:>10.3} mio triples added, {} elapsed , {:>10.3} mio triples in storage.",
 											  (double(processed_entries) / 1'000'000),
 											  (double(inserted_entries) / 1'000'000),
 											  batch_duration,
@@ -117,7 +119,7 @@ int main(int argc, char *argv[]) {
 								 final_hypertrie_size_after = hypertrie_size_after;
 								 batch_loading_time.reset();
 							 });
-		spdlog::info("loading finished: {} triples processed, {} triples added, {} elapsed | {} triples in storage.",
+		spdlog::info("loading finished: {} triples processed, {} triples added, {} elapsed, {} triples in storage.",
 					 total_processed_entries, total_inserted_entries, loading_time.elapsed(), final_hypertrie_size_after);
 	}
 
