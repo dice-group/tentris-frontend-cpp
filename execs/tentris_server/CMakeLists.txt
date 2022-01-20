@@ -14,6 +14,7 @@ find_package(cxxopts REQUIRED)
 
 target_link_libraries(tentris_server PUBLIC
         Dice::triple_store
+        Dice::node_store
         Dice::endpoint
         restinio::restinio
         Taskflow::Taskflow

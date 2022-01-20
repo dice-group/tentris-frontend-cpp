@@ -11,6 +11,7 @@
 #include <taskflow/taskflow.hpp>
 
 #include <Dice/endpoint/HTTPServer.hpp>
+#include <Dice/node_store/TslSparseMapNodeStorageBackend.hpp>
 #include <Dice/triple_store/TripleStore.hpp>
 
 #include "tentris_version.hpp"
@@ -95,7 +96,8 @@ int main(int argc, char *argv[]) {
 			.port = parsed_args["port"].as<uint16_t>(),
 			.threads = parsed_args["port"].as<uint16_t>(),
 			.timeout_duration = std::chrono::seconds{parsed_args["timeout"].as<uint>()}};
-
+	auto nodestorage = rdf4cpp::rdf::storage::node::NodeStorage::new_instance<Dice::node_storage::TslSparseMapNodeStorageBackend>();
+	rdf4cpp::rdf::storage::node::NodeStorage::primary_instance(nodestorage);
 	triple_store::TripleStore triplestore{};
 	tf::Executor executor(endpoint_cfg.threads);
 

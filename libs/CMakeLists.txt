@@ -1,3 +1,4 @@
+add_subdirectory(node_store)
 add_subdirectory(sparql2tensor)
 add_subdirectory(triple_store)
 add_subdirectory(endpoint)
