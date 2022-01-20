@@ -111,8 +111,8 @@ namespace Dice::triple_store {
 		return SERD_SUCCESS;
 	}
 
-	TripleStore::TripleStore()
-		: context_(std::allocator<std::byte>()), hypertrie_(3, &context_) {}
+	TripleStore::TripleStore(metall::manager::allocator_type<std::byte> allocator)
+		: context_(allocator), hypertrie_(3, &context_) {}
 
 	sparql2tensor::BoolHypertrie const &TripleStore::get_hypertrie() const {
 		return hypertrie_;

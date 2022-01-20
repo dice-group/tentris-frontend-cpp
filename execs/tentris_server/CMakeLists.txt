@@ -20,6 +20,7 @@ target_link_libraries(tentris_server PUBLIC
         Taskflow::Taskflow
         spdlog::spdlog
         cxxopts::cxxopts
+        Metall
         )
 
 target_include_directories(tentris_server PUBLIC

@@ -14,6 +14,25 @@ find_package(tsl-sparse-map REQUIRED)
 find_package(robin_hood REQUIRED)
 find_package(dice-hash REQUIRED)
 
+include(FetchContent)
+FetchContent_Declare(
+        tsl-sparse-map-our-version
+        GIT_REPOSITORY https://github.com/dice-group/sparse-map.git
+        GIT_TAG custom_tests
+        GIT_SHALLOW TRUE)
+FetchContent_MakeAvailable(tsl-sparse-map-our-version)
+
+# TODO: remove work-around when merged
+FetchContent_Declare(
+        metall
+#        GIT_REPOSITORY https://github.com/LLNL/metall.git
+        GIT_REPOSITORY https://github.com/dice-group/metall.git
+        GIT_TAG fix/inline
+#        GIT_TAG v0.18
+        GIT_SHALLOW TRUE
+)
+FetchContent_MakeAvailable(metall)
+
 
 target_link_libraries(node_store PUBLIC
         rdf4cpp::rdf4cpp

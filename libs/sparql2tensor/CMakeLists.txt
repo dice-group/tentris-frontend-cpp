@@ -19,6 +19,7 @@ target_link_libraries(sparql2tensor PUBLIC
         rdf4cpp::rdf4cpp
         hypertrie::hypertrie
         robin_hood::robin_hood
+        Metall
         PRIVATE
         sparql-parser-base::sparql-parser-base
         )

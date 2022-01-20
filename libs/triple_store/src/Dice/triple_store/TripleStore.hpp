@@ -3,6 +3,8 @@
 #include "Dice/sparql2tensor/BoolHypertrie.hpp"
 #include "Dice/sparql2tensor/SPARQLQuery.hpp"
 
+#include <metall/metall.hpp>
+
 namespace Dice::triple_store {
 
 	class TripleStore {
@@ -11,7 +13,7 @@ namespace Dice::triple_store {
 		sparql2tensor::BoolHypertrie hypertrie_;
 
 	public:
-		TripleStore();
+		TripleStore(metall::manager::allocator_type<std::byte> allocator);
 
 		[[nodiscard]] sparql2tensor::BoolHypertrie const &get_hypertrie() const;
 

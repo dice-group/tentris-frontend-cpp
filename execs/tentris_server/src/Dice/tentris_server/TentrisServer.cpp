@@ -28,6 +28,7 @@ int main(int argc, char *argv[]) {
 	cxxopts::Options options("tentris_server",
 							 fmt::format("{}\nA tensor-based triple store.", version));
 	options.add_options()                                                                                                                                                                                                                //
+			("s,storage", "Location where the index is stored.", cxxopts::value<std::string>()->default_value(fs::current_path().string()))
 			("f,file", "A N-Triples or Turtle file. Will be loaded before the endpoint starts", cxxopts::value<std::string>())                                                                                                           //
 			("b,bulksize", "Bulk-size for loading RDF files. A larger value results in a higher memory consumption during loading RDF data but may result in shorter loading times.", cxxopts::value<size_t>()->default_value("1000000"))//
 			("t,timeout", "Time out in seconds for answering requests.", cxxopts::value<uint>()->default_value("180"))                                                                                                                   //
@@ -96,9 +97,17 @@ int main(int argc, char *argv[]) {
 			.port = parsed_args["port"].as<uint16_t>(),
 			.threads = parsed_args["port"].as<uint16_t>(),
 			.timeout_duration = std::chrono::seconds{parsed_args["timeout"].as<uint>()}};
+
+	auto const storage_path = fs::absolute(fs::path{parsed_args["storage"].as<std::string>()}).append("tentris_data");
+	if (not metall::manager ::consistent(storage_path.c_str()))
+		metall::manager{metall::create_only, storage_path.c_str()};
+
+	metall::manager storage_manager{metall::open_only, storage_path.c_str()};
+
 	auto nodestorage = rdf4cpp::rdf::storage::node::NodeStorage::new_instance<Dice::node_storage::TslSparseMapNodeStorageBackend>();
 	rdf4cpp::rdf::storage::node::NodeStorage::primary_instance(nodestorage);
-	triple_store::TripleStore triplestore{};
+
+	triple_store::TripleStore& triplestore = *storage_manager.find_or_construct<triple_store::TripleStore>("triple_store")(storage_manager.get_allocator());
 	tf::Executor executor(endpoint_cfg.threads);
 
 	endpoint::HTTPServer endpoint{executor, triplestore, endpoint_cfg};

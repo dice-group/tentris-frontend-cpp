@@ -17,6 +17,7 @@ target_link_libraries(triple_store PUBLIC
         Dice::sparql2tensor
         PRIVATE
         ${serd}
+        Metall
         )
 
 target_include_directories(triple_store PUBLIC

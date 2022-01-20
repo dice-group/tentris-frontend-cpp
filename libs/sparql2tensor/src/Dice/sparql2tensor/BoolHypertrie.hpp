@@ -5,6 +5,7 @@
 #include <Dice/hash/DiceHash.hpp>
 #include <Dice/hypertrie.hpp>
 #include <rdf4cpp/rdf.hpp>
+#include <metall/metall.hpp>
 
 namespace Dice::hash {
 	template<typename Policy>
@@ -48,7 +49,7 @@ namespace Dice::sparql2tensor {
 
 	using tr = Dice::hypertrie::Hypertrie_trait<key_part_type,
 												bool,
-												std::allocator<std::byte>,
+												metall::manager::allocator_type<std::byte>,
 												Dice::hypertrie::internal::container::tsl_sparse_map,
 												Dice::hypertrie::internal::container::tsl_sparse_set,
 												63>;
