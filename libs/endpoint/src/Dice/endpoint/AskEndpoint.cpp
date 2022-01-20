@@ -29,22 +29,7 @@ namespace Dice::endpoint {
 					return;
 
 				try {
-					bool has_solution = false;
-					if (sparql_query.triple_patterns_.size() == 1) {// O(1)
-						Dice::hypertrie::SliceKey<tr> slice_key = sparql_query.get_slice_keys()[0];
-						if (slice_key.get_fixed_depth() == 3)
-							has_solution = std::get<bool>(triplestore_.get_hypertrie()[slice_key]);
-						else
-							has_solution = not std::get<sparql2tensor::const_BoolHypertrie>(triplestore_.get_hypertrie()[slice_key]).empty();
-					} else {
-						sparql_query.projected_variables_.clear();
-						sparql_query.project_all_variables_ = false;
-						sparql_query.distinct_ = true;
-						for ([[maybe_unused]] auto const &_ : this->triplestore_.query(sparql_query, timeout)) {
-							has_solution = true;
-							break;
-						}
-					}
+					bool has_solution = triplestore_.ask(sparql_query, timeout);
 
 					req->create_response(status_ok())
 							.set_body(fmt::format("{}", has_solution))

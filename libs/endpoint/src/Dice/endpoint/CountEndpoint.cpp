@@ -29,16 +29,7 @@ namespace Dice::endpoint {
 					return;
 
 				try {
-					size_t count = 0;
-					if (sparql_query.triple_patterns_.size() == 1) { // O(1)
-						Dice::hypertrie::SliceKey<tr> slice_key = sparql_query.get_slice_keys()[0];
-						if (slice_key.get_fixed_depth() == 3)
-							count = (size_t) std::get<bool>(triplestore_.get_hypertrie()[slice_key]);
-						else
-							count = std::get<sparql2tensor::const_BoolHypertrie>(triplestore_.get_hypertrie()[slice_key]).size();
-					} else
-						for (auto const &entry : this->triplestore_.query(sparql_query, timeout))
-							count += entry.value();
+					size_t count = this->triplestore_.count(sparql_query, timeout);
 
 					req->create_response(status_ok())
 							.set_body(fmt::format("{}", count))

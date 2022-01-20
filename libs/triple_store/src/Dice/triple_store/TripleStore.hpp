@@ -2,11 +2,6 @@
 #define TENTRIS_STORE_TRIPLESTORE
 #include "Dice/sparql2tensor/BoolHypertrie.hpp"
 #include "Dice/sparql2tensor/SPARQLQuery.hpp"
-#include <iostream>
-#include <optional>
-#include <string>
-#include <vector>
-
 
 namespace Dice::triple_store {
 
@@ -29,11 +24,17 @@ namespace Dice::triple_store {
 
 		std::generator<sparql2tensor::EinsumEntry<sparql2tensor::COUNTED_t> const &> query(
 				sparql2tensor::SPARQLQuery query,
-				Dice::einsum::internal::Context::time_point endtime = Dice::einsum::internal::Context::time_point::max());
+				std::chrono::steady_clock::time_point endtime = std::chrono::steady_clock::time_point::max());
+
+		size_t count(sparql2tensor::SPARQLQuery query,
+					 std::chrono::steady_clock::time_point endtime = std::chrono::steady_clock::time_point::max());
+
+		bool ask(sparql2tensor::SPARQLQuery query,
+				 std::chrono::steady_clock::time_point endtime = std::chrono::steady_clock::time_point::max());
 
 		bool contains(const rdf4cpp::rdf::Statement &statement);
 
 		[[nodiscard]] size_t size() const;
 	};
-};    // namespace Dice::endpoint
+};    // namespace Dice::triple_store
 #endif//TENTRIS_STORE_TRIPLESTORE
