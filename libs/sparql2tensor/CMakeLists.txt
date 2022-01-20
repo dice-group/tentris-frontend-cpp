@@ -13,15 +13,19 @@ add_library(Dice::sparql2tensor ALIAS sparql2tensor)
 
 find_package(sparql-parser-base REQUIRED)
 find_package(hypertrie REQUIRED)
+find_package(robin_hood REQUIRED)
 
 target_link_libraries(sparql2tensor PUBLIC
         rdf4cpp::rdf4cpp
         hypertrie::hypertrie
-        sparql-parser-base::sparql-parser-base
         robin_hood::robin_hood
+        PRIVATE
+        sparql-parser-base::sparql-parser-base
         )
 
 target_include_directories(sparql2tensor PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+        PRIVATE
+        private-include
         )

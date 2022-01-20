@@ -1,8 +1,8 @@
-#include "PrologueVisitor.hpp"
+#include "Dice/sparql2tensor/parser/visitors/PrologueVisitor.hpp"
 
 namespace Dice::sparql2tensor::parser::visitors {
 
-	antlrcpp::Any PrologueVisitor::visitPrologue(SparqlParser::PrologueContext *ctx)  {
+	antlrcpp::Any PrologueVisitor::visitPrologue(SparqlParser::PrologueContext *ctx) {
 		prefixes_.clear();
 		for (auto pref_ctx : ctx->prefixDecl())
 			visitPrefixDecl(pref_ctx);
@@ -20,7 +20,7 @@ namespace Dice::sparql2tensor::parser::visitors {
 		if (ctx->PNAME_NS())
 			prefix = ctx->PNAME_NS()->getText();
 		auto ns = ctx->IRIREF()->getText();
-		prefixes_[prefix.substr(0, prefix.size()-1)] = ns.substr(1, ns.size()-2);
+		prefixes_[prefix.substr(0, prefix.size() - 1)] = ns.substr(1, ns.size() - 2);
 		return nullptr;
 	}
 

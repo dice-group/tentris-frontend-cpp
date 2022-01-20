@@ -15,16 +15,13 @@ find_package(Taskflow REQUIRED)
 find_package(restinio REQUIRED)
 find_package(spdlog REQUIRED)
 
-
 add_library(Dice::endpoint ALIAS endpoint)
 
 target_link_libraries(endpoint PUBLIC
         Dice::triple_store
         restinio::restinio
         Taskflow::Taskflow
-        )
-
-target_link_libraries(endpoint PRIVATE
+        PRIVATE
         spdlog::spdlog
         cppitertools::cppitertools
         rapidjson
@@ -33,8 +30,6 @@ target_link_libraries(endpoint PRIVATE
 target_include_directories(endpoint PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-        )
-
-target_include_directories(endpoint PRIVATE
+        PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/private-include
         )

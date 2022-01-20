@@ -1,4 +1,4 @@
-#include "SelectQueryVisitor.hpp"
+#include "Dice/sparql2tensor/parser/visitors/SelectQueryVisitor.hpp"
 
 namespace Dice::sparql2tensor::parser::visitors {
 
@@ -21,7 +21,7 @@ namespace Dice::sparql2tensor::parser::visitors {
 			std::unordered_set<rdf4cpp::rdf::query::Variable> seen_vars;
 			// set all non-anonymous variables from the triple patterns
 			for (auto const &tp : query->triple_patterns_) {
-				for ( auto const&node : tp) {
+				for (auto const &node : tp) {
 					if (node.is_variable()) {
 						auto var = (rdf4cpp::rdf::query::Variable) node;
 						if (not var.is_anonymous()) {
