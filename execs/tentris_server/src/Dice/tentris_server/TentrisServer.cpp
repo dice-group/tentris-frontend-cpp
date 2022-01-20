@@ -91,7 +91,6 @@ int main(int argc, char *argv[]) {
 	spdlog::flush_every(std::chrono::seconds{5});
 
 
-
 	triple_store::TripleStore triplestore{};
 
 	// TODO: load after everything is initialized
@@ -126,16 +125,12 @@ int main(int argc, char *argv[]) {
 
 	const endpoint::EndpointCfg endpoint_cfg{
 			.port = parsed_args["port"].as<uint16_t>(),
-			.threads = parsed_args["port"].as<uint16_t>()};
-	std::chrono::seconds timeout_duration{parsed_args["timeout"].as<uint>()};
+			.threads = parsed_args["port"].as<uint16_t>(),
+			.timeout_duration = std::chrono::seconds{parsed_args["timeout"].as<uint>()}};
 
 	tf::Executor executor(endpoint_cfg.threads);
 
-	endpoint::HTTPServer endpoint{executor, endpoint_cfg};
-
-	endpoint.router()
-			.http_get(R"(/sparql)",
-					  endpoint::SPARQLEndpoint{executor, triplestore, timeout_duration});
+	endpoint::HTTPServer endpoint{executor, triplestore, endpoint_cfg};
 
 	endpoint();
 

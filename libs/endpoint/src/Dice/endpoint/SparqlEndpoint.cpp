@@ -1,6 +1,8 @@
 #include "SparqlEndpoint.hpp"
 
+#include "Dice/endpoint/HTTPHelper.hpp"
 #include "Dice/endpoint/SparqlJsonResultSAXWriter.hpp"
+
 
 namespace Dice::endpoint {
 
@@ -18,24 +20,28 @@ namespace Dice::endpoint {
 		if (executor_.num_topologies() < executor_.num_workers()) {
 			executor_.silent_async([this, timeout](restinio::request_handle_t req) {
 				using namespace Dice::sparql2tensor;
+				using namespace restinio;
 
-				const auto qp = restinio::parse_query(req->header().query());
-				if (not qp.has("query"))
-					return req->create_response(restinio::status_bad_request()).set_body("Query parameter 'query' is missing.").done();
-				std::string sparql_query_str = std::string{qp["query"]};
 				SPARQLQuery sparql_query;
+				if (auto sparql_query_opt = get_sparql_query_param(req); sparql_query_opt.has_value())
+					sparql_query = std::move(sparql_query_opt.value());
+				else
+					return;
+
 				try {
-					sparql_query = SPARQLQuery::parse(sparql_query_str);
-				} catch (std::exception &ex) {
-					return req->create_response(restinio::status_bad_request()).set_body("Failed to parse query.").done();
-				}
+					endpoint::SparqlJsonResultSAXWriter json_writer{sparql_query.projected_variables_, 100'000};
 
-				endpoint::SparqlJsonResultSAXWriter json_writer{sparql_query.projected_variables_, 100'000};
+					for (auto const &entry : this->triplestore_.query(sparql_query, timeout)) {
+						json_writer.add(entry);
+					}
 
-				for (auto const &entry : this->triplestore_.query(sparql_query, timeout)) {
-					json_writer.add(entry);
+					req->create_response(status_ok())
+							.append_header(http_field::content_type, "application/sparql-results+json")
+							.set_body(std::string{json_writer.string_view()})
+							.done();
+				} catch (Dice::einsum::TimeoutException const &timeout_exception) {
+					req->create_response(status_gateway_time_out()).done();
 				}
-				return req->create_response(restinio::status_ok()).set_body(std::string{json_writer.string_view()}).done();
 			},
 								   std::move(req));
 			return restinio::request_accepted();
