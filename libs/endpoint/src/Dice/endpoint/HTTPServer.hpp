@@ -1,11 +1,10 @@
 #ifndef TENTRIS_HTTPSERVER_HPP
 #define TENTRIS_HTTPSERVER_HPP
 
-#include "SparqlEndpoint.hpp"
-#include "SparqlStreamingEndpoint.hpp"
 #include <restinio/all.hpp>
 #include <taskflow/taskflow.hpp>
 
+#include <Dice/triple_store/TripleStore.hpp>
 
 namespace Dice::endpoint {
 

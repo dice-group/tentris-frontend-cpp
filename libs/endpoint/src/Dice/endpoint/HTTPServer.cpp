@@ -1,4 +1,11 @@
 #include "HTTPServer.hpp"
+#include "Dice/endpoint/CountEndpoint.hpp"
+
+#include "Dice/endpoint/AskEndpoint.hpp"
+#include "Dice/endpoint/SparqlEndpoint.hpp"
+#include "Dice/endpoint/SparqlStreamingEndpoint.hpp"
+
+#include <spdlog/spdlog.h>
 
 namespace Dice::endpoint {
 
@@ -9,19 +16,31 @@ namespace Dice::endpoint {
 		static constexpr bool use_connection_count_limiter = true;
 	};
 
-	HTTPServer::HTTPServer(tf::Executor &executor, triple_store::TripleStore &triplestore, const EndpointCfg &cfg)
+	HTTPServer::HTTPServer(tf::Executor &executor, triple_store::TripleStore &triplestore, EndpointCfg const &cfg)
 		: executor_(executor),
 		  triplestore_(triplestore),
 		  router_(std::make_unique<restinio::router::express_router_t<>>()),
-		  cfg_(cfg) {
-	}
+		  cfg_(cfg) {}
 
 	void HTTPServer::operator()() {
+		spdlog::info("Available endpoints:");
 		router_->http_get(R"(/sparql)",
 						  SPARQLEndpoint{executor_, triplestore_, cfg_.timeout_duration});
+		spdlog::info("  GET /sparql?query= for normal queries");
 
 		router_->http_get(R"(/stream)",
 						  SPARQLStreamingEndpoint{executor_, triplestore_, cfg_.timeout_duration});
+		spdlog::info("  GET  /stream?query= for queries with huge results");
+
+		router_->http_get(R"(/count)",
+						  CountEndpoint{executor_, triplestore_, cfg_.timeout_duration});
+		spdlog::info("  GET  /count?query= as a workaround for count");
+
+		router_->http_get(R"(/ask)",
+						  AskEndpoint{executor_, triplestore_, cfg_.timeout_duration});
+		spdlog::info("  GET  /ask?query= as a workaround for ask");
+
+
 		router_->non_matched_request_handler(
 				[](auto req) -> restinio::request_handling_status_t {
 					return req->create_response(restinio::status_not_found()).connection_close().done();

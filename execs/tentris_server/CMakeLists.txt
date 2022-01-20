@@ -8,7 +8,6 @@ add_executable(tentris_server
         )
 
 find_package(Taskflow REQUIRED)
-find_package(nlohmann_json REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(cxxopts REQUIRED)
 
@@ -18,7 +17,6 @@ target_link_libraries(tentris_server PUBLIC
         Dice::endpoint
         restinio::restinio
         Taskflow::Taskflow
-        nlohmann_json::nlohmann_json
         spdlog::spdlog
         cxxopts::cxxopts
         )

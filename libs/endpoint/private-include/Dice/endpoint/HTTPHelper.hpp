@@ -1,6 +1,8 @@
 #ifndef TENTRIS_HTTPHELPER_HPP
 #define TENTRIS_HTTPHELPER_HPP
 
+#include <spdlog/spdlog.h>
+
 #include <restinio/request_handler.hpp>
 #include <restinio/uri_helpers.hpp>
 
@@ -13,7 +15,9 @@ namespace Dice::endpoint {
 		using namespace restinio;
 		const auto qp = parse_query(req->header().query());
 		if (not qp.has("query")) {
-			req->create_response(status_bad_request()).set_body("Query parameter 'query' is missing.").done();
+			static auto const message = "Query parameter 'query' is missing.";
+			spdlog::warn("HTTP response {}: {}", status_bad_request(), message);
+			req->create_response(status_bad_request()).set_body(message).done();
 			return std::nullopt;
 		}
 		std::string sparql_query_str = std::string{qp["query"]};
@@ -21,7 +25,9 @@ namespace Dice::endpoint {
 		try {
 			sparql_query = SPARQLQuery::parse(sparql_query_str);
 		} catch (std::exception &ex) {
-			req->create_response(status_bad_request()).set_body("Failed to parse query.").done();
+			static auto const message = "Query parameter 'query' is missing.";
+			spdlog::warn("HTTP response {}: {}", status_bad_request(), message);
+			req->create_response(status_bad_request()).set_body(message).done();
 			return std::nullopt;
 		}
 		return sparql_query;

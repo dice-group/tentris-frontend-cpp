@@ -1,17 +1,8 @@
-
-
-#include <Dice/triple_store/TripleStore.hpp>
-
-#include <restinio/all.hpp>
-
-#include <fmt/format.h>
-
-//#include "VersionStrings.hpp"
-
 #include <chrono>
-#include <csignal>
-#include <cxxopts.hpp>
 #include <filesystem>
+
+#include <cxxopts.hpp>
+#include <fmt/format.h>
 #include <spdlog/logger.h>
 #include <spdlog/sinks/rotating_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
@@ -19,16 +10,19 @@
 #include <spdlog/stopwatch.h>
 #include <taskflow/taskflow.hpp>
 
-#include "Dice/endpoint/HTTPServer.hpp"
-#include "Dice/endpoint/SparqlEndpoint.hpp"
-#include "Dice/endpoint/SparqlJsonResultSAXWriter.hpp"
-#include <memory>
+#include <Dice/endpoint/HTTPServer.hpp>
+#include <Dice/triple_store/TripleStore.hpp>
+
+#include "tentris_version.hpp"
 
 int main(int argc, char *argv[]) {
 	using namespace Dice;
 	namespace fs = std::filesystem;
 
-	std::string version = fmt::format("tentris_server v{} is based on hypertrie v{} and rdf4cpp v{}.", 1, hypertrie::version, "pre-release");
+	/*
+	 * Parse Commandline Arguments
+	 */
+	std::string version = fmt::format("tentris_server v{} is based on hypertrie v{} and rdf4cpp v{}.", Dice::tentris::version, hypertrie::version, "pre-release");
 
 	cxxopts::Options options("tentris_server",
 							 fmt::format("{}\nA tensor-based triple store.", version));
@@ -63,6 +57,9 @@ int main(int argc, char *argv[]) {
 		exit(0);
 	}
 
+	/*
+	 * Initialize logger
+	 */
 	const auto log_level = spdlog::level::from_str(parsed_args["loglevel"].as<std::string>());
 	spdlog::set_level(log_level);
 
@@ -91,9 +88,22 @@ int main(int argc, char *argv[]) {
 	spdlog::flush_every(std::chrono::seconds{5});
 
 
-	triple_store::TripleStore triplestore{};
+	/*
+	 * Initialize endpoint, executors and storage
+	 */
+	const endpoint::EndpointCfg endpoint_cfg{
+			.port = parsed_args["port"].as<uint16_t>(),
+			.threads = parsed_args["port"].as<uint16_t>(),
+			.timeout_duration = std::chrono::seconds{parsed_args["timeout"].as<uint>()}};
 
-	// TODO: load after everything is initialized
+	triple_store::TripleStore triplestore{};
+	tf::Executor executor(endpoint_cfg.threads);
+
+	endpoint::HTTPServer endpoint{executor, triplestore, endpoint_cfg};
+
+	/*
+	 * Load data into triplestore
+	 */
 	if (parsed_args.count("file")) {
 		fs::path ttl_file(parsed_args["file"].as<std::string>());
 
@@ -109,7 +119,7 @@ int main(int argc, char *argv[]) {
 								 size_t inserted_entries,
 								 size_t hypertrie_size_after) -> void {
 								 std::chrono::duration<double> batch_duration = batch_loading_time.elapsed();
-								 spdlog::info("batch: {:>10.3} mio triples processed, {:>10.3} mio triples added, {} elapsed , {:>10.3} mio triples in storage.",
+								 spdlog::info("  batch: {:>10.3} mio triples processed, {:>10.3} mio triples added, {} elapsed , {:>10.3} mio triples in storage.",
 											  (double(processed_entries) / 1'000'000),
 											  (double(inserted_entries) / 1'000'000),
 											  batch_duration,
@@ -119,146 +129,13 @@ int main(int argc, char *argv[]) {
 								 final_hypertrie_size_after = hypertrie_size_after;
 								 batch_loading_time.reset();
 							 });
-		spdlog::info("loading finished: {} triples processed, {} triples added, {} elapsed, {} triples in storage.",
+		spdlog::info("  loading finished: {} triples processed, {} triples added, {} elapsed, {} triples in storage.",
 					 total_processed_entries, total_inserted_entries, loading_time.elapsed(), final_hypertrie_size_after);
 	}
 
-	const endpoint::EndpointCfg endpoint_cfg{
-			.port = parsed_args["port"].as<uint16_t>(),
-			.threads = parsed_args["port"].as<uint16_t>(),
-			.timeout_duration = std::chrono::seconds{parsed_args["timeout"].as<uint>()}};
-
-	tf::Executor executor(endpoint_cfg.threads);
-
-	endpoint::HTTPServer endpoint{executor, triplestore, endpoint_cfg};
-
+	spdlog::info("SPARQL endpoint serving sparkling linked data treasures on {} threads at http://0.0.0.0:{}/ with {} request timeout.",
+				 endpoint_cfg.threads, endpoint_cfg.port, endpoint_cfg.timeout_duration);
 	endpoint();
-
-	//
-	//	// create endpoint
-	//	using namespace restinio;
-	//	auto router = std::make_unique<router::express_router_t<>>();
-	//	router->http_get(
-	//			R"(/sparql2tensor)",
-	//			tentris::http::sparql_endpoint::SparqlEndpoint<restinio::restinio_controlled_output_t>{});
-	//	router->http_get(
-	//			R"(/stream)",
-	//			tentris::http::sparql_endpoint::SparqlEndpoint<restinio::chunked_output_t>{});
-	//	router->http_get(
-	//			R"(/count)",
-	//			[&](restinio::request_handle_t req, auto const &) -> restinio::request_handling_status_t {
-	//				using namespace ::std::chrono;
-	//				using namespace ::tentris::logging;
-	//				using namespace ::tentris::tensor;
-	//				using AtomicQueryExecutionCache = ::tentris::store::AtomicQueryExecutionCache;
-	//				using AtomicTripleStoreConfig = ::tentris::store::config::AtomicTripleStoreConfig;
-	//				using QueryExecutionPackage = ::tentris::store::cache::QueryExecutionPackage;
-	//				using SelectModifier = Dice::sparql::Nodes::QueryNodes::SelectNodes::SelectModifier;
-	//
-	//				auto start_time = steady_clock::now();
-	//				log("count request started.");
-	//				auto start_memory = get_memory_usage();
-	//				logDebug("ram: {:d} kB"_format(start_memory));
-	//				auto timeout = start_time + AtomicTripleStoreConfig::getInstance().timeout;
-	//				std::shared_ptr<QueryExecutionPackage> query_package;
-	//				std::string query_string{};
-	//				try {
-	//					const auto query_params = restinio::parse_query<restinio::parse_query_traits::javascript_compatible>(
-	//							req->header().query());
-	//					query_string = std::string(query_params["query"]);
-	//					log("query: {}"_format(query_string));
-	//					// check if there is actually an query
-	//					try {
-	//						query_package = AtomicQueryExecutionCache::getInstance()[query_string];
-	//					} catch (const std::invalid_argument &exc) {
-	//						logDebug(exc.what());
-	//						return req->create_response(status_bad_request()).set_body("Query could not be parsed.").done();
-	//					}
-	//					size_t count = 0;
-	//					try {
-	//
-	//						if (query_package->getSelectModifier() == SelectModifier::DISTINCT) {
-	//							for ([[maybe_unused]] auto const &entry : Dice::einsum::einsum<DISTINCT_t, tr>(query_package->getSubscript(), query_package->getOperands(), timeout))
-	//								++count;
-	//						} else {
-	//							for (auto const &entry : Dice::einsum::einsum<DISTINCT_t, tr>(query_package->getSubscript(), query_package->getOperands(), timeout))
-	//								count += entry.value();
-	//						}
-	//
-	//						log("result_count: {}"_format(count));
-	//						return req->create_response().set_body(fmt::format("{}", count)).done();
-	//
-	//					} catch (Dice::einsum::TimeoutException const &ex) {
-	//						return req->create_response(status_request_time_out())
-	//								.set_body(fmt::format("Timed out after {} s and counting {} results.",
-	//													  duration_cast<seconds>(AtomicTripleStoreConfig::getInstance().timeout).count()))
-	//								.done();
-	//					}
-	//				} catch (const std::exception &exc) {
-	//					// if the execution of the query should fail return an internal server error
-	//					logDebug(exc.what());
-	//					return req->create_response(status_bad_request()).set_body("?query parameter missing or faulty.").done();
-	//				}
-	//			});
-	//
-	//	router->http_get(
-	//			R"(/ask)",
-	//			[&](restinio::request_handle_t req, auto const &) -> restinio::request_handling_status_t {
-	//				using namespace ::std::chrono;
-	//				using namespace ::tentris::logging;
-	//				using namespace ::tentris::tensor;
-	//				using AtomicQueryExecutionCache = ::tentris::store::AtomicQueryExecutionCache;
-	//				using AtomicTripleStoreConfig = ::tentris::store::config::AtomicTripleStoreConfig;
-	//				using QueryExecutionPackage = ::tentris::store::cache::QueryExecutionPackage;
-	//
-	//				auto start_time = steady_clock::now();
-	//				log("ask request started.");
-	//				auto start_memory = get_memory_usage();
-	//				logDebug("ram: {:d} kB"_format(start_memory));
-	//				auto timeout = start_time + AtomicTripleStoreConfig::getInstance().timeout;
-	//				std::shared_ptr<QueryExecutionPackage> query_package;
-	//				std::string query_string{};
-	//				try {
-	//					const auto query_params = restinio::parse_query<restinio::parse_query_traits::javascript_compatible>(
-	//							req->header().query());
-	//					query_string = std::string(query_params["query"]);
-	//					log("query: {}"_format(query_string));
-	//					// check if there is actually an query
-	//					try {
-	//						query_package = AtomicQueryExecutionCache::getInstance()[query_string];
-	//					} catch (const std::invalid_argument &exc) {
-	//						logDebug(exc.what());
-	//						return req->create_response(status_bad_request()).set_body("Query could not be parsed.").done();
-	//					}
-	//					try {
-	//						auto ask_subscript = std::make_shared<Dice::einsum::Subscript>(query_package->getSubscript()->getRawSubscript().operands, Subscript::ResultSc{});
-	//						bool ask = false;
-	//						for (auto const &entry : Dice::einsum::einsum<DISTINCT_t, tr>(query_package->getSubscript(), query_package->getOperands(), timeout)) {
-	//							if (entry.value()) {
-	//								ask = true;
-	//								break;
-	//							}
-	//						}
-	//						log("ask: {}"_format(ask));
-	//						return req->create_response().set_body(fmt::format("{}", ask)).done();
-	//
-	//					} catch (Dice::einsum::TimeoutException const &ex) {
-	//						return req->create_response(status_request_time_out())
-	//								.set_body(fmt::format("Timed out after {} s.",
-	//													  duration_cast<seconds>(AtomicTripleStoreConfig::getInstance().timeout).count()))
-	//								.done();
-	//					}
-	//				} catch (const std::exception &exc) {
-	//					// if the execution of the query should fail return an internal server error
-	//					logDebug(exc.what());
-	//					return req->create_response(status_bad_request()).set_body("?query parameter missing or faulty.").done();
-	//				}
-	//			});
-	//
-	//	// Launching a server with custom traits.
-	//
-	//	log("SPARQL endpoint serving sparkling linked data treasures on {} threads at http://0.0.0.0:{}/sparql2tensor?query="_format(cfg.threads, cfg.port));
-	//
-	//	log("Shutdown successful.");
+	spdlog::info("Shutdown successful.");
 	return EXIT_SUCCESS;
 }
