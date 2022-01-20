@@ -5,6 +5,9 @@
 #include <Dice/hash/DiceHash.hpp>
 #include <Dice/hypertrie.hpp>
 #include <rdf4cpp/rdf.hpp>
+#ifndef BOOST_BIND_GLOBAL_PLACEHOLDERS
+#define BOOST_BIND_GLOBAL_PLACEHOLDERS
+#endif
 #include <metall/metall.hpp>
 
 namespace Dice::hash {

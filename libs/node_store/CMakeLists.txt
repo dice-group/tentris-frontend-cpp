@@ -38,6 +38,7 @@ target_link_libraries(node_store PUBLIC
         rdf4cpp::rdf4cpp
         tsl::sparse_map
         dice-hash::dice-hash
+        Metall
         )
 
 target_include_directories(node_store PUBLIC

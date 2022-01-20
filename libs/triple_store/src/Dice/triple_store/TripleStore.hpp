@@ -3,6 +3,10 @@
 #include "Dice/sparql2tensor/BoolHypertrie.hpp"
 #include "Dice/sparql2tensor/SPARQLQuery.hpp"
 
+
+#ifndef BOOST_BIND_GLOBAL_PLACEHOLDERS
+#define BOOST_BIND_GLOBAL_PLACEHOLDERS
+#endif
 #include <metall/metall.hpp>
 
 namespace Dice::triple_store {

@@ -7,6 +7,12 @@
 #include <Dice/hash/DiceHash.hpp>
 #include <rdf4cpp/rdf/storage/node/INodeStorageBackend.hpp>
 
+#ifndef BOOST_BIND_GLOBAL_PLACEHOLDERS
+#define BOOST_BIND_GLOBAL_PLACEHOLDERS
+#endif
+#include <metall/metall.hpp>
+#include <tsl/boost_offset_pointer.h>
+
 namespace Dice::hash {
 	template<typename Policy>
 	struct dice_hash_overload<Policy, rdf4cpp::rdf::storage::node::NodeIDValue> {
@@ -49,9 +55,32 @@ namespace Dice::hash {
 	};
 }// namespace Dice::hash
 
+namespace rdf4cpp::rdf::storage::node {
+	template<typename T>
+	using offset_ptr = typename metall::manager::allocator_type<T>::pointer;
+
+	inline std::strong_ordering operator<=>(LiteralBackend const &self, offset_ptr<LiteralBackend> const &other) noexcept{
+		return self <=> *other;
+	}
+
+	inline std::strong_ordering operator<=>(IRIBackend const &self, offset_ptr<IRIBackend> const &other) noexcept{
+		return self <=> *other;
+	}
+
+	inline std::strong_ordering operator<=>(BNodeBackend const &self, offset_ptr<BNodeBackend> const &other) noexcept{
+		return self <=> *other;
+	}
+
+	inline std::strong_ordering operator<=>(VariableBackend const &self, offset_ptr<VariableBackend> const &other) noexcept{
+		return self <=> *other;
+	}
+}
+
 namespace Dice::node_storage {
 
 
+	// TODO: stored Backend nodes must use boost::string
+	// TODO: rdf4cpp should pass std::string_view to the outside (which should work with boost::string) as well
 	class TslSparseMapNodeStorageBackend : public rdf4cpp::rdf::storage::node::INodeStorageBackend {
 		using RDFNodeType = rdf4cpp::rdf::storage::node::RDFNodeType;
 		using NodeIDValue = rdf4cpp::rdf::storage::node::NodeIDValue;
@@ -69,37 +98,60 @@ namespace Dice::node_storage {
 				return Dice::hash::DiceHashxxh3<T>()(node);
 			}
 
-			size_t operator()(std::unique_ptr<T> const &node_ptr) const noexcept {
-				return Dice::hash::DiceHashxxh3<T>()(*node_ptr);
+			size_t operator()(typename metall::manager::allocator_type<T const>::pointer node_ptr) const noexcept {
+				return Dice::hash::DiceHashxxh3<T const>()(*node_ptr);
 			}
 
-			size_t operator()(T const *const node_ptr) const noexcept {
+			size_t operator()(typename metall::manager::allocator_type<T>::pointer node_ptr) const noexcept {
 				return Dice::hash::DiceHashxxh3<T>()(*node_ptr);
 			}
 		};
 
+
+	public:
+		template<typename T>
+		using pointer = typename metall::manager::allocator_type<T>::pointer;
+
+	private:
 		using NodeIDValueHash = Dice::hash::DiceHashMartinus<NodeIDValue>;
 
+		template<typename T>
+		using Index = tsl::sparse_map<NodeIDValue,
+									  pointer<T>,
+									  NodeIDValueHash,
+									  std::less<>,
+									  metall::manager::allocator_type<std::pair<NodeIDValue, pointer<T>>>>;
+		template<typename T>
+		using ReverseIndex = tsl::sparse_map<pointer<T>,
+											 NodeIDValue,
+											 NodeBackendHash<T>,
+											 std::less<>,
+											 metall::manager::allocator_type<std::pair<pointer<T>, NodeIDValue>>>;
+
+		metall::manager::allocator_type<std::byte> allocator;
+
 		mutable std::shared_mutex literal_mutex_;
-		tsl::sparse_map<NodeIDValue, LiteralBackend *, NodeIDValueHash, std::less<>> literal_storage;
-		tsl::sparse_map<std::unique_ptr<LiteralBackend>, NodeIDValue, NodeBackendHash<LiteralBackend>, std::less<>> literal_storage_reverse;
+		Index<LiteralBackend> literal_storage;
+		ReverseIndex<LiteralBackend> literal_storage_reverse;
 		mutable std::shared_mutex bnode_mutex_;
-		tsl::sparse_map<NodeIDValue, BNodeBackend *, NodeIDValueHash, std::less<>> bnode_storage;
-		tsl::sparse_map<std::unique_ptr<BNodeBackend>, NodeIDValue, NodeBackendHash<BNodeBackend>, std::less<>> bnode_storage_reverse;
+		Index<BNodeBackend> bnode_storage;
+		ReverseIndex<BNodeBackend> bnode_storage_reverse;
 		mutable std::shared_mutex iri_mutex_;
-		tsl::sparse_map<NodeIDValue, IRIBackend *, NodeIDValueHash, std::less<>> iri_storage;
-		tsl::sparse_map<std::unique_ptr<IRIBackend>, NodeIDValue, NodeBackendHash<IRIBackend>, std::less<>> iri_storage_reverse;
+		Index<IRIBackend> iri_storage;
+		ReverseIndex<IRIBackend> iri_storage_reverse;
 		mutable std::shared_mutex variable_mutex_;
-		tsl::sparse_map<NodeIDValue, VariableBackend *, NodeIDValueHash, std::less<>> variable_storage;
-		tsl::sparse_map<std::unique_ptr<VariableBackend>, NodeIDValue, NodeBackendHash<VariableBackend>, std::less<>> variable_storage_reverse;
+		Index<VariableBackend> variable_storage;
+		ReverseIndex<VariableBackend> variable_storage_reverse;
 
 		LiteralID next_literal_id = NodeID::min_literal_id;
 		NodeIDValue next_bnode_id = NodeID::min_bnode_id;
 		NodeIDValue next_iri_id = NodeID::min_iri_id;
 		NodeIDValue next_variable_id = NodeID::min_variable_id;
 
+
+
 	public:
-		TslSparseMapNodeStorageBackend();
+		TslSparseMapNodeStorageBackend(metall::manager::allocator_type<std::byte> allocator);
 
 		~TslSparseMapNodeStorageBackend() override = default;
 
