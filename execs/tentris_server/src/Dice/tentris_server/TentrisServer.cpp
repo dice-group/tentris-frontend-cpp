@@ -103,9 +103,14 @@ int main(int argc, char *argv[]) {
 
 	metall::manager storage_manager{metall::open_only, storage_path.c_str()};
 
-	auto nodestorage = rdf4cpp::rdf::storage::node::NodeStorage::new_instance<Dice::node_storage::TslSparseMapNodeStorageBackend>(storage_manager.get_allocator());
-	rdf4cpp::rdf::storage::node::NodeStorage::primary_instance(nodestorage);
-	// TODO: support unregistering a node storage
+	// setting up node storage
+	namespace node_storage_n = rdf4cpp::rdf::storage::node;
+	using NodeStorage = node_storage_n::NodeStorage;
+	auto *backend_impl = storage_manager.find_or_construct<Dice::node_storage::TslSparseMapNodeStorageBackend>("node_store")(storage_manager.get_allocator());
+	backend_impl->reset_use_count();
+	auto nodestorage = NodeStorage::register_backend(backend_impl);
+	NodeStorage::primary_instance(nodestorage);
+	NodeStorage::primary_instance(); // necessary for initialization
 
 	triple_store::TripleStore &triplestore = *storage_manager.find_or_construct<triple_store::TripleStore>("triple_store")(storage_manager.get_allocator());
 	tf::Executor executor(endpoint_cfg.threads);
@@ -147,6 +152,10 @@ int main(int argc, char *argv[]) {
 	spdlog::info("SPARQL endpoint serving sparkling linked data treasures on {} threads at http://0.0.0.0:{}/ with {} request timeout.",
 				 endpoint_cfg.threads, endpoint_cfg.port, endpoint_cfg.timeout_duration);
 	endpoint();
+
+	// warping up node storage
+	NodeStorage::unregister_backend(backend_impl);
+	NodeStorage::primary_instance(NodeStorage::lookup_instance(node_storage_n::NodeStorageID{1}).value());
 	spdlog::info("Shutdown successful.");
 	return EXIT_SUCCESS;
 }
