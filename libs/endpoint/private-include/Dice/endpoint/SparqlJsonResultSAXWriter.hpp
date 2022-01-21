@@ -35,7 +35,9 @@ namespace Dice::endpoint {
 		rapidjson::StringBuffer buffer;
 		rapidjson::Writer<rapidjson::StringBuffer> writer;
 
-
+		inline static auto to_rapidjson(std::string_view view){
+			return rapidjson::GenericStringRef<char>(view.data() ? view.data() : "", view.size());
+		}
 	public:
 		explicit SparqlJsonResultSAXWriter(std::vector<Variable> variables, size_t buffer_size)
 			: variables(std::move(variables)),
@@ -50,7 +52,7 @@ namespace Dice::endpoint {
 				{
 					writer.StartArray();
 					for (const auto &var : this->variables)
-						writer.String(var.name());
+						writer.String(to_rapidjson(var.name()));
 					writer.EndArray();
 				}
 				writer.EndObject();
@@ -74,7 +76,7 @@ namespace Dice::endpoint {
 				for (const auto &[term, var] : iter::zip(entry.key(), variables)) {
 					if (term.null())
 						continue;
-					writer.Key(var.name());
+					writer.Key(to_rapidjson(var.name()));
 					writer.StartObject();
 					writer.Key("type");
 					rdf4cpp::rdf::Node node;
@@ -101,7 +103,7 @@ namespace Dice::endpoint {
 							}
 						}
 						writer.Key("value");
-						writer.String(literal.lexical_form());
+						writer.String(to_rapidjson(literal.lexical_form()));
 
 					} else if (term.is_blank_node()) {
 						writer.String("bnode");

@@ -101,7 +101,7 @@ include(FetchContent)
 FetchContent_Declare(
         RDF4CPP
         GIT_REPOSITORY "https://github.com/rdf4cpp/rdf4cpp"
-        GIT_TAG "fix/node_equality_comparison_performance"
+        GIT_TAG "feature/adjust_for_better_integration_with_custom_backends"
         UPDATE_COMMAND ""
 )
 FetchContent_MakeAvailable(RDF4CPP)

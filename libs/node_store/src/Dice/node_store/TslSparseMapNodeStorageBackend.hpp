@@ -59,22 +59,22 @@ namespace rdf4cpp::rdf::storage::node {
 	template<typename T>
 	using offset_ptr = typename metall::manager::allocator_type<T>::pointer;
 
-	inline std::strong_ordering operator<=>(LiteralBackend const &self, offset_ptr<LiteralBackend> const &other) noexcept{
+	inline std::strong_ordering operator<=>(LiteralBackend const &self, offset_ptr<LiteralBackend> const &other) noexcept {
 		return self <=> *other;
 	}
 
-	inline std::strong_ordering operator<=>(IRIBackend const &self, offset_ptr<IRIBackend> const &other) noexcept{
+	inline std::strong_ordering operator<=>(IRIBackend const &self, offset_ptr<IRIBackend> const &other) noexcept {
 		return self <=> *other;
 	}
 
-	inline std::strong_ordering operator<=>(BNodeBackend const &self, offset_ptr<BNodeBackend> const &other) noexcept{
+	inline std::strong_ordering operator<=>(BNodeBackend const &self, offset_ptr<BNodeBackend> const &other) noexcept {
 		return self <=> *other;
 	}
 
-	inline std::strong_ordering operator<=>(VariableBackend const &self, offset_ptr<VariableBackend> const &other) noexcept{
+	inline std::strong_ordering operator<=>(VariableBackend const &self, offset_ptr<VariableBackend> const &other) noexcept {
 		return self <=> *other;
 	}
-}
+}// namespace rdf4cpp::rdf::storage::node
 
 namespace Dice::node_storage {
 
@@ -149,25 +149,28 @@ namespace Dice::node_storage {
 		NodeIDValue next_variable_id = NodeID::min_variable_id;
 
 
-
 	public:
-		TslSparseMapNodeStorageBackend(metall::manager::allocator_type<std::byte> allocator);
+		explicit TslSparseMapNodeStorageBackend(metall::manager::allocator_type<std::byte> allocator);
+
+		void reset_use_count() {
+			this->inc_use_count();
+		}
 
 		~TslSparseMapNodeStorageBackend() override = default;
 
-		[[nodiscard]] std::pair<LiteralBackend *, NodeID> get_string_literal(const std::string &lexical_form) override;
+		[[nodiscard]] std::pair<LiteralBackend *, NodeID> get_string_literal(std::string_view lexical_form) override;
 
-		[[nodiscard]] std::pair<LiteralBackend *, NodeID> get_typed_literal(const std::string &lexical_form, const std::string &datatype) override;
+		[[nodiscard]] std::pair<LiteralBackend *, NodeID> get_typed_literal(std::string_view lexical_form, std::string_view datatype) override;
 
-		[[nodiscard]] std::pair<LiteralBackend *, NodeID> get_typed_literal(const std::string &lexical_form, const NodeID &datatype_id) override;
+		[[nodiscard]] std::pair<LiteralBackend *, NodeID> get_typed_literal(std::string_view lexical_form, const NodeID &datatype_id) override;
 
-		[[nodiscard]] std::pair<LiteralBackend *, NodeID> get_lang_literal(const std::string &lexical_form, const std::string &lang) override;
+		[[nodiscard]] std::pair<LiteralBackend *, NodeID> get_lang_literal(std::string_view lexical_form, std::string_view lang) override;
 
-		[[nodiscard]] std::pair<IRIBackend *, NodeID> get_iri(const std::string &iri) override;
+		[[nodiscard]] std::pair<IRIBackend *, NodeID> get_iri(std::string_view iri) override;
 
-		[[nodiscard]] std::pair<VariableBackend *, NodeID> get_variable(const std::string &identifier, bool anonymous) override;
+		[[nodiscard]] std::pair<VariableBackend *, NodeID> get_variable(std::string_view identifier, bool anonymous) override;
 
-		[[nodiscard]] std::pair<BNodeBackend *, NodeID> get_bnode(const std::string &identifier) override;
+		[[nodiscard]] std::pair<BNodeBackend *, NodeID> get_bnode(std::string_view identifier) override;
 
 		[[nodiscard]] IRIBackend *lookup_iri(NodeIDValue id) const override;
 
