@@ -7,46 +7,8 @@
 namespace Dice::node_storage {
 
 
-	std::pair<rdf4cpp::rdf::storage::node::LiteralBackend *, rdf4cpp::rdf::storage::node::NodeID> TslSparseMapNodeStorageBackend::get_string_literal(std::string_view lexical_form) {
-		return lookup_or_insert_literal(LiteralBackend{lexical_form, NodeID{manager_id, RDFNodeType::IRI, NodeID::xsd_string_iri.first}});
-	}
-	std::pair<rdf4cpp::rdf::storage::node::LiteralBackend *, rdf4cpp::rdf::storage::node::NodeID> TslSparseMapNodeStorageBackend::get_typed_literal(std::string_view lexical_form, std::string_view datatype) {
-		return lookup_or_insert_literal(LiteralBackend{lexical_form, lookup_or_insert_iri(IRIBackend{datatype}).second});
-	}
-	std::pair<rdf4cpp::rdf::storage::node::LiteralBackend *, rdf4cpp::rdf::storage::node::NodeID> TslSparseMapNodeStorageBackend::get_typed_literal(std::string_view lexical_form, const NodeID &datatype_id) {
-		return lookup_or_insert_literal(LiteralBackend{lexical_form, datatype_id});
-	}
-	std::pair<rdf4cpp::rdf::storage::node::LiteralBackend *, rdf4cpp::rdf::storage::node::NodeID> TslSparseMapNodeStorageBackend::get_lang_literal(std::string_view lexical_form, std::string_view lang) {
-		return lookup_or_insert_literal(LiteralBackend{lexical_form, NodeID{manager_id, RDFNodeType::IRI, NodeID::rdf_langstring_iri.first}, lang});
-	}
-	std::pair<rdf4cpp::rdf::storage::node::IRIBackend *, rdf4cpp::rdf::storage::node::NodeID> TslSparseMapNodeStorageBackend::get_iri(std::string_view iri) {
-		return lookup_or_insert_iri(IRIBackend{iri});
-	}
-	std::pair<rdf4cpp::rdf::storage::node::VariableBackend *, rdf4cpp::rdf::storage::node::NodeID> TslSparseMapNodeStorageBackend::get_variable(std::string_view identifier, bool anonymous) {
-		return lookup_or_insert_variable(VariableBackend{identifier, anonymous});
-	}
-	std::pair<rdf4cpp::rdf::storage::node::BNodeBackend *, rdf4cpp::rdf::storage::node::NodeID> TslSparseMapNodeStorageBackend::get_bnode(std::string_view identifier) {
-		return lookup_or_insert_bnode(BNodeBackend{identifier});
-	}
-	rdf4cpp::rdf::storage::node::IRIBackend *TslSparseMapNodeStorageBackend::lookup_iri(NodeIDValue id) const {
-		std::shared_lock<std::shared_mutex> shared_lock{iri_mutex_};
-		return &(*iri_storage.at(id));
-	}
-	rdf4cpp::rdf::storage::node::LiteralBackend *TslSparseMapNodeStorageBackend::lookup_literal(NodeIDValue id) const {
-		std::shared_lock<std::shared_mutex> shared_lock{literal_mutex_};
-		return &(*literal_storage.at(id));
-	}
-	rdf4cpp::rdf::storage::node::BNodeBackend *TslSparseMapNodeStorageBackend::lookup_bnode(NodeIDValue id) const {
-		std::shared_lock<std::shared_mutex> shared_lock{bnode_mutex_};
+	std::pair<MetallLiteralBackend::pointer_t, rdf4cpp::rdf::storage::node::NodeID> TslSparseMapNodeStorageBackend::lookup_or_insert_literal(rdf4cpp::rdf::storage::node::LiteralBackendHandle literal) {
 
-		return &(*bnode_storage.at(id));
-	}
-	rdf4cpp::rdf::storage::node::VariableBackend *TslSparseMapNodeStorageBackend::lookup_variable(NodeIDValue id) const {
-		std::shared_lock<std::shared_mutex> shared_lock{variable_mutex_};
-		return &(*variable_storage.at(id));
-	}
-
-	std::pair<rdf4cpp::rdf::storage::node::LiteralBackend *, rdf4cpp::rdf::storage::node::NodeID> TslSparseMapNodeStorageBackend::lookup_or_insert_literal(LiteralBackend literal) {
 		std::shared_lock<std::shared_mutex> shared_lock{literal_mutex_};
 		auto found = literal_storage_reverse.find(literal);
 		NodeID id;
@@ -57,9 +19,9 @@ namespace Dice::node_storage {
 			found = literal_storage_reverse.find(literal);
 			if (found == literal_storage_reverse.end()) {
 				id = {manager_id, RDFNodeType::Literal, next_literal_id++, LiteralType::STRING};
-				metall::manager::allocator_type<LiteralBackend> alloc = allocator;
+				metall::manager::allocator_type<MetallLiteralBackend> alloc = allocator;
 				auto mem = alloc.allocate(1);
-				alloc.construct(mem, std::move(literal));
+				alloc.construct(mem, literal.lexical_form, literal.datatype_id, literal.language_tag, alloc);
 				auto [found2, inserted_successfully] = literal_storage_reverse.emplace(mem, id.node_id());
 				assert(inserted_successfully);
 				found = found2;
@@ -76,7 +38,8 @@ namespace Dice::node_storage {
 		return {found->first.get(), id};
 	}
 
-	std::pair<rdf4cpp::rdf::storage::node::IRIBackend *, rdf4cpp::rdf::storage::node::NodeID> TslSparseMapNodeStorageBackend::lookup_or_insert_iri(IRIBackend iri) {
+	std::pair<MetallIRIBackend::pointer_t, rdf4cpp::rdf::storage::node::NodeID> TslSparseMapNodeStorageBackend::lookup_or_insert_iri(rdf4cpp::rdf::storage::node::IRIBackendHandle iri) {
+
 		std::shared_lock<std::shared_mutex> shared_lock{iri_mutex_};
 		auto found = iri_storage_reverse.find(iri);
 		NodeID id;
@@ -87,9 +50,9 @@ namespace Dice::node_storage {
 			found = iri_storage_reverse.find(iri);
 			if (found == iri_storage_reverse.end()) {
 				id = {manager_id, RDFNodeType::IRI, next_iri_id++};
-				metall::manager::allocator_type<IRIBackend> alloc = allocator;
+				metall::manager::allocator_type<MetallIRIBackend> alloc = allocator;
 				auto mem = alloc.allocate(1);
-				alloc.construct(mem, std::move(iri));
+				alloc.construct(mem, iri.identifier, alloc);
 				auto [found2, inserted_successfully] = iri_storage_reverse.emplace(mem, id.node_id());
 				assert(inserted_successfully);
 				found = found2;
@@ -104,7 +67,7 @@ namespace Dice::node_storage {
 		}
 		return {found->first.get(), id};
 	}
-	std::pair<rdf4cpp::rdf::storage::node::BNodeBackend *, rdf4cpp::rdf::storage::node::NodeID> TslSparseMapNodeStorageBackend::lookup_or_insert_bnode(BNodeBackend bnode) {
+	std::pair<MetallBNodeBackend::pointer_t, rdf4cpp::rdf::storage::node::NodeID> TslSparseMapNodeStorageBackend::lookup_or_insert_bnode(rdf4cpp::rdf::storage::node::BNodeBackendHandle bnode) {
 		std::shared_lock<std::shared_mutex> shared_lock{bnode_mutex_};
 		auto found = bnode_storage_reverse.find(bnode);
 		NodeID id;
@@ -116,9 +79,9 @@ namespace Dice::node_storage {
 			found = bnode_storage_reverse.find(bnode);
 			if (found == bnode_storage_reverse.end()) {
 				id = {manager_id, RDFNodeType::BNode, next_bnode_id++};
-				metall::manager::allocator_type<BNodeBackend> alloc = allocator;
+				metall::manager::allocator_type<MetallBNodeBackend> alloc = allocator;
 				auto mem = alloc.allocate(1);
-				alloc.construct(mem, std::move(bnode));
+				alloc.construct(mem, bnode.identifier, alloc);
 				auto [found2, inserted_successfully] = bnode_storage_reverse.emplace(mem, id.node_id());
 				assert(inserted_successfully);
 				found = found2;
@@ -134,7 +97,7 @@ namespace Dice::node_storage {
 
 		return {found->first.get(), id};
 	}
-	std::pair<rdf4cpp::rdf::storage::node::VariableBackend *, rdf4cpp::rdf::storage::node::NodeID> TslSparseMapNodeStorageBackend::lookup_or_insert_variable(VariableBackend variable) {
+	std::pair<MetallVariableBackend::pointer_t, rdf4cpp::rdf::storage::node::NodeID> TslSparseMapNodeStorageBackend::lookup_or_insert_variable(rdf4cpp::rdf::storage::node::VariableBackendHandle variable) {
 		std::shared_lock<std::shared_mutex> shared_lock{variable_mutex_};
 		auto found = variable_storage_reverse.find(variable);
 		NodeID id;
@@ -145,9 +108,9 @@ namespace Dice::node_storage {
 			found = variable_storage_reverse.find(variable);
 			if (found == variable_storage_reverse.end()) {
 				id = {manager_id, RDFNodeType::Variable, next_variable_id++};
-				metall::manager::allocator_type<VariableBackend> alloc = allocator;
+				metall::manager::allocator_type<MetallVariableBackend> alloc = allocator;
 				auto mem = alloc.allocate(1);
-				alloc.construct(mem, std::move(variable));
+				alloc.construct(mem, variable.name, variable.is_anonymous, alloc);
 				auto [found2, inserted_successfully] = variable_storage_reverse.emplace(mem, id.node_id());
 				assert(inserted_successfully);
 				found = found2;
@@ -175,9 +138,9 @@ namespace Dice::node_storage {
 		  variable_storage_reverse(allocator) {
 		// some iri's like xsd:string are there by default
 		for (const auto &[id, iri] : NodeID::predefined_iris) {
-			metall::manager::allocator_type<IRIBackend> alloc = allocator;
+			metall::manager::allocator_type<MetallIRIBackend> alloc = allocator;
 			auto mem = alloc.allocate(1);
-			alloc.construct(mem, iri);
+			alloc.construct(mem, iri, alloc);
 			auto [iter, inserted_successfully] = iri_storage_reverse.emplace(mem, id);
 			assert(inserted_successfully);
 			iri_storage.insert({id, iter->first.get()});
