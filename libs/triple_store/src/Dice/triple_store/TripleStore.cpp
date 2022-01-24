@@ -156,7 +156,7 @@ namespace Dice::triple_store {
 		if (query.distinct_) {
 			sparql2tensor::EinsumEntry<sparql2tensor::COUNTED_t> entry;
 			entry.key().resize(query.projected_variables_.size());
-			for (auto const &distinct_entry : einsum::einsum<sparql2tensor::DISTINCT_t, sparql2tensor::tr>(query.get_subscript(), operands, endtime)) {
+			for (auto const &distinct_entry : einsum::einsum<sparql2tensor::DISTINCT_t, sparql2tensor::tr>(subscript, operands, endtime)) {
 				std::copy(distinct_entry.key().begin(), distinct_entry.key().end(), entry.key().begin());
 				co_yield entry;
 			}
