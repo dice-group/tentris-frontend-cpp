@@ -135,7 +135,7 @@ int main(int argc, char *argv[]) {
 								 size_t inserted_entries,
 								 size_t hypertrie_size_after) -> void {
 								 std::chrono::duration<double> batch_duration = batch_loading_time.elapsed();
-								 spdlog::info("  batch: {:>10.3} mio triples processed, {:>10.3} mio triples added, {} elapsed , {:>10.3} mio triples in storage.",
+								 spdlog::info("  batch: {:>10.3} mio triples processed, {:>10.3} mio triples added, {} elapsed, {:>10.3} mio triples in storage.",
 											  (double(processed_entries) / 1'000'000),
 											  (double(inserted_entries) / 1'000'000),
 											  batch_duration,
