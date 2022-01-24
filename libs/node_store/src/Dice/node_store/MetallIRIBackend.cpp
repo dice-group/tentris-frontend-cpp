@@ -10,7 +10,7 @@ std::strong_ordering MetallIRIBackend::operator<=>(MetallIRIBackend::pointer_t c
         return std::strong_ordering::greater;
 }
 std::string MetallIRIBackend::n_string() const noexcept {
-    return "<" + iri + ">";
+    return "<" + std::string{iri} + ">";
 }
 std::string_view MetallIRIBackend::identifier() const noexcept {
     return iri;

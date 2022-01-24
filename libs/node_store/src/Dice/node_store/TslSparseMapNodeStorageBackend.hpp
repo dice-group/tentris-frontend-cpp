@@ -150,6 +150,9 @@ namespace Dice::node_storage {
 				return Dice::hash::DiceHashxxh3<T>()(*node_ptr);
 			}
 
+			size_t operator()(rdf4cpp::rdf::storage::node::LiteralBackend const &x) const noexcept {
+				return Dice::hash::DiceHashxxh3<rdf4cpp::rdf::storage::node::LiteralBackend>()(x);
+			}
 			size_t operator()(rdf4cpp::rdf::storage::node::LiteralBackendHandle const &x) const noexcept {
 				return Dice::hash::DiceHashxxh3<rdf4cpp::rdf::storage::node::LiteralBackendHandle>()(x);
 			}
@@ -157,13 +160,22 @@ namespace Dice::node_storage {
 			size_t operator()(rdf4cpp::rdf::storage::node::BNodeBackendHandle const &x) const noexcept {
 				return Dice::hash::DiceHashxxh3<rdf4cpp::rdf::storage::node::BNodeBackendHandle>()(x);
 			}
+			size_t operator()(rdf4cpp::rdf::storage::node::BNodeBackend const &x) const noexcept {
+				return Dice::hash::DiceHashxxh3<rdf4cpp::rdf::storage::node::BNodeBackend>()(x);
+			}
 
 			size_t operator()(rdf4cpp::rdf::storage::node::VariableBackendHandle const &x) const noexcept {
 				return Dice::hash::DiceHashxxh3<rdf4cpp::rdf::storage::node::VariableBackendHandle>()(x);
 			}
+			size_t operator()(rdf4cpp::rdf::storage::node::VariableBackend const &x) const noexcept {
+				return Dice::hash::DiceHashxxh3<rdf4cpp::rdf::storage::node::VariableBackend>()(x);
+			}
 
 			size_t operator()(rdf4cpp::rdf::storage::node::IRIBackendHandle const &x) const noexcept {
 				return Dice::hash::DiceHashxxh3<rdf4cpp::rdf::storage::node::IRIBackendHandle>()(x);
+			}
+			size_t operator()(rdf4cpp::rdf::storage::node::IRIBackend const &x) const noexcept {
+				return Dice::hash::DiceHashxxh3<rdf4cpp::rdf::storage::node::IRIBackend>()(x);
 			}
 		};
 
@@ -179,13 +191,13 @@ namespace Dice::node_storage {
 		using Index = tsl::sparse_map<NodeIDValue,
 									  pointer<T>,
 									  NodeIDValueHash,
-									  std::less<>,
+									  std::equal_to<>,
 									  metall::manager::allocator_type<std::pair<NodeIDValue, pointer<T>>>>;
 		template<typename T>
 		using ReverseIndex = tsl::sparse_map<pointer<T>,
 											 NodeIDValue,
 											 NodeBackendHash<T>,
-											 std::less<>,
+											 std::equal_to<>,
 											 metall::manager::allocator_type<std::pair<pointer<T>, NodeIDValue>>>;
 
 		metall::manager::allocator_type<std::byte> allocator;
@@ -210,7 +222,7 @@ namespace Dice::node_storage {
 
 
 	public:
-		explicit TslSparseMapNodeStorageBackend(metall::manager::allocator_type<std::byte> allocator);
+		explicit TslSparseMapNodeStorageBackend(const metall::manager::allocator_type<std::byte>& allocator);
 
 		void reset_use_count() {
 			this->inc_use_count();

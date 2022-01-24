@@ -11,7 +11,7 @@ std::strong_ordering MetallBNodeBackend::operator<=>(MetallBNodeBackend::pointer
         return std::strong_ordering::greater;
 }
 std::string MetallBNodeBackend::n_string() const noexcept {
-    return "_:" + identifier_;
+    return "_:" + std::string{identifier_};
 }
 std::string_view MetallBNodeBackend::identifier() const noexcept {
     return identifier_;

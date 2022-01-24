@@ -125,7 +125,7 @@ namespace Dice::node_storage {
 		}
 		return {found->first.get(), id};
 	}
-	TslSparseMapNodeStorageBackend::TslSparseMapNodeStorageBackend(metall::manager::allocator_type<std::byte> allocator)
+	TslSparseMapNodeStorageBackend::TslSparseMapNodeStorageBackend(const metall::manager::allocator_type<std::byte>& allocator)
 		: INodeStorageBackend(),
 		  allocator(allocator),
 		  literal_storage(allocator),

@@ -12,9 +12,9 @@ std::strong_ordering MetallVariableBackend::operator<=>(MetallVariableBackend::p
 }
 std::string MetallVariableBackend::n_string() const noexcept {
     if (anonymous_)
-        return "_:" + name_;
+        return "_:" + std::string{name_};
     else
-        return "?" + name_;
+        return "?" + std::string{name_};
 }
 bool MetallVariableBackend::is_anonymous() const noexcept {
     return anonymous_;
