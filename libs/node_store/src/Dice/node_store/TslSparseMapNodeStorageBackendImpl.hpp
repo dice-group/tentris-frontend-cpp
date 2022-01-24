@@ -11,6 +11,7 @@
 #define BOOST_BIND_GLOBAL_PLACEHOLDERS
 #endif
 #include <metall/metall.hpp>
+#include <metall/container/unordered_map.hpp>
 #include <tsl/boost_offset_pointer.h>
 
 #include "Dice/node_store/MetallBNodeBackend.hpp"
@@ -188,17 +189,15 @@ namespace Dice::node_storage {
 		using NodeIDValueHash = Dice::hash::DiceHashMartinus<NodeIDValue>;
 
 		template<typename T>
-		using Index = tsl::sparse_map<NodeIDValue,
+		using Index = metall::container::unordered_map<NodeIDValue,
 									  pointer<T>,
 									  NodeIDValueHash,
-									  std::equal_to<>,
-									  metall::manager::allocator_type<std::pair<NodeIDValue, pointer<T>>>>;
+									  std::equal_to<>>;
 		template<typename T>
-		using ReverseIndex = tsl::sparse_map<pointer<T>,
+		using ReverseIndex = metall::container::unordered_map<pointer<T>,
 											 NodeIDValue,
 											 NodeBackendHash<T>,
-											 std::equal_to<>,
-											 metall::manager::allocator_type<std::pair<pointer<T>, NodeIDValue>>>;
+											 std::equal_to<>>;
 
 		metall::manager::allocator_type<std::byte> allocator;
 
