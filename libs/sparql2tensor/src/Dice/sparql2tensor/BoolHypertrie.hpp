@@ -8,6 +8,8 @@
 #ifndef BOOST_BIND_GLOBAL_PLACEHOLDERS
 #define BOOST_BIND_GLOBAL_PLACEHOLDERS
 #endif
+#include <metall/container/unordered_map.hpp>
+#include <metall/container/unordered_set.hpp>
 #include <metall/metall.hpp>
 
 namespace Dice::hash {
@@ -50,11 +52,20 @@ namespace Dice::hash {
 namespace Dice::sparql2tensor {
 	using key_part_type = rdf4cpp::rdf::Node;
 
+	template<typename key_part_type, typename value_type, typename Allocator>
+	using map_type = metall::container::unordered_map<key_part_type, value_type, Dice::hash::DiceHashxxh3<key_part_type>,
+													  std::equal_to<key_part_type>,
+													  typename std::allocator_traits<Allocator>::template rebind_alloc<std::pair<const key_part_type, value_type>>>;
+	template<typename key_part_type, typename Allocator>
+	using set_type = metall::container::unordered_set<key_part_type, Dice::hash::DiceHashxxh3<key_part_type>,
+													  std::equal_to<key_part_type>,
+													  typename std::allocator_traits<Allocator>::template rebind_alloc<key_part_type>>;
+
 	using tr = Dice::hypertrie::Hypertrie_trait<key_part_type,
 												bool,
 												metall::manager::allocator_type<std::byte>,
-												Dice::hypertrie::internal::container::tsl_sparse_map,
-												Dice::hypertrie::internal::container::tsl_sparse_set,
+												map_type,
+												set_type,
 												63>;
 	using HypertrieContext = Dice::hypertrie::HypertrieContext<tr>;
 	using BoolHypertrie = Dice::hypertrie::Hypertrie<tr>;
