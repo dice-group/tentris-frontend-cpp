@@ -106,11 +106,11 @@ int main(int argc, char *argv[]) {
 	// setting up node storage
 	namespace node_storage_n = rdf4cpp::rdf::storage::node;
 	using NodeStorage = node_storage_n::NodeStorage;
-	auto *backend_impl = storage_manager.find_or_construct<Dice::node_storage::TslSparseMapNodeStorageBackend>("node_store")(storage_manager.get_allocator());
-	backend_impl->reset_use_count();
-	auto nodestorage = NodeStorage::register_backend(backend_impl);
+	auto *backend_impl = storage_manager.find_or_construct<Dice::node_storage::TslSparseMapNodeStorageBackendImpl>("node_store")(storage_manager.get_allocator());
+	Dice::node_storage::TslSparseMapNodeStorageBackend backend{backend_impl};
+	auto nodestorage = NodeStorage::register_backend(&backend);
 	NodeStorage::primary_instance(nodestorage);
-	NodeStorage::primary_instance(); // necessary for initialization
+	auto std_storage = NodeStorage::new_instance();// necessary for initialization
 
 	triple_store::TripleStore &triplestore = *storage_manager.find_or_construct<triple_store::TripleStore>("triple_store")(storage_manager.get_allocator());
 	tf::Executor executor(endpoint_cfg.threads);
@@ -154,8 +154,8 @@ int main(int argc, char *argv[]) {
 	endpoint();
 
 	// warping up node storage
-	NodeStorage::unregister_backend(backend_impl);
-	NodeStorage::primary_instance(NodeStorage::lookup_instance(node_storage_n::NodeStorageID{1}).value());
+	NodeStorage::unregister_backend(&backend);
+	NodeStorage::primary_instance(std_storage);
 	spdlog::info("Shutdown successful.");
 	return EXIT_SUCCESS;
 }

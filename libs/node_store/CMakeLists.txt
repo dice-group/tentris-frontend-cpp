@@ -4,6 +4,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 include(GNUInstallDirs)
 
 add_library(node_store
+        src/Dice/node_store/TslSparseMapNodeStorageBackendImpl.cpp
         src/Dice/node_store/TslSparseMapNodeStorageBackend.cpp
         src/Dice/node_store/MetallBNodeBackend.cpp
         src/Dice/node_store/MetallIRIBackend.cpp
