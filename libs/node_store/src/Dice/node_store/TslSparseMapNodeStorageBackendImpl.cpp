@@ -7,7 +7,7 @@
 namespace Dice::node_storage {
 
 
-	std::pair<MetallLiteralBackend::pointer_t, rdf4cpp::rdf::storage::node::NodeID> TslSparseMapNodeStorageBackendImpl::lookup_or_insert_literal(rdf4cpp::rdf::storage::node::LiteralBackendHandle literal) {
+	std::pair<MetallLiteralBackend::pointer_t, rdf4cpp::rdf::storage::node::identifier::NodeID> TslSparseMapNodeStorageBackendImpl::lookup_or_insert_literal(rdf4cpp::rdf::storage::node::handle::LiteralBackendView literal) {
 
 		std::shared_lock<std::shared_mutex> shared_lock{literal_mutex_};
 		auto found = literal_storage_reverse.find(literal, literal_storage_reverse.hash_function(), literal_storage_reverse.key_eq());
@@ -38,7 +38,7 @@ namespace Dice::node_storage {
 		return {found->first.get(), id};
 	}
 
-	std::pair<MetallIRIBackend::pointer_t, rdf4cpp::rdf::storage::node::NodeID> TslSparseMapNodeStorageBackendImpl::lookup_or_insert_iri(rdf4cpp::rdf::storage::node::IRIBackendHandle iri) {
+	std::pair<MetallIRIBackend::pointer_t, rdf4cpp::rdf::storage::node::identifier::NodeID> TslSparseMapNodeStorageBackendImpl::lookup_or_insert_iri(rdf4cpp::rdf::storage::node::handle::IRIBackendView iri) {
 
 		std::shared_lock<std::shared_mutex> shared_lock{iri_mutex_};
 
@@ -68,7 +68,7 @@ namespace Dice::node_storage {
 		}
 		return {found->first.get(), id};
 	}
-	std::pair<MetallBNodeBackend::pointer_t, rdf4cpp::rdf::storage::node::NodeID> TslSparseMapNodeStorageBackendImpl::lookup_or_insert_bnode(rdf4cpp::rdf::storage::node::BNodeBackendHandle bnode) {
+	std::pair<MetallBNodeBackend::pointer_t, rdf4cpp::rdf::storage::node::identifier::NodeID> TslSparseMapNodeStorageBackendImpl::lookup_or_insert_bnode(rdf4cpp::rdf::storage::node::handle::BNodeBackendView bnode) {
 		std::shared_lock<std::shared_mutex> shared_lock{bnode_mutex_};
 		auto found = bnode_storage_reverse.find(bnode, bnode_storage_reverse.hash_function(), bnode_storage_reverse.key_eq());
 		NodeID id;
@@ -98,7 +98,7 @@ namespace Dice::node_storage {
 
 		return {found->first.get(), id};
 	}
-	std::pair<MetallVariableBackend::pointer_t, rdf4cpp::rdf::storage::node::NodeID> TslSparseMapNodeStorageBackendImpl::lookup_or_insert_variable(rdf4cpp::rdf::storage::node::VariableBackendHandle variable) {
+	std::pair<MetallVariableBackend::pointer_t, rdf4cpp::rdf::storage::node::identifier::NodeID> TslSparseMapNodeStorageBackendImpl::lookup_or_insert_variable(rdf4cpp::rdf::storage::node::handle::VariableBackendView variable) {
 		std::shared_lock<std::shared_mutex> shared_lock{variable_mutex_};
 		auto found = variable_storage_reverse.find(variable, variable_storage_reverse.hash_function(), variable_storage_reverse.key_eq());
 		NodeID id;

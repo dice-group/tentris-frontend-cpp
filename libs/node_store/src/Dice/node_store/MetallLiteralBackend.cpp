@@ -2,7 +2,7 @@
 #include <tuple>
 namespace Dice::node_storage {
 
-	MetallLiteralBackend::MetallLiteralBackend(std::string_view lexical, const rdf4cpp::rdf::storage::node::NodeID &dataType, std::string_view langTag, metall::manager::allocator_type<std::byte> const &allocator) noexcept
+	MetallLiteralBackend::MetallLiteralBackend(std::string_view lexical, const rdf4cpp::rdf::storage::node::identifier::NodeID &dataType, std::string_view langTag, metall::manager::allocator_type<std::byte> const &allocator) noexcept
 		: datatype_id_(dataType),
 		  lexical(lexical, allocator),
 		  lang_tag(langTag, allocator) {}
@@ -22,7 +22,7 @@ namespace Dice::node_storage {
 	std::string_view MetallLiteralBackend::language_tag() const noexcept {
 		return lang_tag;
 	}
-	const rdf4cpp::rdf::storage::node::NodeID &MetallLiteralBackend::datatype_id() const noexcept {
+	const rdf4cpp::rdf::storage::node::identifier::NodeID &MetallLiteralBackend::datatype_id() const noexcept {
 		return datatype_id_;
 	}
 	std::string_view MetallLiteralBackend::lexical_form() const noexcept {

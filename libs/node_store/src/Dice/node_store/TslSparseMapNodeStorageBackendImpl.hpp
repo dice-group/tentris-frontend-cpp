@@ -12,7 +12,6 @@
 #endif
 #include <metall/metall.hpp>
 #include <metall/container/unordered_map.hpp>
-#include <tsl/boost_offset_pointer.h>
 
 #include "Dice/node_store/MetallBNodeBackend.hpp"
 #include "Dice/node_store/MetallIRIBackend.hpp"
@@ -21,15 +20,15 @@
 
 namespace Dice::hash {
 	template<typename Policy>
-	struct dice_hash_overload<Policy, rdf4cpp::rdf::storage::node::NodeIDValue> {
-		inline static std::size_t dice_hash(rdf4cpp::rdf::storage::node::NodeIDValue const &x) noexcept {
+	struct dice_hash_overload<Policy, rdf4cpp::rdf::storage::node::identifier::NodeIDValue> {
+		inline static std::size_t dice_hash(rdf4cpp::rdf::storage::node::identifier::NodeIDValue const &x) noexcept {
 			return Dice::hash::DiceHash<size_t, Policy>()(x.value);
 		}
 	};
 
 	template<typename Policy>
-	struct dice_hash_overload<Policy, rdf4cpp::rdf::storage::node::LiteralBackendHandle> {
-		inline static std::size_t dice_hash(rdf4cpp::rdf::storage::node::LiteralBackendHandle const &x) noexcept {
+	struct dice_hash_overload<Policy, rdf4cpp::rdf::storage::node::handle::LiteralBackendView> {
+		inline static std::size_t dice_hash(rdf4cpp::rdf::storage::node::handle::LiteralBackendView const &x) noexcept {
 			return Dice::hash::dice_hash_templates<Policy>::dice_hash(std::make_tuple(
 					Dice::hash::dice_hash_templates<Policy>::dice_hash(x.datatype_id.raw()),
 					Dice::hash::dice_hash_templates<Policy>::dice_hash(x.lexical_form),
@@ -47,8 +46,8 @@ namespace Dice::hash {
 	};
 
 	template<typename Policy>
-	struct dice_hash_overload<Policy, rdf4cpp::rdf::storage::node::BNodeBackendHandle> {
-		inline static std::size_t dice_hash(rdf4cpp::rdf::storage::node::BNodeBackendHandle const &x) noexcept {
+	struct dice_hash_overload<Policy, rdf4cpp::rdf::storage::node::handle::BNodeBackendView> {
+		inline static std::size_t dice_hash(rdf4cpp::rdf::storage::node::handle::BNodeBackendView const &x) noexcept {
 			return Dice::hash::dice_hash_templates<Policy>::dice_hash(x.identifier);
 		}
 	};
@@ -60,8 +59,8 @@ namespace Dice::hash {
 	};
 
 	template<typename Policy>
-	struct dice_hash_overload<Policy, rdf4cpp::rdf::storage::node::VariableBackendHandle> {
-		inline static std::size_t dice_hash(rdf4cpp::rdf::storage::node::VariableBackendHandle const &x) noexcept {
+	struct dice_hash_overload<Policy, rdf4cpp::rdf::storage::node::handle::VariableBackendView> {
+		inline static std::size_t dice_hash(rdf4cpp::rdf::storage::node::handle::VariableBackendView const &x) noexcept {
 			return Dice::hash::dice_hash_templates<Policy>::dice_hash(std::make_tuple(
 					Dice::hash::dice_hash_templates<Policy>::dice_hash(x.is_anonymous),
 					Dice::hash::dice_hash_templates<Policy>::dice_hash(x.name)));
@@ -77,8 +76,8 @@ namespace Dice::hash {
 	};
 
 	template<typename Policy>
-	struct dice_hash_overload<Policy, rdf4cpp::rdf::storage::node::IRIBackendHandle> {
-		inline static std::size_t dice_hash(rdf4cpp::rdf::storage::node::IRIBackendHandle const &x) noexcept {
+	struct dice_hash_overload<Policy, rdf4cpp::rdf::storage::node::handle::IRIBackendView> {
+		inline static std::size_t dice_hash(rdf4cpp::rdf::storage::node::handle::IRIBackendView const &x) noexcept {
 			return Dice::hash::dice_hash_templates<Policy>::dice_hash(x.identifier);
 		}
 	};
@@ -90,36 +89,36 @@ namespace Dice::hash {
 	};
 }// namespace Dice::hash
 
-namespace rdf4cpp::rdf::storage::node {
+namespace rdf4cpp::rdf::storage::node::handle {
 	//	template<typename T>
 	//	using offset_ptr = typename metall::manager::allocator_type<T>::pointer;
 
-	inline auto operator<=>(Dice::node_storage::MetallLiteralBackend::pointer_t const &self, LiteralBackendHandle const &other) noexcept {
-		return LiteralBackendHandle{.datatype_id = self->datatype_id(), .lexical_form = self->lexical_form(), .language_tag = self->language_tag()} <=> other;
+	inline auto operator<=>(Dice::node_storage::MetallLiteralBackend::pointer_t const &self, LiteralBackendView const &other) noexcept {
+		return LiteralBackendView{.datatype_id = self->datatype_id(), .lexical_form = self->lexical_form(), .language_tag = self->language_tag()} <=> other;
 	}
-	inline auto operator==(Dice::node_storage::MetallLiteralBackend::pointer_t const &self, LiteralBackendHandle const &other) noexcept {
-		return LiteralBackendHandle{.datatype_id = self->datatype_id(), .lexical_form = self->lexical_form(), .language_tag = self->language_tag()} == other;
-	}
-
-	inline auto operator<=>(Dice::node_storage::MetallIRIBackend::pointer_t const &self, IRIBackendHandle const &other) noexcept {
-		return IRIBackendHandle{.identifier = self->identifier()} <=> other;
-	}
-	inline auto operator==(Dice::node_storage::MetallIRIBackend::pointer_t const &self, IRIBackendHandle const &other) noexcept {
-		return IRIBackendHandle{.identifier = self->identifier()} == other;
+	inline auto operator==(Dice::node_storage::MetallLiteralBackend::pointer_t const &self, LiteralBackendView const &other) noexcept {
+		return LiteralBackendView{.datatype_id = self->datatype_id(), .lexical_form = self->lexical_form(), .language_tag = self->language_tag()} == other;
 	}
 
-	inline auto operator<=>(Dice::node_storage::MetallBNodeBackend::pointer_t const &self, BNodeBackendHandle const &other) noexcept {
-		return BNodeBackendHandle{.identifier = self->identifier()} <=> other;
+	inline auto operator<=>(Dice::node_storage::MetallIRIBackend::pointer_t const &self, IRIBackendView const &other) noexcept {
+		return IRIBackendView{.identifier = self->identifier()} <=> other;
 	}
-	inline auto operator==(Dice::node_storage::MetallBNodeBackend::pointer_t const &self, BNodeBackendHandle const &other) noexcept {
-		return BNodeBackendHandle{.identifier = self->identifier()} == other;
+	inline auto operator==(Dice::node_storage::MetallIRIBackend::pointer_t const &self, IRIBackendView const &other) noexcept {
+		return IRIBackendView{.identifier = self->identifier()} == other;
 	}
 
-	inline auto operator<=>(Dice::node_storage::MetallVariableBackend::pointer_t const &self, VariableBackendHandle const &other) noexcept {
-		return VariableBackendHandle{.name = self->name(), .is_anonymous = self->is_anonymous()} <=> other;
+	inline auto operator<=>(Dice::node_storage::MetallBNodeBackend::pointer_t const &self, BNodeBackendView const &other) noexcept {
+		return BNodeBackendView{.identifier = self->identifier()} <=> other;
 	}
-	inline auto operator==(Dice::node_storage::MetallVariableBackend::pointer_t const &self, VariableBackendHandle const &other) noexcept {
-		return VariableBackendHandle{.name = self->name(), .is_anonymous = self->is_anonymous()} == other;
+	inline auto operator==(Dice::node_storage::MetallBNodeBackend::pointer_t const &self, BNodeBackendView const &other) noexcept {
+		return BNodeBackendView{.identifier = self->identifier()} == other;
+	}
+
+	inline auto operator<=>(Dice::node_storage::MetallVariableBackend::pointer_t const &self, VariableBackendView const &other) noexcept {
+		return VariableBackendView{.name = self->name(), .is_anonymous = self->is_anonymous()} <=> other;
+	}
+	inline auto operator==(Dice::node_storage::MetallVariableBackend::pointer_t const &self, VariableBackendView const &other) noexcept {
+		return VariableBackendView{.name = self->name(), .is_anonymous = self->is_anonymous()} == other;
 	}
 }// namespace rdf4cpp::rdf::storage::node
 
@@ -127,15 +126,15 @@ namespace Dice::node_storage {
 
 
 	class TslSparseMapNodeStorageBackendImpl {
-		using RDFNodeType = rdf4cpp::rdf::storage::node::RDFNodeType;
-		using NodeIDValue = rdf4cpp::rdf::storage::node::NodeIDValue;
-		using LiteralType = rdf4cpp::rdf::storage::node::LiteralType;
-		using LiteralID = rdf4cpp::rdf::storage::node::LiteralID;
-		using NodeID = rdf4cpp::rdf::storage::node::NodeID;
-		using LiteralBackendHandle = rdf4cpp::rdf::storage::node::LiteralBackendHandle;
-		using BNodeBackendHandle = rdf4cpp::rdf::storage::node::BNodeBackendHandle;
-		using IRIBackendHandle = rdf4cpp::rdf::storage::node::IRIBackendHandle;
-		using VariableBackendHandle = rdf4cpp::rdf::storage::node::VariableBackendHandle;
+		using RDFNodeType = rdf4cpp::rdf::storage::node::identifier::RDFNodeType;
+		using NodeIDValue = rdf4cpp::rdf::storage::node::identifier::NodeIDValue;
+		using LiteralType = rdf4cpp::rdf::storage::node::identifier::LiteralType;
+		using LiteralID = rdf4cpp::rdf::storage::node::identifier::LiteralID;
+		using NodeID = rdf4cpp::rdf::storage::node::identifier::NodeID;
+		using LiteralBackendView = rdf4cpp::rdf::storage::node::handle::LiteralBackendView;
+		using BNodeBackendView = rdf4cpp::rdf::storage::node::handle::BNodeBackendView;
+		using IRIBackendView = rdf4cpp::rdf::storage::node::handle::IRIBackendView;
+		using VariableBackendView = rdf4cpp::rdf::storage::node::handle::VariableBackendView;
 
 		template<typename T>
 		struct NodeBackendHash {
@@ -151,32 +150,17 @@ namespace Dice::node_storage {
 				return Dice::hash::DiceHashxxh3<T>()(*node_ptr);
 			}
 
-			size_t operator()(rdf4cpp::rdf::storage::node::LiteralBackend const &x) const noexcept {
-				return Dice::hash::DiceHashxxh3<rdf4cpp::rdf::storage::node::LiteralBackend>()(x);
+			size_t operator()(rdf4cpp::rdf::storage::node::handle::LiteralBackendView const &x) const noexcept {
+				return Dice::hash::DiceHashxxh3<rdf4cpp::rdf::storage::node::handle::LiteralBackendView>()(x);
 			}
-			size_t operator()(rdf4cpp::rdf::storage::node::LiteralBackendHandle const &x) const noexcept {
-				return Dice::hash::DiceHashxxh3<rdf4cpp::rdf::storage::node::LiteralBackendHandle>()(x);
+			size_t operator()(rdf4cpp::rdf::storage::node::handle::BNodeBackendView const &x) const noexcept {
+				return Dice::hash::DiceHashxxh3<rdf4cpp::rdf::storage::node::handle::BNodeBackendView>()(x);
 			}
-
-			size_t operator()(rdf4cpp::rdf::storage::node::BNodeBackendHandle const &x) const noexcept {
-				return Dice::hash::DiceHashxxh3<rdf4cpp::rdf::storage::node::BNodeBackendHandle>()(x);
+			size_t operator()(rdf4cpp::rdf::storage::node::handle::VariableBackendView const &x) const noexcept {
+				return Dice::hash::DiceHashxxh3<rdf4cpp::rdf::storage::node::handle::VariableBackendView>()(x);
 			}
-			size_t operator()(rdf4cpp::rdf::storage::node::BNodeBackend const &x) const noexcept {
-				return Dice::hash::DiceHashxxh3<rdf4cpp::rdf::storage::node::BNodeBackend>()(x);
-			}
-
-			size_t operator()(rdf4cpp::rdf::storage::node::VariableBackendHandle const &x) const noexcept {
-				return Dice::hash::DiceHashxxh3<rdf4cpp::rdf::storage::node::VariableBackendHandle>()(x);
-			}
-			size_t operator()(rdf4cpp::rdf::storage::node::VariableBackend const &x) const noexcept {
-				return Dice::hash::DiceHashxxh3<rdf4cpp::rdf::storage::node::VariableBackend>()(x);
-			}
-
-			size_t operator()(rdf4cpp::rdf::storage::node::IRIBackendHandle const &x) const noexcept {
-				return Dice::hash::DiceHashxxh3<rdf4cpp::rdf::storage::node::IRIBackendHandle>()(x);
-			}
-			size_t operator()(rdf4cpp::rdf::storage::node::IRIBackend const &x) const noexcept {
-				return Dice::hash::DiceHashxxh3<rdf4cpp::rdf::storage::node::IRIBackend>()(x);
+			size_t operator()(rdf4cpp::rdf::storage::node::handle::IRIBackendView const &x) const noexcept {
+				return Dice::hash::DiceHashxxh3<rdf4cpp::rdf::storage::node::handle::IRIBackendView>()(x);
 			}
 		};
 
@@ -201,7 +185,7 @@ namespace Dice::node_storage {
 
 		metall::manager::allocator_type<std::byte> allocator;
 
-		constexpr static rdf4cpp::rdf::storage::node::NodeStorageID manager_id = rdf4cpp::rdf::storage::node::NodeStorageID{0};
+		constexpr static rdf4cpp::rdf::storage::node::identifier::NodeStorageID manager_id = rdf4cpp::rdf::storage::node::identifier::NodeStorageID{0};
 
 		mutable std::shared_mutex literal_mutex_;
 		Index<MetallLiteralBackend> literal_storage;
@@ -227,7 +211,7 @@ namespace Dice::node_storage {
 
 		[[nodiscard]] NodeID get_string_literal_id(std::string_view lexical_form) {
 			return lookup_or_insert_literal(
-						   LiteralBackendHandle{.datatype_id = NodeID{manager_id, RDFNodeType::IRI, NodeID::xsd_string_iri.first},
+						   LiteralBackendView{.datatype_id = NodeID{manager_id, RDFNodeType::IRI, NodeID::xsd_string_iri.first},
 												.lexical_form = lexical_form,
 												.language_tag = {}})
 					.second;
@@ -235,7 +219,7 @@ namespace Dice::node_storage {
 
 		[[nodiscard]] NodeID get_typed_literal_id(std::string_view lexical_form, std::string_view datatype) {
 			return lookup_or_insert_literal(
-						   LiteralBackendHandle{.datatype_id = lookup_or_insert_iri(IRIBackendHandle{.identifier = datatype}).second,
+						   LiteralBackendView{.datatype_id = lookup_or_insert_iri(IRIBackendView{.identifier = datatype}).second,
 												.lexical_form = lexical_form,
 												.language_tag = {}})
 					.second;
@@ -243,7 +227,7 @@ namespace Dice::node_storage {
 
 		[[nodiscard]] NodeID get_typed_literal_id(std::string_view lexical_form, const NodeID &datatype_id) {
 			return lookup_or_insert_literal(
-						   LiteralBackendHandle{.datatype_id = datatype_id,
+						   LiteralBackendView{.datatype_id = datatype_id,
 												.lexical_form = lexical_form,
 												.language_tag = {}})
 					.second;
@@ -251,48 +235,48 @@ namespace Dice::node_storage {
 
 		[[nodiscard]] NodeID get_lang_literal_id(std::string_view lexical_form, std::string_view lang) {
 			return lookup_or_insert_literal(
-						   LiteralBackendHandle{.datatype_id = NodeID{manager_id, RDFNodeType::IRI, NodeID::rdf_langstring_iri.first},
+						   LiteralBackendView{.datatype_id = NodeID{manager_id, RDFNodeType::IRI, NodeID::rdf_langstring_iri.first},
 												.lexical_form = lexical_form,
 												.language_tag = lang})
 					.second;
 		}
 
 		[[nodiscard]] NodeID get_iri_id(std::string_view iri) {
-			return lookup_or_insert_iri(IRIBackendHandle{.identifier = iri}).second;
+			return lookup_or_insert_iri(IRIBackendView{.identifier = iri}).second;
 		}
 
 		[[nodiscard]] NodeID get_variable_id(std::string_view identifier, bool anonymous) {
-			return lookup_or_insert_variable(VariableBackendHandle{.name = identifier, .is_anonymous = anonymous}).second;
+			return lookup_or_insert_variable(VariableBackendView{.name = identifier, .is_anonymous = anonymous}).second;
 		}
 
 		[[nodiscard]] NodeID get_bnode_id(std::string_view identifier) {
-			return lookup_or_insert_bnode(BNodeBackendHandle{.identifier = identifier}).second;
+			return lookup_or_insert_bnode(BNodeBackendView{.identifier = identifier}).second;
 		}
 
-		[[nodiscard]] IRIBackendHandle get_iri_handle(NodeIDValue id) const {
-			return IRIBackendHandle(*iri_storage.at(id));
+		[[nodiscard]] IRIBackendView get_iri_handle(NodeIDValue id) const {
+			return IRIBackendView(*iri_storage.at(id));
 		}
 
-		[[nodiscard]] LiteralBackendHandle get_literal_handle(NodeIDValue id) const {
-			return LiteralBackendHandle(*literal_storage.at(id));
+		[[nodiscard]] LiteralBackendView get_literal_handle(NodeIDValue id) const {
+			return LiteralBackendView(*literal_storage.at(id));
 		}
 
-		[[nodiscard]] BNodeBackendHandle get_bnode_handle(NodeIDValue id) const {
-			return BNodeBackendHandle(*bnode_storage.at(id));
+		[[nodiscard]] BNodeBackendView get_bnode_handle(NodeIDValue id) const {
+			return BNodeBackendView(*bnode_storage.at(id));
 		}
 
-		[[nodiscard]] VariableBackendHandle get_variable_handle(NodeIDValue id) const {
-			return VariableBackendHandle(*variable_storage.at(id));
+		[[nodiscard]] VariableBackendView get_variable_handle(NodeIDValue id) const {
+			return VariableBackendView(*variable_storage.at(id));
 		}
 
 	private:
-		std::pair<MetallLiteralBackend::pointer_t, NodeID> lookup_or_insert_literal(LiteralBackendHandle literal);
+		std::pair<MetallLiteralBackend::pointer_t, NodeID> lookup_or_insert_literal(LiteralBackendView literal);
 
-		std::pair<MetallIRIBackend::pointer_t, NodeID> lookup_or_insert_iri(IRIBackendHandle iri);
+		std::pair<MetallIRIBackend::pointer_t, NodeID> lookup_or_insert_iri(IRIBackendView iri);
 
-		std::pair<MetallBNodeBackend::pointer_t, NodeID> lookup_or_insert_bnode(BNodeBackendHandle bnode);
+		std::pair<MetallBNodeBackend::pointer_t, NodeID> lookup_or_insert_bnode(BNodeBackendView bnode);
 
-		std::pair<MetallVariableBackend::pointer_t, NodeID> lookup_or_insert_variable(VariableBackendHandle variable);
+		std::pair<MetallVariableBackend::pointer_t, NodeID> lookup_or_insert_variable(VariableBackendView variable);
 	};
 
 }// namespace Dice::node_storage

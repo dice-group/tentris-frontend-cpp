@@ -1,8 +1,7 @@
 #ifndef RDF4CPP_METALLVARIABLEBACKEND_HPP
 #define RDF4CPP_METALLVARIABLEBACKEND_HPP
 
-#include <rdf4cpp/rdf/storage/node/BackendNodeHandles.hpp>
-#include <rdf4cpp/rdf/storage/node/NodeID.hpp>
+#include <rdf4cpp/rdf/storage/node/handle/VariableBackendView.hpp>
 
 #include <metall/container/string.hpp>
 #include <metall/metall.hpp>
@@ -31,7 +30,7 @@ namespace Dice::node_storage {
 
 		[[nodiscard]] std::string_view name() const noexcept;
 
-		explicit operator rdf4cpp::rdf::storage::node::VariableBackendHandle() const noexcept {
+		explicit operator rdf4cpp::rdf::storage::node::handle::VariableBackendView() const noexcept {
 			return {.name = name(),
 					.is_anonymous = is_anonymous()};
 		}

@@ -1,8 +1,7 @@
 #ifndef RDF4CPP_METALLBNODEBACKEND_HPP
 #define RDF4CPP_METALLBNODEBACKEND_HPP
 
-#include <rdf4cpp/rdf/storage/node/BackendNodeHandles.hpp>
-#include <rdf4cpp/rdf/storage/node/NodeID.hpp>
+#include <rdf4cpp/rdf/storage/node/handle/BNodeBackendView.hpp>
 
 #include <metall/container/string.hpp>
 #include <metall/metall.hpp>
@@ -27,7 +26,7 @@ namespace Dice::node_storage {
 		[[nodiscard]] std::string n_string() const noexcept;
 		[[nodiscard]] std::string_view identifier() const noexcept;
 
-		explicit operator rdf4cpp::rdf::storage::node::BNodeBackendHandle() const noexcept {
+		explicit operator rdf4cpp::rdf::storage::node::handle::BNodeBackendView() const noexcept {
 			return {.identifier = identifier()};
 		}
 	};
