@@ -1,8 +1,8 @@
 #ifndef RDF4CPP_METALLLITERALBACKEND_HPP
 #define RDF4CPP_METALLLITERALBACKEND_HPP
 
-#include <rdf4cpp/rdf/storage/node/identifier/NodeID.hpp>
 #include <rdf4cpp/rdf/storage/node/handle/LiteralBackendView.hpp>
+#include <rdf4cpp/rdf/storage/node/identifier/NodeID.hpp>
 
 #include <metall/container/string.hpp>
 #ifndef BOOST_BIND_GLOBAL_PLACEHOLDERS
@@ -15,7 +15,7 @@
 #include <string>
 #include <string_view>
 
-namespace Dice::node_storage {
+namespace Dice::node_store {
 
 	class MetallLiteralBackend {
 		rdf4cpp::rdf::storage::node::identifier::NodeID datatype_id_;
@@ -37,18 +37,17 @@ namespace Dice::node_storage {
 
 		[[nodiscard]] std::string_view language_tag() const noexcept;
 
-		explicit operator rdf4cpp::rdf::storage::node::handle::LiteralBackendView() const noexcept {
-			return {.datatype_id = datatype_id(),
-					.lexical_form = lexical_form(),
-					.language_tag = language_tag()};
-		}
+		explicit operator rdf4cpp::rdf::storage::node::handle::LiteralBackendView() const noexcept;
 	};
 
-//	inline auto operator==(MetallLiteralBackend::pointer_t  const &self, rdf4cpp::rdf::storage::node::LiteralBackendHandle const &other) noexcept{
-//		return rdf4cpp::rdf::storage::node::LiteralBackendHandle(*self) == other;
-//	}
-
 	std::strong_ordering operator<=>(MetallLiteralBackend::pointer_t const &self, MetallLiteralBackend::pointer_t const &other) noexcept;
-}// namespace rdf4cpp::rdf::storage::node
+
+
+}// namespace Dice::node_store
+
+namespace rdf4cpp::rdf::storage::node::handle {
+	std::partial_ordering operator<=>(Dice::node_store::MetallLiteralBackend::pointer_t const &self, LiteralBackendView const &other) noexcept;
+	bool operator==(Dice::node_store::MetallLiteralBackend::pointer_t const &self, LiteralBackendView const &other) noexcept;
+}// namespace rdf4cpp::rdf::storage::node::handle
 
 #endif//RDF4CPP_METALLLITERALBACKEND_HPP

@@ -1,17 +1,17 @@
-#ifndef TENTRIS_TSLSPARSEMAPNODESTORAGEBACKEND_HPP
-#define TENTRIS_TSLSPARSEMAPNODESTORAGEBACKEND_HPP
+#ifndef TENTRIS_PERSISTENTNODESTORAGEBACKEND_HPP
+#define TENTRIS_PERSISTENTNODESTORAGEBACKEND_HPP
 
-#include "Dice/node_store/TslSparseMapNodeStorageBackendImpl.hpp"
+#include "Dice/node_store/PersistentNodeStorageBackendImpl.hpp"
 
-namespace Dice::node_storage {
+namespace Dice::node_store {
 
-	class TslSparseMapNodeStorageBackend : public rdf4cpp::rdf::storage::node::INodeStorageBackend {
-		TslSparseMapNodeStorageBackendImpl *impl_;
+	class PersistentNodeStorageBackend : public rdf4cpp::rdf::storage::node::INodeStorageBackend {
+		PersistentNodeStorageBackendImpl *impl_;
 
 	public:
-		explicit TslSparseMapNodeStorageBackend(TslSparseMapNodeStorageBackendImpl *impl);
+		explicit PersistentNodeStorageBackend(PersistentNodeStorageBackendImpl *impl);
 
-		~TslSparseMapNodeStorageBackend() override = default;
+		~PersistentNodeStorageBackend() override = default;
 
 		rdf4cpp::rdf::storage::node::identifier::NodeID get_string_literal_id(std::string_view lexical_form) override;
 		rdf4cpp::rdf::storage::node::identifier::NodeID get_typed_literal_id(std::string_view lexical_form, std::string_view datatype) override;
@@ -25,6 +25,6 @@ namespace Dice::node_storage {
 		[[nodiscard]] rdf4cpp::rdf::storage::node::handle::BNodeBackendView get_bnode_handle(rdf4cpp::rdf::storage::node::identifier::NodeIDValue id) const override;
 		[[nodiscard]] rdf4cpp::rdf::storage::node::handle::VariableBackendView get_variable_handle(rdf4cpp::rdf::storage::node::identifier::NodeIDValue id) const override;
 	};
-}// namespace Dice::node_storage
+}// namespace Dice::node_store
 
-#endif//TENTRIS_TSLSPARSEMAPNODESTORAGEBACKEND_HPP
+#endif//TENTRIS_PERSISTENTNODESTORAGEBACKEND_HPP

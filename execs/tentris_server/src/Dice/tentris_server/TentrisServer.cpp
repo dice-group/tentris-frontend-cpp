@@ -11,7 +11,7 @@
 #include <taskflow/taskflow.hpp>
 
 #include <Dice/endpoint/HTTPServer.hpp>
-#include <Dice/node_store/TslSparseMapNodeStorageBackend.hpp>
+#include <Dice/node_store/PersistentNodeStorageBackend.hpp>
 #include <Dice/triple_store/TripleStore.hpp>
 
 #include "tentris_version.hpp"
@@ -109,8 +109,8 @@ int main(int argc, char *argv[]) {
 	// setting up node storage
 	namespace node_storage_n = rdf4cpp::rdf::storage::node;
 	using NodeStorage = node_storage_n::NodeStorage;
-	auto *backend_impl = storage_manager.find_or_construct<Dice::node_storage::TslSparseMapNodeStorageBackendImpl>("node_store")(storage_manager.get_allocator());
-	Dice::node_storage::TslSparseMapNodeStorageBackend backend{backend_impl};
+	auto *backend_impl = storage_manager.find_or_construct<Dice::node_store::PersistentNodeStorageBackendImpl>("node_store")(storage_manager.get_allocator());
+	Dice::node_store::PersistentNodeStorageBackend backend{backend_impl};
 	auto nodestorage = NodeStorage::register_backend(&backend);
 	NodeStorage::primary_instance(nodestorage);
 	auto std_storage = NodeStorage::new_instance();// necessary for initialization
@@ -154,7 +154,6 @@ int main(int argc, char *argv[]) {
 	const auto cards = triplestore.get_hypertrie().get_cards({0, 1, 2});
 	spdlog::info("Storage stats: {} triples ({} distinct subjects, {} distinct predicates, {} distinct objects)",
 				 triplestore.size(), cards[0], cards[1], cards[2]);
-	spdlog::info("Use Ctrl+C on the terminal or SIGINT to shut down tentris gracefully. If tentris is killed or crashes, the index files will be corrupted.");
 	spdlog::info("SPARQL endpoint serving sparkling linked data treasures on {} threads at http://0.0.0.0:{}/ with {} request timeout.",
 				 endpoint_cfg.threads, endpoint_cfg.port, endpoint_cfg.timeout_duration);
 	endpoint();

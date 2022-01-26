@@ -1,13 +1,62 @@
-#include "TslSparseMapNodeStorageBackendImpl.hpp"
+#include "PersistentNodeStorageBackendImpl.hpp"
 
 #include <memory>
 #include <mutex>
 #include <utility>
 
-namespace Dice::node_storage {
+namespace Dice::node_store {
 
+	PersistentNodeStorageBackendImpl::NodeID PersistentNodeStorageBackendImpl::get_string_literal_id(std::string_view lexical_form) {
+		return lookup_or_insert_literal(
+					   LiteralBackendView{.datatype_id = NodeID{manager_id, RDFNodeType::IRI, NodeID::xsd_string_iri.first},
+										  .lexical_form = lexical_form,
+										  .language_tag = {}})
+				.second;
+	}
+	PersistentNodeStorageBackendImpl::NodeID PersistentNodeStorageBackendImpl::get_typed_literal_id(std::string_view lexical_form, std::string_view datatype) {
+		return lookup_or_insert_literal(
+					   LiteralBackendView{.datatype_id = lookup_or_insert_iri(IRIBackendView{.identifier = datatype}).second,
+										  .lexical_form = lexical_form,
+										  .language_tag = {}})
+				.second;
+	}
+	PersistentNodeStorageBackendImpl::NodeID PersistentNodeStorageBackendImpl::get_typed_literal_id(std::string_view lexical_form, const PersistentNodeStorageBackendImpl::NodeID &datatype_id) {
+		return lookup_or_insert_literal(
+					   LiteralBackendView{.datatype_id = datatype_id,
+										  .lexical_form = lexical_form,
+										  .language_tag = {}})
+				.second;
+	}
+	PersistentNodeStorageBackendImpl::NodeID PersistentNodeStorageBackendImpl::get_lang_literal_id(std::string_view lexical_form, std::string_view lang) {
+		return lookup_or_insert_literal(
+					   LiteralBackendView{.datatype_id = NodeID{manager_id, RDFNodeType::IRI, NodeID::rdf_langstring_iri.first},
+										  .lexical_form = lexical_form,
+										  .language_tag = lang})
+				.second;
+	}
+	PersistentNodeStorageBackendImpl::NodeID PersistentNodeStorageBackendImpl::get_iri_id(std::string_view iri) {
+		return lookup_or_insert_iri(IRIBackendView{.identifier = iri}).second;
+	}
+	PersistentNodeStorageBackendImpl::NodeID PersistentNodeStorageBackendImpl::get_variable_id(std::string_view identifier, bool anonymous) {
+		return lookup_or_insert_variable(VariableBackendView{.name = identifier, .is_anonymous = anonymous}).second;
+	}
+	PersistentNodeStorageBackendImpl::NodeID PersistentNodeStorageBackendImpl::get_bnode_id(std::string_view identifier) {
+		return lookup_or_insert_bnode(BNodeBackendView{.identifier = identifier}).second;
+	}
+	PersistentNodeStorageBackendImpl::IRIBackendView PersistentNodeStorageBackendImpl::get_iri_handle(PersistentNodeStorageBackendImpl::NodeIDValue id) const {
+		return IRIBackendView(*iri_storage.at(id));
+	}
+	PersistentNodeStorageBackendImpl::LiteralBackendView PersistentNodeStorageBackendImpl::get_literal_handle(PersistentNodeStorageBackendImpl::NodeIDValue id) const {
+		return LiteralBackendView(*literal_storage.at(id));
+	}
+	PersistentNodeStorageBackendImpl::BNodeBackendView PersistentNodeStorageBackendImpl::get_bnode_handle(PersistentNodeStorageBackendImpl::NodeIDValue id) const {
+		return BNodeBackendView(*bnode_storage.at(id));
+	}
+	PersistentNodeStorageBackendImpl::VariableBackendView PersistentNodeStorageBackendImpl::get_variable_handle(PersistentNodeStorageBackendImpl::NodeIDValue id) const {
+		return VariableBackendView(*variable_storage.at(id));
+	}
 
-	std::pair<MetallLiteralBackend::pointer_t, rdf4cpp::rdf::storage::node::identifier::NodeID> TslSparseMapNodeStorageBackendImpl::lookup_or_insert_literal(rdf4cpp::rdf::storage::node::handle::LiteralBackendView literal) {
+	std::pair<MetallLiteralBackend::pointer_t, rdf4cpp::rdf::storage::node::identifier::NodeID> PersistentNodeStorageBackendImpl::lookup_or_insert_literal(rdf4cpp::rdf::storage::node::handle::LiteralBackendView literal) {
 
 		std::shared_lock<std::shared_mutex> shared_lock{literal_mutex_};
 		auto found = literal_storage_reverse.find(literal /*, literal_storage_reverse.hash_function(), literal_storage_reverse.key_eq()*/);
@@ -38,7 +87,7 @@ namespace Dice::node_storage {
 		return {found->first.get(), id};
 	}
 
-	std::pair<MetallIRIBackend::pointer_t, rdf4cpp::rdf::storage::node::identifier::NodeID> TslSparseMapNodeStorageBackendImpl::lookup_or_insert_iri(rdf4cpp::rdf::storage::node::handle::IRIBackendView iri) {
+	std::pair<MetallIRIBackend::pointer_t, rdf4cpp::rdf::storage::node::identifier::NodeID> PersistentNodeStorageBackendImpl::lookup_or_insert_iri(rdf4cpp::rdf::storage::node::handle::IRIBackendView iri) {
 
 		std::shared_lock<std::shared_mutex> shared_lock{iri_mutex_};
 
@@ -68,7 +117,7 @@ namespace Dice::node_storage {
 		}
 		return {found->first.get(), id};
 	}
-	std::pair<MetallBNodeBackend::pointer_t, rdf4cpp::rdf::storage::node::identifier::NodeID> TslSparseMapNodeStorageBackendImpl::lookup_or_insert_bnode(rdf4cpp::rdf::storage::node::handle::BNodeBackendView bnode) {
+	std::pair<MetallBNodeBackend::pointer_t, rdf4cpp::rdf::storage::node::identifier::NodeID> PersistentNodeStorageBackendImpl::lookup_or_insert_bnode(rdf4cpp::rdf::storage::node::handle::BNodeBackendView bnode) {
 		std::shared_lock<std::shared_mutex> shared_lock{bnode_mutex_};
 		auto found = bnode_storage_reverse.find(bnode /*, bnode_storage_reverse.hash_function(), bnode_storage_reverse.key_eq()*/);
 		NodeID id;
@@ -98,7 +147,7 @@ namespace Dice::node_storage {
 
 		return {found->first.get(), id};
 	}
-	std::pair<MetallVariableBackend::pointer_t, rdf4cpp::rdf::storage::node::identifier::NodeID> TslSparseMapNodeStorageBackendImpl::lookup_or_insert_variable(rdf4cpp::rdf::storage::node::handle::VariableBackendView variable) {
+	std::pair<MetallVariableBackend::pointer_t, rdf4cpp::rdf::storage::node::identifier::NodeID> PersistentNodeStorageBackendImpl::lookup_or_insert_variable(rdf4cpp::rdf::storage::node::handle::VariableBackendView variable) {
 		std::shared_lock<std::shared_mutex> shared_lock{variable_mutex_};
 		auto found = variable_storage_reverse.find(variable /*, variable_storage_reverse.hash_function(), variable_storage_reverse.key_eq()*/);
 		NodeID id;
@@ -126,7 +175,7 @@ namespace Dice::node_storage {
 		}
 		return {found->first.get(), id};
 	}
-	TslSparseMapNodeStorageBackendImpl::TslSparseMapNodeStorageBackendImpl(const metall::manager::allocator_type<std::byte> &allocator)
+	PersistentNodeStorageBackendImpl::PersistentNodeStorageBackendImpl(const metall::manager::allocator_type<std::byte> &allocator)
 		: allocator(allocator),
 		  literal_storage(allocator),
 		  literal_storage_reverse(allocator),
@@ -146,4 +195,5 @@ namespace Dice::node_storage {
 			iri_storage.insert({id, iter->first.get()});
 		}
 	}
-}// namespace Dice::node_storage
+
+}// namespace Dice::node_store

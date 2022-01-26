@@ -45,6 +45,8 @@ namespace Dice::endpoint {
 				[](auto req) -> restinio::request_handling_status_t {
 					return req->create_response(restinio::status_not_found()).connection_close().done();
 				});
+
+		spdlog::info("Use Ctrl+C on the terminal or SIGINT to shut down tentris gracefully. If tentris is killed or crashes, the index files will be corrupted.");
 		restinio::run(
 				restinio::on_thread_pool<tentris_restinio_traits>(cfg_.threads)
 						.max_parallel_connections(cfg_.threads)

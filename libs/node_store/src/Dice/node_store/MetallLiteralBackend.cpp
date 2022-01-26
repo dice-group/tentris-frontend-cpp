@@ -1,6 +1,6 @@
 #include "MetallLiteralBackend.hpp"
 #include <tuple>
-namespace Dice::node_storage {
+namespace Dice::node_store {
 
 	MetallLiteralBackend::MetallLiteralBackend(std::string_view lexical, const rdf4cpp::rdf::storage::node::identifier::NodeID &dataType, std::string_view langTag, metall::manager::allocator_type<std::byte> const &allocator) noexcept
 		: datatype_id_(dataType),
@@ -27,8 +27,22 @@ namespace Dice::node_storage {
 	}
 	std::string_view MetallLiteralBackend::lexical_form() const noexcept {
 		return lexical;
+	}
+	MetallLiteralBackend::operator rdf4cpp::rdf::storage::node::handle::LiteralBackendView() const noexcept {
+		return {.datatype_id = datatype_id(),
+				.lexical_form = lexical_form(),
+				.language_tag = language_tag()};
 	};
 	std::strong_ordering operator<=>(const MetallLiteralBackend::pointer_t &self, const MetallLiteralBackend::pointer_t &other) noexcept {
 		return *self <=> *other;
 	}
-}// namespace rdf4cpp::rdf::storage::node
+}// namespace Dice::node_store
+
+namespace rdf4cpp::rdf::storage::node::handle {
+	std::partial_ordering operator<=>(const Dice::node_store::MetallLiteralBackend::pointer_t &self, const LiteralBackendView &other) noexcept {
+		return LiteralBackendView{.datatype_id = self->datatype_id(), .lexical_form = self->lexical_form(), .language_tag = self->language_tag()} <=> other;
+	}
+	bool operator==(const Dice::node_store::MetallLiteralBackend::pointer_t &self, const LiteralBackendView &other) noexcept {
+		return LiteralBackendView{.datatype_id = self->datatype_id(), .lexical_form = self->lexical_form(), .language_tag = self->language_tag()} == other;
+	}
+}// namespace rdf4cpp::rdf::storage::node::handle
