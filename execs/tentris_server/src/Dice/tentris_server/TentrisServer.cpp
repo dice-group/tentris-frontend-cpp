@@ -31,7 +31,7 @@ int main(int argc, char *argv[]) {
 			("s,storage", "Location where the index is stored.", cxxopts::value<std::string>()->default_value(fs::current_path().string()))("f,file", "A N-Triples or Turtle file. Will be loaded before the endpoint starts", cxxopts::value<std::string>())//
 			("b,bulksize", "Bulk-size for loading RDF files. A larger value results in a higher memory consumption during loading RDF data but may result in shorter loading times.", cxxopts::value<size_t>()->default_value("1000000"))                    //
 			("t,timeout", "Time out in seconds for answering requests.", cxxopts::value<uint>()->default_value("180"))                                                                                                                                       //
-			("j,threads", "Number of threads used by the endpoint.", cxxopts::value<size_t>()->default_value(std::to_string(std::thread::hardware_concurrency())))                                                                                           //
+			("j,threads", "Number of threads used by the endpoint.", cxxopts::value<uint16_t>()->default_value(std::to_string(std::thread::hardware_concurrency())))                                                                                           //
 			("p,port", "Port to be used by the endpoint.", cxxopts::value<uint16_t>()->default_value("9080"))                                                                                                                                                //
 			("l,loglevel", fmt::format("Details of logging. Available values are: [{}, {}, {}, {}, {}, {}, {}]",                                                                                                                                             //
 									   spdlog::level::to_string_view(spdlog::level::trace),                                                                                                                                                                  //
@@ -94,7 +94,7 @@ int main(int argc, char *argv[]) {
 	 */
 	const endpoint::EndpointCfg endpoint_cfg{
 			.port = parsed_args["port"].as<uint16_t>(),
-			.threads = parsed_args["port"].as<uint16_t>(),
+			.threads = parsed_args["threads"].as<uint16_t>(),
 			.timeout_duration = std::chrono::seconds{parsed_args["timeout"].as<uint>()}};
 
 	auto const storage_path = fs::absolute(fs::path{parsed_args["storage"].as<std::string>()}).append("tentris_data");
