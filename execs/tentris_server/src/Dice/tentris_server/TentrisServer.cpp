@@ -98,9 +98,12 @@ int main(int argc, char *argv[]) {
 			.timeout_duration = std::chrono::seconds{parsed_args["timeout"].as<uint>()}};
 
 	auto const storage_path = fs::absolute(fs::path{parsed_args["storage"].as<std::string>()}).append("tentris_data");
-	if (not metall::manager ::consistent(storage_path.c_str()))
+	if (not metall::manager ::consistent(storage_path.c_str())) {
+		spdlog::info("No index storage or corrupted index storage found at {}. New storage is initialized.", storage_path);
 		metall::manager{metall::create_only, storage_path.c_str()};
-
+	} else {
+		spdlog::info("Existing index storage at {}.", storage_path);
+	}
 	metall::manager storage_manager{metall::open_only, storage_path.c_str()};
 
 	// setting up node storage
@@ -148,7 +151,10 @@ int main(int argc, char *argv[]) {
 		spdlog::info("  loading finished: {} triples processed, {} triples added, {} elapsed, {} triples in storage.",
 					 total_processed_entries, total_inserted_entries, loading_time.elapsed(), final_hypertrie_size_after);
 	}
-
+	const auto cards = triplestore.get_hypertrie().get_cards({0, 1, 2});
+	spdlog::info("Storage stats: {} triples ({} distinct subjects, {} distinct predicates, {} distinct objects)",
+				 triplestore.size(), cards[0], cards[1], cards[2]);
+	spdlog::info("Use Ctrl+C on the terminal or SIGINT to shut down tentris gracefully. If tentris is killed or crashes, the index files will be corrupted.");
 	spdlog::info("SPARQL endpoint serving sparkling linked data treasures on {} threads at http://0.0.0.0:{}/ with {} request timeout.",
 				 endpoint_cfg.threads, endpoint_cfg.port, endpoint_cfg.timeout_duration);
 	endpoint();
