@@ -4,6 +4,9 @@
 #include <rdf4cpp/rdf/storage/node/handle/BNodeBackendView.hpp>
 
 #include <metall/container/string.hpp>
+#ifndef BOOST_BIND_GLOBAL_PLACEHOLDERS
+#define BOOST_BIND_GLOBAL_PLACEHOLDERS
+#endif
 #include <metall/metall.hpp>
 
 #include <compare>

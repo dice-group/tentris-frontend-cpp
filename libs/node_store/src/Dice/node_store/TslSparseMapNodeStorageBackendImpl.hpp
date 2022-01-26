@@ -1,7 +1,9 @@
 #ifndef TENTRIS_TSLSPARSEMAPNODESTORAGEBACKENDIMPL_HPP
 #define TENTRIS_TSLSPARSEMAPNODESTORAGEBACKENDIMPL_HPP
 
+#include <boost/container/vector.hpp>
 #include <shared_mutex>
+#include <tsl/boost_offset_pointer.h>
 #include <tsl/sparse_map.h>
 
 #include <Dice/hash/DiceHash.hpp>
@@ -11,7 +13,7 @@
 #define BOOST_BIND_GLOBAL_PLACEHOLDERS
 #endif
 #include <metall/metall.hpp>
-#include <metall/container/unordered_map.hpp>
+//#include <metall/container/unordered_map.hpp>
 
 #include "Dice/node_store/MetallBNodeBackend.hpp"
 #include "Dice/node_store/MetallIRIBackend.hpp"
@@ -120,7 +122,7 @@ namespace rdf4cpp::rdf::storage::node::handle {
 	inline auto operator==(Dice::node_storage::MetallVariableBackend::pointer_t const &self, VariableBackendView const &other) noexcept {
 		return VariableBackendView{.name = self->name(), .is_anonymous = self->is_anonymous()} == other;
 	}
-}// namespace rdf4cpp::rdf::storage::node
+}// namespace rdf4cpp::rdf::storage::node::handle
 
 namespace Dice::node_storage {
 
@@ -173,15 +175,25 @@ namespace Dice::node_storage {
 		using NodeIDValueHash = Dice::hash::DiceHashMartinus<NodeIDValue>;
 
 		template<typename T>
-		using Index = metall::container::unordered_map<NodeIDValue,
+		using Index = tsl::sparse_map<NodeIDValue,
 									  pointer<T>,
 									  NodeIDValueHash,
-									  std::equal_to<>>;
+									  std::equal_to<>,
+									  metall::manager::allocator_type<std::pair<NodeIDValue, pointer<T>>>>;
+		/*metall::container::unordered_map<NodeIDValue,
+									  pointer<T>,
+									  NodeIDValueHash,
+									  std::equal_to<>>;*/
 		template<typename T>
-		using ReverseIndex = metall::container::unordered_map<pointer<T>,
+		using ReverseIndex = tsl::sparse_map<pointer<T>,
 											 NodeIDValue,
 											 NodeBackendHash<T>,
-											 std::equal_to<>>;
+											 std::equal_to<>,
+											 metall::manager::allocator_type<std::pair<pointer<T>, NodeIDValue>>>;
+		/*metall::container::unordered_map<pointer<T>,
+											 NodeIDValue,
+											 NodeBackendHash<T>,
+											 std::equal_to<>>;*/
 
 		metall::manager::allocator_type<std::byte> allocator;
 
@@ -212,32 +224,32 @@ namespace Dice::node_storage {
 		[[nodiscard]] NodeID get_string_literal_id(std::string_view lexical_form) {
 			return lookup_or_insert_literal(
 						   LiteralBackendView{.datatype_id = NodeID{manager_id, RDFNodeType::IRI, NodeID::xsd_string_iri.first},
-												.lexical_form = lexical_form,
-												.language_tag = {}})
+											  .lexical_form = lexical_form,
+											  .language_tag = {}})
 					.second;
 		}
 
 		[[nodiscard]] NodeID get_typed_literal_id(std::string_view lexical_form, std::string_view datatype) {
 			return lookup_or_insert_literal(
 						   LiteralBackendView{.datatype_id = lookup_or_insert_iri(IRIBackendView{.identifier = datatype}).second,
-												.lexical_form = lexical_form,
-												.language_tag = {}})
+											  .lexical_form = lexical_form,
+											  .language_tag = {}})
 					.second;
 		}
 
 		[[nodiscard]] NodeID get_typed_literal_id(std::string_view lexical_form, const NodeID &datatype_id) {
 			return lookup_or_insert_literal(
 						   LiteralBackendView{.datatype_id = datatype_id,
-												.lexical_form = lexical_form,
-												.language_tag = {}})
+											  .lexical_form = lexical_form,
+											  .language_tag = {}})
 					.second;
 		}
 
 		[[nodiscard]] NodeID get_lang_literal_id(std::string_view lexical_form, std::string_view lang) {
 			return lookup_or_insert_literal(
 						   LiteralBackendView{.datatype_id = NodeID{manager_id, RDFNodeType::IRI, NodeID::rdf_langstring_iri.first},
-												.lexical_form = lexical_form,
-												.language_tag = lang})
+											  .lexical_form = lexical_form,
+											  .language_tag = lang})
 					.second;
 		}
 

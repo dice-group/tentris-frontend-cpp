@@ -10,13 +10,13 @@ namespace Dice::node_storage {
 	std::pair<MetallLiteralBackend::pointer_t, rdf4cpp::rdf::storage::node::identifier::NodeID> TslSparseMapNodeStorageBackendImpl::lookup_or_insert_literal(rdf4cpp::rdf::storage::node::handle::LiteralBackendView literal) {
 
 		std::shared_lock<std::shared_mutex> shared_lock{literal_mutex_};
-		auto found = literal_storage_reverse.find(literal, literal_storage_reverse.hash_function(), literal_storage_reverse.key_eq());
+		auto found = literal_storage_reverse.find(literal /*, literal_storage_reverse.hash_function(), literal_storage_reverse.key_eq()*/);
 		NodeID id;
 		if (found == literal_storage_reverse.end()) {
 			shared_lock.unlock();
 			std::unique_lock<std::shared_mutex> unique_lock{literal_mutex_};
 			// update found (might have changed in the meantime)
-			found = literal_storage_reverse.find(literal, literal_storage_reverse.hash_function(), literal_storage_reverse.key_eq());
+			found = literal_storage_reverse.find(literal /*, literal_storage_reverse.hash_function(), literal_storage_reverse.key_eq()*/);
 			if (found == literal_storage_reverse.end()) {
 				id = {manager_id, RDFNodeType::Literal, next_literal_id++, LiteralType::STRING};
 				metall::manager::allocator_type<MetallLiteralBackend> alloc = allocator;
@@ -42,13 +42,13 @@ namespace Dice::node_storage {
 
 		std::shared_lock<std::shared_mutex> shared_lock{iri_mutex_};
 
-		auto found = iri_storage_reverse.find(iri, iri_storage_reverse.hash_function(), iri_storage_reverse.key_eq());
+		auto found = iri_storage_reverse.find(iri /*, iri_storage_reverse.hash_function(), iri_storage_reverse.key_eq()*/);
 		NodeID id;
 		if (found == iri_storage_reverse.end()) {
 			shared_lock.unlock();
 			std::unique_lock<std::shared_mutex> unique_lock{iri_mutex_};
 			// update found (might have changed in the meantime)
-			found = iri_storage_reverse.find(iri, iri_storage_reverse.hash_function(), iri_storage_reverse.key_eq());
+			found = iri_storage_reverse.find(iri /*, iri_storage_reverse.hash_function(), iri_storage_reverse.key_eq()*/);
 			if (found == iri_storage_reverse.end()) {
 				id = {manager_id, RDFNodeType::IRI, next_iri_id++};
 				metall::manager::allocator_type<MetallIRIBackend> alloc = allocator;
@@ -70,14 +70,14 @@ namespace Dice::node_storage {
 	}
 	std::pair<MetallBNodeBackend::pointer_t, rdf4cpp::rdf::storage::node::identifier::NodeID> TslSparseMapNodeStorageBackendImpl::lookup_or_insert_bnode(rdf4cpp::rdf::storage::node::handle::BNodeBackendView bnode) {
 		std::shared_lock<std::shared_mutex> shared_lock{bnode_mutex_};
-		auto found = bnode_storage_reverse.find(bnode, bnode_storage_reverse.hash_function(), bnode_storage_reverse.key_eq());
+		auto found = bnode_storage_reverse.find(bnode /*, bnode_storage_reverse.hash_function(), bnode_storage_reverse.key_eq()*/);
 		NodeID id;
 
 		if (found == bnode_storage_reverse.end()) {
 			shared_lock.unlock();
 			std::unique_lock<std::shared_mutex> unique_lock{bnode_mutex_};
 			// update found (might have changed in the meantime)
-			found = bnode_storage_reverse.find(bnode, bnode_storage_reverse.hash_function(), bnode_storage_reverse.key_eq());
+			found = bnode_storage_reverse.find(bnode /*, bnode_storage_reverse.hash_function(), bnode_storage_reverse.key_eq()*/);
 			if (found == bnode_storage_reverse.end()) {
 				id = {manager_id, RDFNodeType::BNode, next_bnode_id++};
 				metall::manager::allocator_type<MetallBNodeBackend> alloc = allocator;
@@ -100,13 +100,13 @@ namespace Dice::node_storage {
 	}
 	std::pair<MetallVariableBackend::pointer_t, rdf4cpp::rdf::storage::node::identifier::NodeID> TslSparseMapNodeStorageBackendImpl::lookup_or_insert_variable(rdf4cpp::rdf::storage::node::handle::VariableBackendView variable) {
 		std::shared_lock<std::shared_mutex> shared_lock{variable_mutex_};
-		auto found = variable_storage_reverse.find(variable, variable_storage_reverse.hash_function(), variable_storage_reverse.key_eq());
+		auto found = variable_storage_reverse.find(variable /*, variable_storage_reverse.hash_function(), variable_storage_reverse.key_eq()*/);
 		NodeID id;
 		if (found == variable_storage_reverse.end()) {
 			shared_lock.unlock();
 			std::unique_lock<std::shared_mutex> unique_lock{variable_mutex_};
 			// update found (might have changed in the meantime)
-			found = variable_storage_reverse.find(variable, variable_storage_reverse.hash_function(), variable_storage_reverse.key_eq());
+			found = variable_storage_reverse.find(variable /*, variable_storage_reverse.hash_function(), variable_storage_reverse.key_eq()*/);
 			if (found == variable_storage_reverse.end()) {
 				id = {manager_id, RDFNodeType::Variable, next_variable_id++};
 				metall::manager::allocator_type<MetallVariableBackend> alloc = allocator;
