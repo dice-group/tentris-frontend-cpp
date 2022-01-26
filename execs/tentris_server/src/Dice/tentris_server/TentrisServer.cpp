@@ -31,7 +31,7 @@ int main(int argc, char *argv[]) {
 			("s,storage", "Location where the index is stored.", cxxopts::value<std::string>()->default_value(fs::current_path().string()))("f,file", "A N-Triples or Turtle file. Will be loaded before the endpoint starts", cxxopts::value<std::string>())//
 			("b,bulksize", "Bulk-size for loading RDF files. A larger value results in a higher memory consumption during loading RDF data but may result in shorter loading times.", cxxopts::value<size_t>()->default_value("1000000"))                    //
 			("t,timeout", "Time out in seconds for answering requests.", cxxopts::value<uint>()->default_value("180"))                                                                                                                                       //
-			("j,threads", "Number of threads used by the endpoint.", cxxopts::value<uint16_t>()->default_value(std::to_string(std::thread::hardware_concurrency())))                                                                                           //
+			("j,threads", "Number of threads used by the endpoint.", cxxopts::value<uint16_t>()->default_value(std::to_string(std::thread::hardware_concurrency())))                                                                                         //
 			("p,port", "Port to be used by the endpoint.", cxxopts::value<uint16_t>()->default_value("9080"))                                                                                                                                                //
 			("l,loglevel", fmt::format("Details of logging. Available values are: [{}, {}, {}, {}, {}, {}, {}]",                                                                                                                                             //
 									   spdlog::level::to_string_view(spdlog::level::trace),                                                                                                                                                                  //
@@ -90,7 +90,7 @@ int main(int argc, char *argv[]) {
 
 
 	/*
-	 * Initialize endpoint, executors and storage
+	 * Initialize storage, executor and endpoints
 	 */
 	const endpoint::EndpointCfg endpoint_cfg{
 			.port = parsed_args["port"].as<uint16_t>(),
@@ -106,19 +106,22 @@ int main(int argc, char *argv[]) {
 	}
 	metall::manager storage_manager{metall::open_only, storage_path.c_str()};
 
-	// setting up node storage
-	namespace node_storage_n = rdf4cpp::rdf::storage::node;
-	using NodeStorage = node_storage_n::NodeStorage;
-	auto *backend_impl = storage_manager.find_or_construct<Dice::node_store::PersistentNodeStorageBackendImpl>("node_store")(storage_manager.get_allocator());
-	Dice::node_store::PersistentNodeStorageBackend backend{backend_impl};
-	auto nodestorage = NodeStorage::register_backend(&backend);
-	NodeStorage::primary_instance(nodestorage);
-	auto std_storage = NodeStorage::new_instance();// necessary for initialization
 
+	{// set up node store
+		using namespace rdf4cpp::rdf::storage::node;
+		using namespace Dice::node_store;
+		auto *nodestore_backend = storage_manager.find_or_construct<PersistentNodeStorageBackendImpl>("node_store")(storage_manager.get_allocator());
+		NodeStorage::primary_instance(
+				NodeStorage::new_instance<PersistentNodeStorageBackend>(nodestore_backend));
+	}
+
+	// setup triple store
 	triple_store::TripleStore &triplestore = *storage_manager.find_or_construct<triple_store::TripleStore>("triple_store")(storage_manager.get_allocator());
+	// initialize task runners
 	tf::Executor executor(endpoint_cfg.threads);
+	// setup and configure endpoints
+	endpoint::HTTPServer http_server{executor, triplestore, endpoint_cfg};
 
-	endpoint::HTTPServer endpoint{executor, triplestore, endpoint_cfg};
 
 	/*
 	 * Load data into triplestore
@@ -156,11 +159,11 @@ int main(int argc, char *argv[]) {
 				 triplestore.size(), cards[0], cards[1], cards[2]);
 	spdlog::info("SPARQL endpoint serving sparkling linked data treasures on {} threads at http://0.0.0.0:{}/ with {} request timeout.",
 				 endpoint_cfg.threads, endpoint_cfg.port, endpoint_cfg.timeout_duration);
-	endpoint();
+
+	// start http server
+	http_server();
 
 	// warping up node storage
-	NodeStorage::unregister_backend(&backend);
-	NodeStorage::primary_instance(std_storage);
 	spdlog::info("Shutdown successful.");
 	return EXIT_SUCCESS;
 }
