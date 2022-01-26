@@ -11,8 +11,6 @@ find_package(Taskflow REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(cxxopts REQUIRED)
 
-message("TENTRIS_STATIC_DEF ${TENTRIS_STATIC_DEF}")
-message("TENTRIS_STATIC_DEF ${TENTRIS_PTHREAD_DEF}")
 target_link_libraries(tentris_server PRIVATE
         ${TENTRIS_STATIC_DEF}
         ${TENTRIS_PTHREAD_DEF}
