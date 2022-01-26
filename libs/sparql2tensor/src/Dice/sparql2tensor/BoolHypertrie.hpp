@@ -54,6 +54,18 @@ namespace Dice::hash {
 namespace Dice::sparql2tensor {
 	using key_part_type = rdf4cpp::rdf::Node;
 
+	template<typename T>
+	struct NodeEqual : public std::equal_to<T> {};
+
+	template<>
+	struct NodeEqual<rdf4cpp::rdf::Node> {
+		using Node = rdf4cpp::rdf::Node;
+
+		bool operator()(Node const &lhs, Node const &rhs) const noexcept {
+			return lhs.backend_handle().id().raw() == rhs.backend_handle().id().raw();
+		}
+	};
+
 	// boost::container::unordered_{map,set} -> slow but works for sure
 	/*template<typename key_part_type, typename value_type, typename Allocator>
 	using map_type = metall::container::unordered_map<key_part_type, value_type, Dice::hash::DiceHashxxh3<key_part_type>,
@@ -64,11 +76,31 @@ namespace Dice::sparql2tensor {
 													  std::equal_to<key_part_type>,
 													  typename std::allocator_traits<Allocator>::template rebind_alloc<key_part_type>>;*/
 
+	template<typename Key, typename T, typename Allocator = std::allocator<std::pair<Key, T>>>
+	using map_type = tsl::sparse_map<Key,
+									 T,
+									 Dice::hash::DiceHash<Key>,
+									 NodeEqual<Key>,
+									 typename std::allocator_traits<Allocator>::template rebind_alloc<std::pair<Key, T>>,
+									 tsl::sh::power_of_two_growth_policy<2>,
+									 tsl::sh::exception_safety::basic,
+									 tsl::sh::sparsity::high>;
+
+	template<typename Key, typename Allocator = std::allocator<Key>>
+	using set_type = tsl::sparse_set<
+			Key,
+			Dice::hash::DiceHash<Key>,
+			NodeEqual<Key>,
+			typename std::allocator_traits<Allocator>::template rebind_alloc<Key>,
+			tsl::sh::power_of_two_growth_policy<2>,
+			tsl::sh::exception_safety::basic,
+			tsl::sh::sparsity::high>;
+
 	using tr = Dice::hypertrie::Hypertrie_trait<key_part_type,
 												bool,
 												metall::manager::allocator_type<std::byte>,
-												Dice::hypertrie::internal::container::tsl_sparse_map,
-												Dice::hypertrie::internal::container::tsl_sparse_set,
+												map_type,
+												set_type,
 												63>;
 	using HypertrieContext = Dice::hypertrie::HypertrieContext<tr>;
 	using BoolHypertrie = Dice::hypertrie::Hypertrie<tr>;

@@ -24,6 +24,13 @@
 
 namespace Dice::node_store {
 
+	struct NodeIDValueEqual {
+		using NodeIDValue = rdf4cpp::rdf::storage::node::identifier::NodeIDValue;
+
+		bool operator()(NodeIDValue const &lhs, NodeIDValue const &rhs) const noexcept {
+			return lhs.value == rhs.value;
+		}
+	};
 
 	class PersistentNodeStorageBackendImpl {
 		using RDFNodeType = rdf4cpp::rdf::storage::node::identifier::RDFNodeType;
@@ -47,7 +54,7 @@ namespace Dice::node_store {
 		using Index = tsl::sparse_map<NodeIDValue,
 									  pointer<T>,
 									  NodeIDValueHash,
-									  std::equal_to<>,
+									  NodeIDValueEqual,
 									  metall::manager::allocator_type<std::pair<NodeIDValue, pointer<T>>>>;
 		/*metall::container::unordered_map<NodeIDValue,
 									  pointer<T>,
