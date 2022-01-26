@@ -15,6 +15,14 @@ find_package(Taskflow REQUIRED)
 find_package(restinio REQUIRED)
 find_package(spdlog REQUIRED)
 
+set(cppitertools_INSTALL_CMAKE_DIR share CACHE INTERNAL "")
+FetchContent_Declare(
+        cppitertools
+        GIT_REPOSITORY https://github.com/ryanhaining/cppitertools.git
+        GIT_TAG b2b98e60438f1ed6b04b77cdb6cc5d5516af301b
+        GIT_SHALLOW TRUE)
+FetchContent_MakeAvailable(cppitertools)
+
 add_library(Dice::endpoint ALIAS endpoint)
 
 target_link_libraries(endpoint PUBLIC

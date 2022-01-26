@@ -38,6 +38,7 @@ namespace Dice::endpoint {
 						count += entry.value();
 						json_writer.add(entry);
 					}
+					json_writer.close();
 
 					req->create_response(status_ok())
 							.append_header(http_field::content_type, "application/sparql-results+json")
