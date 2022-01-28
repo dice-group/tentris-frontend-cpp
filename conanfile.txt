@@ -2,7 +2,7 @@
 boost/1.77.0
 fmt/8.0.1
 restinio/0.6.14
-hypertrie/0.7.3@dice-group/experimental
+hypertrie/0.7.0@dice-group/stable
 rdf-parser/0.14.0@dice-group/stable
 sparql-parser/0.3.0@dice-group/rc2
 cxxopts/2.2.1
