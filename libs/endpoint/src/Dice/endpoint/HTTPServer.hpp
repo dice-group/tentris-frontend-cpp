@@ -6,6 +6,9 @@
 
 #include <Dice/triple_store/TripleStore.hpp>
 
+#include <Dice/endpoint/SparqlQueryCache.hpp>
+
+
 namespace Dice::endpoint {
 
 	struct EndpointCfg {
@@ -17,6 +20,7 @@ namespace Dice::endpoint {
 	class HTTPServer {
 		tf::Executor &executor_;
 		triple_store::TripleStore &triplestore_;
+		SparqlQueryCache sparql_query_cache_;
 		std::unique_ptr<restinio::router::express_router_t<>> router_;
 		EndpointCfg cfg_;
 

@@ -2,17 +2,18 @@
 
 #include <spdlog/spdlog.h>
 
-#include "Dice/endpoint/HTTPHelper.hpp"
+#include "Dice/endpoint/ParseSPARQLQueryParam.hpp"
 #include "Dice/endpoint/SparqlJsonResultSAXWriter.hpp"
-
 
 namespace Dice::endpoint {
 
 	SPARQLEndpoint::SPARQLEndpoint(tf::Executor &executor,
 								   triple_store::TripleStore &triplestore,
+								   SparqlQueryCache &sparql_query_cache,
 								   std::chrono::seconds timeoutDuration)
 		: executor_(executor),
 		  triplestore_(triplestore),
+		  sparql_query_cache_(sparql_query_cache),
 		  timeout_duration_(timeoutDuration) {}
 
 	restinio::request_handling_status_t SPARQLEndpoint::operator()(
@@ -24,17 +25,15 @@ namespace Dice::endpoint {
 				using namespace Dice::sparql2tensor;
 				using namespace restinio;
 
-				SPARQLQuery sparql_query;
-				if (auto sparql_query_opt = get_sparql_query_param(req); sparql_query_opt.has_value())
-					sparql_query = std::move(sparql_query_opt.value());
-				else
+				std::shared_ptr<SPARQLQuery const> sparql_query = parse_sparql_query_param(req, this->sparql_query_cache_);
+				if (not sparql_query)
 					return;
 
 				try {
-					endpoint::SparqlJsonResultSAXWriter json_writer{sparql_query.projected_variables_, 100'000};
+					endpoint::SparqlJsonResultSAXWriter json_writer{sparql_query->projected_variables_, 100'000};
 
 					size_t count = 0;
-					for (auto const &entry : this->triplestore_.query(sparql_query, timeout)) {
+					for (auto const &entry : this->triplestore_.query(*sparql_query, timeout)) {
 						count += entry.value();
 						json_writer.add(entry);
 					}
@@ -44,7 +43,7 @@ namespace Dice::endpoint {
 							.append_header(http_field::content_type, "application/sparql-results+json")
 							.set_body(std::string{json_writer.string_view()})
 							.done();
-					spdlog::info("HTTP response {}: {} variables {} results", status_ok(), sparql_query.projected_variables_.size(), count);
+					spdlog::info("HTTP response {}: {} variables {} results", status_ok(), sparql_query->projected_variables_.size(), count);
 				} catch (Dice::einsum::TimeoutException const &timeout_exception) {
 					const auto timeout_message = fmt::format("Request processing timed out after {}.", this->timeout_duration_);
 					spdlog::warn("HTTP response {}: {}", status_gateway_time_out(), timeout_message);

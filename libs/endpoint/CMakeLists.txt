@@ -9,6 +9,7 @@ add_library(endpoint
         src/Dice/endpoint/CountEndpoint.cpp
         src/Dice/endpoint/AskEndpoint.cpp
         src/Dice/endpoint/SparqlStreamingEndpoint.cpp
+        src/Dice/endpoint/SparqlQueryCache.cpp
         )
 
 find_package(Taskflow REQUIRED)

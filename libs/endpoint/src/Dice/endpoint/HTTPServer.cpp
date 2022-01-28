@@ -19,25 +19,26 @@ namespace Dice::endpoint {
 	HTTPServer::HTTPServer(tf::Executor &executor, triple_store::TripleStore &triplestore, EndpointCfg const &cfg)
 		: executor_(executor),
 		  triplestore_(triplestore),
+		  sparql_query_cache_(),// TODO: override default parameter
 		  router_(std::make_unique<restinio::router::express_router_t<>>()),
 		  cfg_(cfg) {}
 
 	void HTTPServer::operator()() {
 		spdlog::info("Available endpoints:");
 		router_->http_get(R"(/sparql)",
-						  SPARQLEndpoint{executor_, triplestore_, cfg_.timeout_duration});
+						  SPARQLEndpoint{executor_, triplestore_, sparql_query_cache_, cfg_.timeout_duration});
 		spdlog::info("  GET /sparql?query= for normal queries");
 
 		router_->http_get(R"(/stream)",
-						  SPARQLStreamingEndpoint{executor_, triplestore_, cfg_.timeout_duration});
+						  SPARQLStreamingEndpoint{executor_, triplestore_, sparql_query_cache_, cfg_.timeout_duration});
 		spdlog::info("  GET  /stream?query= for queries with huge results");
 
 		router_->http_get(R"(/count)",
-						  CountEndpoint{executor_, triplestore_, cfg_.timeout_duration});
+						  CountEndpoint{executor_, triplestore_, sparql_query_cache_, cfg_.timeout_duration});
 		spdlog::info("  GET  /count?query= as a workaround for count");
 
 		router_->http_get(R"(/ask)",
-						  AskEndpoint{executor_, triplestore_, cfg_.timeout_duration});
+						  AskEndpoint{executor_, triplestore_, sparql_query_cache_, cfg_.timeout_duration});
 		spdlog::info("  GET  /ask?query= as a workaround for ask");
 
 
