@@ -30,10 +30,8 @@ FetchContent_MakeAvailable(tsl-sparse-map-our-version)
 # TODO: remove work-around when merged
 FetchContent_Declare(
         metall
-#        GIT_REPOSITORY https://github.com/LLNL/metall.git
-        GIT_REPOSITORY https://github.com/dice-group/metall.git
-        GIT_TAG fix/inline
-#        GIT_TAG v0.18
+        GIT_REPOSITORY https://github.com/LLNL/metall.git
+        GIT_TAG v0.19
         GIT_SHALLOW TRUE
 )
 FetchContent_MakeAvailable(metall)
