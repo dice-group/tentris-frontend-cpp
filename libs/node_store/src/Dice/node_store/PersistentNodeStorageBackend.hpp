@@ -13,17 +13,22 @@ namespace Dice::node_store {
 
 		~PersistentNodeStorageBackend() override = default;
 
-		rdf4cpp::rdf::storage::node::identifier::NodeID get_string_literal_id(std::string_view lexical_form) override;
-		rdf4cpp::rdf::storage::node::identifier::NodeID get_typed_literal_id(std::string_view lexical_form, std::string_view datatype) override;
-		rdf4cpp::rdf::storage::node::identifier::NodeID get_typed_literal_id(std::string_view lexical_form, const rdf4cpp::rdf::storage::node::identifier::NodeID &datatype_id) override;
-		rdf4cpp::rdf::storage::node::identifier::NodeID get_lang_literal_id(std::string_view lexical_form, std::string_view lang) override;
-		rdf4cpp::rdf::storage::node::identifier::NodeID get_iri_id(std::string_view iri) override;
-		rdf4cpp::rdf::storage::node::identifier::NodeID get_variable_id(std::string_view identifier, bool anonymous) override;
-		rdf4cpp::rdf::storage::node::identifier::NodeID get_bnode_id(std::string_view identifier) override;
-		[[nodiscard]] rdf4cpp::rdf::storage::node::handle::IRIBackendView get_iri_handle(rdf4cpp::rdf::storage::node::identifier::NodeIDValue id) const override;
-		[[nodiscard]] rdf4cpp::rdf::storage::node::handle::LiteralBackendView get_literal_handle(rdf4cpp::rdf::storage::node::identifier::NodeIDValue id) const override;
-		[[nodiscard]] rdf4cpp::rdf::storage::node::handle::BNodeBackendView get_bnode_handle(rdf4cpp::rdf::storage::node::identifier::NodeIDValue id) const override;
-		[[nodiscard]] rdf4cpp::rdf::storage::node::handle::VariableBackendView get_variable_handle(rdf4cpp::rdf::storage::node::identifier::NodeIDValue id) const override;
+		rdf4cpp::rdf::storage::node::identifier::NodeID find_or_make_id(const rdf4cpp::rdf::storage::node::view::BNodeBackendView &view) noexcept override;
+		rdf4cpp::rdf::storage::node::identifier::NodeID find_or_make_id(const rdf4cpp::rdf::storage::node::view::IRIBackendView &view) noexcept override;
+		rdf4cpp::rdf::storage::node::identifier::NodeID find_or_make_id(const rdf4cpp::rdf::storage::node::view::LiteralBackendView &view) noexcept override;
+		rdf4cpp::rdf::storage::node::identifier::NodeID find_or_make_id(const rdf4cpp::rdf::storage::node::view::VariableBackendView &view) noexcept override;
+		rdf4cpp::rdf::storage::node::identifier::NodeID find_id(const rdf4cpp::rdf::storage::node::view::BNodeBackendView &view) const noexcept override;
+		rdf4cpp::rdf::storage::node::identifier::NodeID find_id(const rdf4cpp::rdf::storage::node::view::IRIBackendView &view) const noexcept override;
+		rdf4cpp::rdf::storage::node::identifier::NodeID find_id(const rdf4cpp::rdf::storage::node::view::LiteralBackendView &view) const noexcept override;
+		rdf4cpp::rdf::storage::node::identifier::NodeID find_id(const rdf4cpp::rdf::storage::node::view::VariableBackendView &view) const noexcept override;
+		rdf4cpp::rdf::storage::node::view::IRIBackendView find_iri_backend_view(rdf4cpp::rdf::storage::node::identifier::NodeID id) const override;
+		rdf4cpp::rdf::storage::node::view::LiteralBackendView find_literal_backend_view(rdf4cpp::rdf::storage::node::identifier::NodeID id) const override;
+		rdf4cpp::rdf::storage::node::view::BNodeBackendView find_bnode_backend_view(rdf4cpp::rdf::storage::node::identifier::NodeID id) const override;
+		rdf4cpp::rdf::storage::node::view::VariableBackendView find_variable_backend_view(rdf4cpp::rdf::storage::node::identifier::NodeID id) const override;
+		bool erase_iri(rdf4cpp::rdf::storage::node::identifier::NodeID id) const override;
+		bool erase_literal(rdf4cpp::rdf::storage::node::identifier::NodeID id) const override;
+		bool erase_bnode(rdf4cpp::rdf::storage::node::identifier::NodeID id) const override;
+		bool erase_variable(rdf4cpp::rdf::storage::node::identifier::NodeID id) const override;
 	};
 }// namespace Dice::node_store
 

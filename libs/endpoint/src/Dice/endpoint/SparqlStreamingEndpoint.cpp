@@ -9,7 +9,7 @@ namespace Dice::endpoint {
 
 
 	SPARQLStreamingEndpoint::SPARQLStreamingEndpoint(tf::Executor &executor,
-													 triple_store::TripleStore &triplestore,
+													 triple_store::TripleStore<typename Dice::node_store::metall_manager::allocator_type<std::byte>> &triplestore,
 													 SparqlQueryCache &sparql_query_cache,
 													 std::chrono::seconds timeoutDuration)
 		: executor_(executor),

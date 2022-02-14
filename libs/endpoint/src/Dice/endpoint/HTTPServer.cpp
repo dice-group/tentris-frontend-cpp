@@ -16,7 +16,7 @@ namespace Dice::endpoint {
 		static constexpr bool use_connection_count_limiter = true;
 	};
 
-	HTTPServer::HTTPServer(tf::Executor &executor, triple_store::TripleStore &triplestore, EndpointCfg const &cfg)
+	HTTPServer::HTTPServer(tf::Executor &executor, triple_store::TripleStore<typename Dice::node_store::metall_manager::allocator_type<std::byte>> &triplestore, EndpointCfg const &cfg)
 		: executor_(executor),
 		  triplestore_(triplestore),
 		  sparql_query_cache_(),// TODO: override default parameter

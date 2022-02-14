@@ -89,7 +89,7 @@ include(FetchContent)
 FetchContent_Declare(
         RDF4CPP
         GIT_REPOSITORY "https://github.com/rdf4cpp/rdf4cpp"
-        GIT_TAG "feature/adjust_for_better_integration_with_custom_backends"
+        GIT_TAG "feature/adjust_for_better_integration_with_custom_backends_draft2"
         UPDATE_COMMAND ""
 )
 FetchContent_MakeAvailable(RDF4CPP)

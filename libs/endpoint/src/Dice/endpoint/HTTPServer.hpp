@@ -5,6 +5,7 @@
 #include <taskflow/taskflow.hpp>
 
 #include <Dice/triple_store/TripleStore.hpp>
+#include <Dice/node_store/metall_manager.hpp>
 
 #include <Dice/endpoint/SparqlQueryCache.hpp>
 
@@ -19,13 +20,13 @@ namespace Dice::endpoint {
 
 	class HTTPServer {
 		tf::Executor &executor_;
-		triple_store::TripleStore &triplestore_;
+		triple_store::TripleStore<typename Dice::node_store::metall_manager::allocator_type<std::byte>> &triplestore_;
 		SparqlQueryCache sparql_query_cache_;
 		std::unique_ptr<restinio::router::express_router_t<>> router_;
 		EndpointCfg cfg_;
 
 	public:
-		HTTPServer(tf::Executor &executor, triple_store::TripleStore &triplestore, EndpointCfg const &cfg);
+		HTTPServer(tf::Executor &executor, triple_store::TripleStore<typename Dice::node_store::metall_manager::allocator_type<std::byte>> &triplestore, EndpointCfg const &cfg);
 
 		void operator()();
 	};

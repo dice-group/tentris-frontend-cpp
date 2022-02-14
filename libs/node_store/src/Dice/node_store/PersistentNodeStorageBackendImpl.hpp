@@ -24,54 +24,138 @@
 
 namespace Dice::node_store {
 
-	struct NodeIDValueEqual {
-		using NodeIDValue = rdf4cpp::rdf::storage::node::identifier::NodeIDValue;
+	struct NodeIDEqual {
+		using NodeID = rdf4cpp::rdf::storage::node::identifier::NodeID;
 
-		bool operator()(NodeIDValue const &lhs, NodeIDValue const &rhs) const noexcept {
-			return lhs.value == rhs.value;
+		bool operator()(NodeID const &lhs, NodeID const &rhs) const noexcept {
+			return lhs.value() == rhs.value();
+		}
+	};
+
+	struct MetallPtrEqual {
+		using is_transparent = void;
+		using LiteralBackendView = rdf4cpp::rdf::storage::node::view::LiteralBackendView;
+		using BNodeBackendView = rdf4cpp::rdf::storage::node::view::BNodeBackendView;
+		using IRIBackendView = rdf4cpp::rdf::storage::node::view::IRIBackendView;
+		using VariableBackendView = rdf4cpp::rdf::storage::node::view::VariableBackendView;
+
+		bool operator()(MetallBNodeBackend::pointer_t const &self, MetallBNodeBackend::pointer_t const &other) const noexcept {
+			if (self == other) return true;
+			else if (not self or not other)
+				return false;
+			else
+				return (*self) == (*other);
+		}
+
+		bool operator()(MetallIRIBackend::pointer_t const &self, MetallIRIBackend::pointer_t const &other) const noexcept {
+			if (self == other) return true;
+			else if (not self or not other)
+				return false;
+			else
+				return (*self) == (*other);
+		}
+
+		bool operator()(MetallLiteralBackend::pointer_t const &self, MetallLiteralBackend::pointer_t const &other) const noexcept {
+			if (self == other) return true;
+			else if (not self or not other)
+				return false;
+			else
+				return (*self) == (*other);
+		}
+
+		bool operator()(MetallVariableBackend::pointer_t const &self, MetallVariableBackend::pointer_t const &other) const noexcept {
+			if (self == other) return true;
+			else if (not self or not other)
+				return false;
+			else
+				return (*self) == (*other);
+		}
+
+
+		bool operator()(const Dice::node_store::MetallBNodeBackend::pointer_t &self, const BNodeBackendView &other) const noexcept {
+			if (self)
+				return BNodeBackendView{.identifier = self->identifier()} == other;
+			else
+				return false;
+		}
+
+		bool operator()(const BNodeBackendView &self, const Dice::node_store::MetallBNodeBackend::pointer_t &other) const noexcept {
+			return operator()(other, self);
+		}
+
+		bool operator()(const Dice::node_store::MetallIRIBackend::pointer_t &self, const IRIBackendView &other) const noexcept {
+			if (self)
+				return IRIBackendView{.identifier = self->identifier()} == other;
+			else
+				return false;
+		}
+
+		bool operator()(const IRIBackendView &self, const Dice::node_store::MetallIRIBackend::pointer_t &other) const noexcept {
+			return operator()(other, self);
+		}
+
+		bool operator()(const Dice::node_store::MetallLiteralBackend::pointer_t &self, const LiteralBackendView &other) const noexcept {
+			if (self)
+				return LiteralBackendView{.datatype_id = self->datatype_id(), .lexical_form = self->lexical_form(), .language_tag = self->language_tag()} == other;
+			else
+				return false;
+		}
+
+		bool operator()(const LiteralBackendView &self, const Dice::node_store::MetallLiteralBackend::pointer_t &other) const noexcept {
+			return operator()(other, self);
+		}
+
+		bool operator()(const Dice::node_store::MetallVariableBackend::pointer_t &self, const VariableBackendView &other) const noexcept {
+			if (self)
+				return VariableBackendView{.name = self->name(), .is_anonymous = self->is_anonymous()} == other;
+			else
+				return false;
+		}
+
+		bool operator()(const VariableBackendView &self, const Dice::node_store::MetallVariableBackend::pointer_t &other) const noexcept {
+			return operator()(other, self);
 		}
 	};
 
 	class PersistentNodeStorageBackendImpl {
 		using RDFNodeType = rdf4cpp::rdf::storage::node::identifier::RDFNodeType;
-		using NodeIDValue = rdf4cpp::rdf::storage::node::identifier::NodeIDValue;
+		using NodeID = rdf4cpp::rdf::storage::node::identifier::NodeID;
 		using LiteralType = rdf4cpp::rdf::storage::node::identifier::LiteralType;
 		using LiteralID = rdf4cpp::rdf::storage::node::identifier::LiteralID;
-		using NodeID = rdf4cpp::rdf::storage::node::identifier::NodeID;
-		using LiteralBackendView = rdf4cpp::rdf::storage::node::handle::LiteralBackendView;
-		using BNodeBackendView = rdf4cpp::rdf::storage::node::handle::BNodeBackendView;
-		using IRIBackendView = rdf4cpp::rdf::storage::node::handle::IRIBackendView;
-		using VariableBackendView = rdf4cpp::rdf::storage::node::handle::VariableBackendView;
+		using LiteralBackendView = rdf4cpp::rdf::storage::node::view::LiteralBackendView;
+		using BNodeBackendView = rdf4cpp::rdf::storage::node::view::BNodeBackendView;
+		using IRIBackendView = rdf4cpp::rdf::storage::node::view::IRIBackendView;
+		using VariableBackendView = rdf4cpp::rdf::storage::node::view::VariableBackendView;
 
 	public:
 		template<typename T>
-		using pointer = typename metall::manager::allocator_type<T>::pointer;
+		using pointer = typename metall_manager::allocator_type<T>::pointer;
 
 	private:
-		using NodeIDValueHash = Dice::hash::DiceHashMartinus<NodeIDValue>;
+		using NodeIDHash = Dice::hash::DiceHashMartinus<size_t>;
 
 		template<typename T>
-		using Index = tsl::sparse_map<NodeIDValue,
+		using Index = tsl::sparse_map<size_t,
 									  pointer<T>,
-									  NodeIDValueHash,
-									  NodeIDValueEqual,
-									  metall::manager::allocator_type<std::pair<NodeIDValue, pointer<T>>>>;
-		/*metall::container::unordered_map<NodeIDValue,
+									  NodeIDHash,
+									  std::equal_to<>,
+									  metall_manager::allocator_type<std::pair<size_t, pointer<T>>>>;
+		/*metall::container::unordered_map<NodeID,
 									  pointer<T>,
-									  NodeIDValueHash,
+									  NodeIDHash,
 									  std::equal_to<>>;*/
 		template<typename T>
 		using ReverseIndex = tsl::sparse_map<pointer<T>,
-											 NodeIDValue,
+											 size_t,
 											 NodeBackendHash<T>,
-											 std::equal_to<>,
-											 metall::manager::allocator_type<std::pair<pointer<T>, NodeIDValue>>>;
+											 MetallPtrEqual,
+											 metall_manager::allocator_type<std::pair<pointer<T>, size_t>>>;
 		/*metall::container::unordered_map<pointer<T>,
-											 NodeIDValue,
+											 NodeID,
 											 NodeBackendHash<T>,
 											 std::equal_to<>>;*/
 
-		metall::manager::allocator_type<std::byte> allocator;
+		metall_manager::allocator_type<std::byte> allocator;
 
 		constexpr static rdf4cpp::rdf::storage::node::identifier::NodeStorageID manager_id = rdf4cpp::rdf::storage::node::identifier::NodeStorageID{0};
 
@@ -89,44 +173,29 @@ namespace Dice::node_store {
 		ReverseIndex<MetallVariableBackend> variable_storage_reverse;
 
 		LiteralID next_literal_id = NodeID::min_literal_id;
-		NodeIDValue next_bnode_id = NodeID::min_bnode_id;
-		NodeIDValue next_iri_id = NodeID::min_iri_id;
-		NodeIDValue next_variable_id = NodeID::min_variable_id;
+		NodeID next_bnode_id = NodeID::min_bnode_id;
+		NodeID next_iri_id = NodeID::min_iri_id;
+		NodeID next_variable_id = NodeID::min_variable_id;
 
 
 	public:
-		explicit PersistentNodeStorageBackendImpl(const metall::manager::allocator_type<std::byte> &allocator);
+		explicit PersistentNodeStorageBackendImpl(metall_manager::allocator_type<std::byte> const&allocator);
 
-		[[nodiscard]] NodeID get_string_literal_id(std::string_view lexical_form);
 
-		[[nodiscard]] NodeID get_typed_literal_id(std::string_view lexical_form, std::string_view datatype);
+		[[nodiscard]] NodeID find_or_make_id(BNodeBackendView const &) noexcept;
+		[[nodiscard]] NodeID find_or_make_id(IRIBackendView const &) noexcept;
+		[[nodiscard]] NodeID find_or_make_id(LiteralBackendView const &) noexcept;
+		[[nodiscard]] NodeID find_or_make_id(VariableBackendView const &) noexcept;
 
-		[[nodiscard]] NodeID get_typed_literal_id(std::string_view lexical_form, const NodeID &datatype_id);
+		[[nodiscard]] NodeID find_id(BNodeBackendView const &) const noexcept;
+		[[nodiscard]] NodeID find_id(IRIBackendView const &) const noexcept;
+		[[nodiscard]] NodeID find_id(LiteralBackendView const &) const noexcept;
+		[[nodiscard]] NodeID find_id(VariableBackendView const &) const noexcept;
 
-		[[nodiscard]] NodeID get_lang_literal_id(std::string_view lexical_form, std::string_view lang);
-
-		[[nodiscard]] NodeID get_iri_id(std::string_view iri);
-
-		[[nodiscard]] NodeID get_variable_id(std::string_view identifier, bool anonymous);
-
-		[[nodiscard]] NodeID get_bnode_id(std::string_view identifier);
-
-		[[nodiscard]] IRIBackendView get_iri_handle(NodeIDValue id) const;
-
-		[[nodiscard]] LiteralBackendView get_literal_handle(NodeIDValue id) const;
-
-		[[nodiscard]] BNodeBackendView get_bnode_handle(NodeIDValue id) const;
-
-		[[nodiscard]] VariableBackendView get_variable_handle(NodeIDValue id) const;
-
-	private:
-		std::pair<MetallLiteralBackend::pointer_t, NodeID> lookup_or_insert_literal(LiteralBackendView literal);
-
-		std::pair<MetallIRIBackend::pointer_t, NodeID> lookup_or_insert_iri(IRIBackendView iri);
-
-		std::pair<MetallBNodeBackend::pointer_t, NodeID> lookup_or_insert_bnode(BNodeBackendView bnode);
-
-		std::pair<MetallVariableBackend::pointer_t, NodeID> lookup_or_insert_variable(VariableBackendView variable);
+		[[nodiscard]] IRIBackendView find_iri_backend_view(NodeID id) const;
+		[[nodiscard]] LiteralBackendView find_literal_backend_view(NodeID id) const;
+		[[nodiscard]] BNodeBackendView find_bnode_backend_view(NodeID id) const;
+		[[nodiscard]] VariableBackendView find_variable_backend_view(NodeID id) const;
 	};
 
 }// namespace Dice::node_store
