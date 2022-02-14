@@ -21,6 +21,7 @@ namespace Dice::sparql2tensor::parser::visitors {
 		rdf4cpp::rdf::Node active_predicate;
 		char var_id = 'a';
 		// for the construction of the operand dependency graph
+		std::deque<std::vector<uint8_t>> group_patterns;
 
 	public:
 		SelectQueryVisitor() = delete;
@@ -92,7 +93,8 @@ namespace Dice::sparql2tensor::parser::visitors {
 	private:
 		void register_var(rdf4cpp::rdf::query::Variable const &);
 
-		void add_tp(rdf4cpp::rdf::query::TriplePattern const &tp);
+		void update_odg(rdf4cpp::rdf::query::TriplePattern const &tp);
+
 	};
 
 }// namespace Dice::sparql2tensor::parser::visitors

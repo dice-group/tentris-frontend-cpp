@@ -32,7 +32,7 @@ namespace Dice::triple_store {
 				sparql2tensor::SPARQLQuery query,
 				std::chrono::steady_clock::time_point endtime = std::chrono::steady_clock::time_point::max());
 
-		size_t count(sparql2tensor::SPARQLQuery query,
+		size_t count(const sparql2tensor::SPARQLQuery& query,
 					 std::chrono::steady_clock::time_point endtime = std::chrono::steady_clock::time_point::max());
 
 		bool ask(sparql2tensor::SPARQLQuery query,

@@ -136,14 +136,17 @@ namespace Dice::triple_store {
 		hypertrie_.set(sparql2tensor::Key{statement.subject(), statement.predicate(), statement.object()}, true);
 	}
 
-	std::generator<sparql2tensor::EinsumEntry<sparql2tensor::COUNTED_t> const &> TripleStore::query(sparql2tensor::SPARQLQuery query, std::chrono::steady_clock::time_point endtime) {
+	std::generator<sparql2tensor::EinsumEntry<sparql2tensor::COUNTED_t> const &>
+	TripleStore::query(sparql2tensor::SPARQLQuery query, std::chrono::steady_clock::time_point endtime) {
 		std::vector<sparql2tensor::const_BoolHypertrie> operands;
 		for (auto const &slice_key : query.get_slice_keys()) {
 			auto slice_result = hypertrie_[slice_key];
 			if (slice_key.get_fixed_depth() == 3) {
 				auto entry_exists = std::get<bool>(slice_result);
-				if (not entry_exists)
-					co_return;
+				sparql2tensor::BoolHypertrie ht_0{0, &context_};
+				if (entry_exists)
+					ht_0.set({}, true);
+				operands.push_back(ht_0);
 			} else {
 				auto operand = std::get<sparql2tensor::const_BoolHypertrie>(slice_result);
 				if (operand.empty())
@@ -152,21 +155,25 @@ namespace Dice::triple_store {
 					operands.push_back(std::move(operand));
 			}
 		}
-		auto subscript = query.get_subscript();
+		std::vector<char> proj_vars_id{};
+		for (auto const &proj_var : query.projected_variables_) {
+			proj_vars_id.push_back(query.var_to_id_[proj_var]);
+		}
+		sparql2tensor::Query q{query.get_odg(), operands, proj_vars_id};
 		if (query.distinct_) {
 			sparql2tensor::EinsumEntry<sparql2tensor::COUNTED_t> entry;
 			entry.key().resize(query.projected_variables_.size());
-			for (auto const &distinct_entry : einsum::einsum<sparql2tensor::DISTINCT_t, sparql2tensor::tr>(subscript, operands, endtime)) {
+			for (auto const &distinct_entry : Dice::query::Evaluation::evaluate<sparql2tensor::const_BoolHypertrie::tr, true>(q)) {
 				std::copy(distinct_entry.key().begin(), distinct_entry.key().end(), entry.key().begin());
 				co_yield entry;
 			}
 		} else {
-			for (auto const &entry : einsum::einsum<sparql2tensor::COUNTED_t, sparql2tensor::tr>(subscript, operands, endtime))
+			for (auto const &entry : Dice::query::Evaluation::evaluate<sparql2tensor::const_BoolHypertrie::tr>(q))
 				co_yield entry;
 		}
 	}
 
-	size_t TripleStore::count(sparql2tensor::SPARQLQuery query, std::chrono::steady_clock::time_point endtime) {
+	size_t TripleStore::count(sparql2tensor::SPARQLQuery const &query, std::chrono::steady_clock::time_point endtime) {
 		using namespace sparql2tensor;
 		if (query.triple_patterns_.size() == 1) {// O(1)
 			auto slice_key = query.get_slice_keys()[0];

@@ -50,25 +50,7 @@ namespace Dice::sparql2tensor {
 		return slice_keys;
 	}
 
-	std::shared_ptr<einsum::Subscript> SPARQLQuery::get_subscript() const {
-		using RawSubscript = einsum::internal::RawSubscript;
-		using OperandSc = einsum::internal::OperandSc;
-		using Variable = rdf4cpp::rdf::query::Variable;
-		RawSubscript raw_sc;
-
-		for (auto const &tp : triple_patterns_) {
-			OperandSc op_sc;
-			for (auto const &node : tp) {
-				if (node.is_variable()) {
-					op_sc.push_back(var_to_id_.at((Variable) node));
-				}
-			}
-			raw_sc.operands.push_back(std::move(op_sc));
-		}
-
-		for (auto const &variable : projected_variables_) {
-			raw_sc.result.push_back(var_to_id_.at(variable));
-		}
-		return std::make_shared<einsum::Subscript>(raw_sc);
+	Dice::query::OperandDependencyGraph SPARQLQuery::get_odg() const {
+		return odg_;
 	}
 }// namespace Dice::sparql2tensor

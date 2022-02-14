@@ -54,6 +54,7 @@ namespace Dice::sparql2tensor::parser::visitors {
 	}
 
 	antlrcpp::Any SelectQueryVisitor::visitGroupGraphPattern(SparqlParser::GroupGraphPatternContext *ctx) {
+		group_patterns.emplace_back();
 		if (ctx->subSelect())
 			throw std::runtime_error("Subqueries are not supported yet");
 		else if (ctx->groupGraphPatternSub())
@@ -200,7 +201,7 @@ namespace Dice::sparql2tensor::parser::visitors {
 			if (obj.is_variable())
 				register_var(rdf4cpp::rdf::query::Variable(obj));
 			query->triple_patterns_.emplace_back(active_subject, active_predicate, obj);
-			add_tp(query->triple_patterns_.back());
+			update_odg(query->triple_patterns_.back());
 		} else {
 			throw std::runtime_error("not supported");
 		}
@@ -213,7 +214,7 @@ namespace Dice::sparql2tensor::parser::visitors {
 			if (obj.is_variable())
 				register_var(rdf4cpp::rdf::query::Variable(obj));
 			query->triple_patterns_.emplace_back(active_subject, active_predicate, obj);
-			add_tp(query->triple_patterns_.back());
+			update_odg(query->triple_patterns_.back());
 		} else {
 			throw std::runtime_error("not supported");
 		}
@@ -314,13 +315,34 @@ namespace Dice::sparql2tensor::parser::visitors {
 		var_id++;
 	}
 
-	void SelectQueryVisitor::add_tp(rdf4cpp::rdf::query::TriplePattern const &tp) {
+	void SelectQueryVisitor::update_odg(rdf4cpp::rdf::query::TriplePattern const &tp) {
 		std::vector<char> var_ids{};
 		for (auto const &node : tp) {
 			if (not node.is_variable())
 				continue;
 			var_ids.push_back(query->var_to_id_[rdf4cpp::rdf::query::Variable(node)]);
 		}
+		// create new node in the operand dependency graph
+		auto v_id = query->odg_.addOperand(var_ids);
+		//iterate over the vars of the operand and look for dependencies
+		for (auto const var : var_ids) {
+			// find the first dependency within the group for the current label
+			for (auto iter = group_patterns.back().rbegin(); iter != group_patterns.back().rend(); iter++) {
+				bool found_dep = false;
+				for (auto v : query->odg_.operandLabels(*iter)) {
+					if (v == var) {
+						query->odg_.addDependency(v_id, *iter, var);
+						query->odg_.addDependency(*iter, v_id, var);
+						found_dep = true;
+						break;
+					}
+				}
+				if (found_dep)
+					break;
+			}
+		}
+		// add current tp/node to the active group pattern
+		group_patterns.back().push_back(v_id);
 	}
 
 }// namespace Dice::sparql2tensor::parser::visitors

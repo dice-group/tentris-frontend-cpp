@@ -6,6 +6,7 @@
 #include <Dice/einsum.hpp>
 #include <Dice/hash/DiceHash.hpp>
 #include <Dice/hypertrie.hpp>
+#include <Dice/query.hpp>
 #include <rdf4cpp/rdf.hpp>
 #ifndef BOOST_BIND_GLOBAL_PLACEHOLDERS
 #define BOOST_BIND_GLOBAL_PLACEHOLDERS
@@ -115,6 +116,7 @@ namespace Dice::sparql2tensor {
 	using DISTINCT_t = bool;
 	using COUNTED_t = std::size_t;
 	using Subscript = Dice::einsum::Subscript;
+	using Query = Dice::query::Query<tr>;
 }// namespace Dice::sparql2tensor
 
 #endif//TENTRIS_BOOLHYPERTRIE_HPP
