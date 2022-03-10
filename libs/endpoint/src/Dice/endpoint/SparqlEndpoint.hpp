@@ -21,7 +21,7 @@ namespace Dice::endpoint {
 		SPARQLEndpoint(tf::Executor &executor, triple_store::TripleStore &triplestore, std::chrono::seconds timeoutDuration);
 
 		restinio::request_handling_status_t operator()(
-				restinio::request_handle_t req,
+				const restinio::request_handle_t& req,
 				restinio::router::route_params_t params);
 	};
 

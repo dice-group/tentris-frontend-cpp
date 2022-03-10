@@ -22,6 +22,8 @@ namespace Dice::sparql2tensor {
 
 		bool distinct_ = false;
 
+		bool ask_ = false;
+
 		bool project_all_variables_ = false;
 
 		static SPARQLQuery parse(std::string const &sparql_query_str);

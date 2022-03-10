@@ -13,7 +13,7 @@ namespace Dice::sparql2tensor::parser::visitors {
 
 	using namespace sparql_parser::base;
 
-	class SelectQueryVisitor : public SparqlParserBaseVisitor {
+	class SelectAskQueryVisitor : public SparqlParserBaseVisitor {
 
 	private:
 		SPARQLQuery *const query;
@@ -22,11 +22,13 @@ namespace Dice::sparql2tensor::parser::visitors {
 		char var_id = 'a';
 		// for the construction of the operand dependency graph
 		std::deque<std::vector<uint8_t>> group_patterns;
-
+		std::vector<uint8_t> last_group_pattern;
 	public:
-		SelectQueryVisitor() = delete;
+		SelectAskQueryVisitor() = delete;
 
-		explicit SelectQueryVisitor(SPARQLQuery *q) : query{q} {}
+		explicit SelectAskQueryVisitor(SPARQLQuery *q) : query{q} {}
+
+		antlrcpp::Any visitAskQuery(SparqlParser::AskQueryContext *ctx) override;
 
 		antlrcpp::Any visitSelectQuery(SparqlParser::SelectQueryContext *) override;
 
@@ -93,7 +95,21 @@ namespace Dice::sparql2tensor::parser::visitors {
 	private:
 		void register_var(rdf4cpp::rdf::query::Variable const &);
 
-		void update_odg(rdf4cpp::rdf::query::TriplePattern const &tp);
+		/**
+		 * @brief: Creates a new node in the operand dependency graph.
+		 * Creates dependencies for the new node within the same group graph pattern
+		 */
+		void add_tp(rdf4cpp::rdf::query::TriplePattern const &tp);
+
+		/**
+		 * @brief: Creates dependencies between group graph patterns
+		 */
+		void group_dependencies(std::vector<uint8_t> const &prev_group, std::vector<uint8_t> const &cur_group, bool bidirectional = false);
+
+		/**
+		 * @brief: Creates simple connections between group graph patterns (important to capture optional cartesian products)
+		 */
+		void group_connections(std::vector<uint8_t> const &prev_group, std::vector<uint8_t> const &cur_group);
 
 	};
 

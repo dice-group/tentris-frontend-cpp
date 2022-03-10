@@ -16,7 +16,7 @@ namespace Dice::endpoint {
 		  timeout_duration_(timeoutDuration) {}
 
 	restinio::request_handling_status_t SPARQLEndpoint::operator()(
-			restinio::request_handle_t req,
+			const restinio::request_handle_t& req,
 			[[maybe_unused]] restinio::router::route_params_t params) {
 		auto timeout = (timeout_duration_.count()) ? std::chrono::steady_clock::now() + this->timeout_duration_ : std::chrono::steady_clock::time_point::max();
 		if (executor_.num_topologies() < executor_.num_workers()) {
@@ -29,21 +29,30 @@ namespace Dice::endpoint {
 					sparql_query = std::move(sparql_query_opt.value());
 				else
 					return;
-
 				try {
-					endpoint::SparqlJsonResultSAXWriter json_writer{sparql_query.projected_variables_, 100'000};
+					if (sparql_query.ask_) {
+						bool ask_result = triplestore_.ask(sparql_query, timeout);
+						req->create_response(status_ok())
+								.append_header(http_field::content_type, "application/sparql-results+json")
+								.set_body(fmt::format(R"({{ "head" : {{ }}, "boolean" : {} }})", ask_result))
+								.done();
+						spdlog::info("HTTP response {}: ASK, result: {}", status_ok(), ask_result);
+					} else {
+						endpoint::SparqlJsonResultSAXWriter json_writer{sparql_query.projected_variables_, 100'000};
 
-					size_t count = 0;
-					for (auto const &entry : this->triplestore_.query(sparql_query, timeout)) {
-						count += entry.value();
-						json_writer.add(entry);
+						size_t count = 0;
+						for (auto const &entry : this->triplestore_.query(sparql_query, timeout)) {
+							count += entry.value();
+							json_writer.add(entry);
+						}
+						json_writer.close();
+
+						req->create_response(status_ok())
+								.append_header(http_field::content_type, "application/sparql-results+json")
+								.set_body(std::string{json_writer.string_view()})
+								.done();
+						spdlog::info("HTTP response {}: {} variables {} results", status_ok(), sparql_query.projected_variables_.size(), count);
 					}
-
-					req->create_response(status_ok())
-							.append_header(http_field::content_type, "application/sparql-results+json")
-							.set_body(std::string{json_writer.string_view()})
-							.done();
-					spdlog::info("HTTP response {}: {} variables {} results", status_ok(), sparql_query.projected_variables_.size(), count);
 				} catch (Dice::einsum::TimeoutException const &timeout_exception) {
 					const auto timeout_message = fmt::format("Request processing timed out after {}.", this->timeout_duration_);
 					spdlog::warn("HTTP response {}: {}", status_gateway_time_out(), timeout_message);

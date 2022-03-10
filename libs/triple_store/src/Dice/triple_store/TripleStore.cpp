@@ -149,10 +149,7 @@ namespace Dice::triple_store {
 				operands.push_back(ht_0);
 			} else {
 				auto operand = std::get<sparql2tensor::const_BoolHypertrie>(slice_result);
-				if (operand.empty())
-					co_return;
-				else
-					operands.push_back(std::move(operand));
+				operands.push_back(std::move(operand));
 			}
 		}
 		std::vector<char> proj_vars_id{};
@@ -190,22 +187,26 @@ namespace Dice::triple_store {
 	}
 
 	bool TripleStore::ask(sparql2tensor::SPARQLQuery query, std::chrono::steady_clock::time_point endtime) {
-		if (query.triple_patterns_.size() == 1) {// O(1)
-			auto slice_key = query.get_slice_keys()[0];
-			if (slice_key.get_fixed_depth() == 3)
-				return std::get<bool>(get_hypertrie()[slice_key]);
-			else
-				return not std::get<sparql2tensor::const_BoolHypertrie>(get_hypertrie()[slice_key]).empty();
-		} else {
-			query.projected_variables_.clear();
-			query.project_all_variables_ = false;
-			query.distinct_ = true;
-			for ([[maybe_unused]] auto const &_ : this->query(query, endtime)) {
-				return true;
-				break;
+		std::vector<sparql2tensor::const_BoolHypertrie> operands;
+		for (auto const &slice_key : query.get_slice_keys()) {
+			auto slice_result = hypertrie_[slice_key];
+			if (slice_key.get_fixed_depth() == 3) {
+				auto entry_exists = std::get<bool>(slice_result);
+				sparql2tensor::BoolHypertrie ht_0{0, &context_};
+				if (entry_exists)
+					ht_0.set({}, true);
+				operands.push_back(ht_0);
+			} else {
+				auto operand = std::get<sparql2tensor::const_BoolHypertrie>(slice_result);
+				operands.push_back(std::move(operand));
 			}
-			return false;
 		}
+		std::vector<char> proj_vars_id{};
+		for (auto const &proj_var : query.projected_variables_) {
+			proj_vars_id.push_back(query.var_to_id_[proj_var]);
+		}
+		sparql2tensor::Query q{query.get_odg(), operands, proj_vars_id};
+		return Dice::query::Evaluation::evaluate_ask<sparql2tensor::const_BoolHypertrie::tr>(q);
 	}
 
 	bool TripleStore::contains(const rdf4cpp::rdf::Statement &statement) {
