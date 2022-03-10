@@ -158,13 +158,14 @@ namespace Dice::sparql2tensor::parser::visitors {
 	}
 	antlrcpp::Any SelectAskQueryVisitor::visitGroupOrUnionGraphPattern([[maybe_unused]] SparqlParser::GroupOrUnionGraphPatternContext *ctx) {
 		assert(not ctx->groupGraphPattern().empty());
-		// if there is only one group graph pattern (i.e., no UNION) we can just do a join
-		bool bidirectional_edges = ctx->groupGraphPattern().size() == 1;
+		// if union is within optional, treat it as a left join
+		bool in_opt = ctx->parent->getText().find("OPTIONAL");
+		bool join = not in_opt and ctx->groupGraphPattern().size() == 1;
 		for (auto ggp : ctx->groupGraphPattern()) {
 			group_patterns.emplace_back();
 			visitGroupGraphPattern(ggp);
 			if (group_patterns.size() > 1)
-				group_dependencies(group_patterns[group_patterns.size() - 2], group_patterns[group_patterns.size() - 1], bidirectional_edges);
+				group_dependencies(group_patterns[group_patterns.size() - 2], group_patterns[group_patterns.size() - 1], join, not in_opt);
 			group_patterns.pop_back();
 		}
 		return nullptr;
@@ -388,20 +389,21 @@ namespace Dice::sparql2tensor::parser::visitors {
 
 	void SelectAskQueryVisitor::group_dependencies(std::vector<uint8_t> const &prev_group,
 												   std::vector<uint8_t> const &cur_group,
-												   bool bidirectional) {
+												   bool bidirectional,
+												   bool is_union) {
 		for (const auto &prev_tp : prev_group) {
 			auto const &prev_labels = query->odg_.operandLabels(prev_tp);
 			for (const auto &cur_tp : cur_group) {
 				auto const &cur_labels = query->odg_.operandLabels(cur_tp);
 				for (auto const &prev_label : prev_labels) {
 					if (std::find(cur_labels.begin(), cur_labels.end(), prev_label) != cur_labels.end()) {
-						query->odg_.addDependency(prev_tp, cur_tp, prev_label);
+						query->odg_.addDependency(prev_tp, cur_tp, prev_label, is_union);
 						if (bidirectional)
-							query->odg_.addDependency(cur_tp, prev_tp, prev_label);
+							query->odg_.addDependency(cur_tp, prev_tp, prev_label, is_union);
 					} else {
-						query->odg_.addDependency(prev_tp, cur_tp);
+						query->odg_.addDependency(prev_tp, cur_tp, '\0', is_union);
 						if (bidirectional)
-							query->odg_.addDependency(cur_tp, prev_tp);
+							query->odg_.addDependency(cur_tp, prev_tp, '\0', is_union);
 					}
 				}
 			}

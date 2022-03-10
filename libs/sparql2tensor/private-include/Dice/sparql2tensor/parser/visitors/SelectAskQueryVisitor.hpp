@@ -104,7 +104,10 @@ namespace Dice::sparql2tensor::parser::visitors {
 		/**
 		 * @brief: Creates dependencies between group graph patterns
 		 */
-		void group_dependencies(std::vector<uint8_t> const &prev_group, std::vector<uint8_t> const &cur_group, bool bidirectional = false);
+		void group_dependencies(std::vector<uint8_t> const &prev_group,
+								std::vector<uint8_t> const &cur_group,
+								bool bidirectional = false,
+								bool is_union = false);
 
 		/**
 		 * @brief: Creates simple connections between group graph patterns (important to capture optional cartesian products)
