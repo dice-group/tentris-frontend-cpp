@@ -41,6 +41,10 @@ namespace Dice::sparql2tensor {
 		slice_keys.reserve(triple_patterns_.size());
 		for (auto const &tp : triple_patterns_) {
 			Dice::hypertrie::SliceKey<tr> slice_key;
+			if (std::all_of(tp.begin(), tp.end(), [](auto &node){ return node.null(); })) {
+				slice_keys.push_back(slice_key);
+				continue;
+			}
 			slice_key.reserve(3);
 			for (auto const &node : tp) {
 				if (node.is_variable())

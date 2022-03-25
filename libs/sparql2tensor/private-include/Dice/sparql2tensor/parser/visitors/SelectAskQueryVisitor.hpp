@@ -22,7 +22,7 @@ namespace Dice::sparql2tensor::parser::visitors {
 		char var_id = 'a';
 		// for the construction of the operand dependency graph
 		std::deque<std::vector<uint8_t>> group_patterns;
-		std::vector<uint8_t> last_group_pattern;
+		std::deque<std::vector<uint8_t>> opt_operands;
 	public:
 		SelectAskQueryVisitor() = delete;
 
@@ -114,6 +114,11 @@ namespace Dice::sparql2tensor::parser::visitors {
 		 */
 		void group_connections(std::vector<uint8_t> const &prev_group, std::vector<uint8_t> const &cur_group);
 
+		void visitWellDesignedPattern(SparqlParser::GroupGraphPatternSubContext *);
+
+		void visitWellDesignedOptionalPattern(SparqlParser::OptionalGraphPatternContext *);
+
+		void visitWellDesignedUnionPattern(SparqlParser::GroupOrUnionGraphPatternContext *);
 	};
 
 }// namespace Dice::sparql2tensor::parser::visitors
