@@ -411,7 +411,7 @@ namespace Dice::sparql2tensor::parser::visitors {
 		if (ctx->iri())
 			return rdf4cpp::rdf::Literal(value, visitIri(ctx->iri()).as<rdf4cpp::rdf::IRI>());
 		else if (ctx->LANGTAG())
-			return rdf4cpp::rdf::Literal(value, ctx->LANGTAG()->getText());
+			return rdf4cpp::rdf::Literal(value, ctx->LANGTAG()->getText().substr(1));
 		else
 			return rdf4cpp::rdf::Literal(value);
 	}
