@@ -23,6 +23,11 @@ namespace Dice::sparql2tensor::parser::visitors {
 		// for the construction of the operand dependency graph
 		std::deque<std::vector<uint8_t>> group_patterns;
 		std::deque<std::vector<uint8_t>> opt_operands;
+		std::deque<std::vector<uint8_t>> union_operands; // used to avoid connecting union patterns of the same optional pattern
+		// for the "rewriting"
+		std::vector<std::vector<SparqlParser::TriplesBlockContext *>> triples_blocks;
+		std::vector<std::vector<SparqlParser::OptionalGraphPatternContext *>> optional_blocks;
+
 	public:
 		SelectAskQueryVisitor() = delete;
 
@@ -93,7 +98,7 @@ namespace Dice::sparql2tensor::parser::visitors {
 		antlrcpp::Any visitString(SparqlParser::StringContext *) override;
 
 	private:
-		void register_var(rdf4cpp::rdf::query::Variable const &);
+		void register_var(rdf4cpp::rdf::query::Variable const &var);
 
 		/**
 		 * @brief: Creates a new node in the operand dependency graph.
@@ -104,21 +109,18 @@ namespace Dice::sparql2tensor::parser::visitors {
 		/**
 		 * @brief: Creates dependencies between group graph patterns
 		 */
-		void group_dependencies(std::vector<uint8_t> const &prev_group,
-								std::vector<uint8_t> const &cur_group,
-								bool bidirectional = false,
-								bool is_union = false);
+		void group_dependencies(std::vector<uint8_t> const &prev_group, std::vector<uint8_t> const &cur_group, bool bidirectional = false);
 
 		/**
 		 * @brief: Creates simple connections between group graph patterns (important to capture optional cartesian products)
 		 */
 		void group_connections(std::vector<uint8_t> const &prev_group, std::vector<uint8_t> const &cur_group);
 
-		void visitWellDesignedPattern(SparqlParser::GroupGraphPatternSubContext *);
-
-		void visitWellDesignedOptionalPattern(SparqlParser::OptionalGraphPatternContext *);
-
-		void visitWellDesignedUnionPattern(SparqlParser::GroupOrUnionGraphPatternContext *);
+		/**
+		 * @brief: Visitor for well-designed SPARQL patterns
+		 */
+		void visitWellDesignedPattern(SparqlParser::GroupGraphPatternSubContext *ctx,
+									  std::vector<SparqlParser::GroupOrUnionGraphPatternContext *> gou_ctxs);
 	};
 
 }// namespace Dice::sparql2tensor::parser::visitors

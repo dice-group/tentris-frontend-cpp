@@ -59,7 +59,11 @@ namespace Dice::sparql2tensor::parser::visitors {
 
 	antlrcpp::Any SelectAskQueryVisitor::visitWhereClause(SparqlParser::WhereClauseContext *ctx) {
 		group_patterns.emplace_back();
+		triples_blocks.emplace_back();
+		optional_blocks.emplace_back();
 		visitGroupGraphPattern(ctx->groupGraphPattern());
+		optional_blocks.pop_back();
+		triples_blocks.pop_back();
 		group_patterns.pop_back();
 		return nullptr;
 	}
@@ -75,139 +79,77 @@ namespace Dice::sparql2tensor::parser::visitors {
 	}
 
 	antlrcpp::Any SelectAskQueryVisitor::visitGroupGraphPatternSub(SparqlParser::GroupGraphPatternSubContext *ctx) {
-		visitWellDesignedPattern(ctx);
+		visitWellDesignedPattern(ctx, {});
 		return nullptr;
 	}
 
-	void SelectAskQueryVisitor::visitWellDesignedPattern(SparqlParser::GroupGraphPatternSubContext *ctx) {
-		std::vector<SparqlParser::TriplesBlockContext *> triples_blocks{};
-		std::vector<SparqlParser::GroupOrUnionGraphPatternContext *> union_patterns{};
-		std::vector<SparqlParser::OptionalGraphPatternContext *> optional_patterns{};
-		// gather sub-contexts -- we are allowed to do that as the queries are well-designed
+	void SelectAskQueryVisitor::visitWellDesignedPattern(SparqlParser::GroupGraphPatternSubContext *ctx,
+														 std::vector<SparqlParser::GroupOrUnionGraphPatternContext *> gou_ctxs) {
+		/*
+		 * The visitor first collects all triple patterns, group/union graph patterns and optional patterns
+		 * For each union all triple patterns and optional patterns that are explored so far are visited
+		 */
 		if (ctx->triplesBlock())
-			triples_blocks.push_back(ctx->triplesBlock());
+			triples_blocks.back().push_back(ctx->triplesBlock());
 		for (auto sub_ctx : ctx->groupGraphPatternSubList()) {
 			if (sub_ctx->graphPatternNotTriples()) {
 				if (sub_ctx->graphPatternNotTriples()->groupOrUnionGraphPattern())
-					union_patterns.push_back(sub_ctx->graphPatternNotTriples()->groupOrUnionGraphPattern());
+					gou_ctxs.push_back(sub_ctx->graphPatternNotTriples()->groupOrUnionGraphPattern());
 				else if (sub_ctx->graphPatternNotTriples()->optionalGraphPattern())
-					optional_patterns.push_back(sub_ctx->graphPatternNotTriples()->optionalGraphPattern());
+					optional_blocks.back().push_back(sub_ctx->graphPatternNotTriples()->optionalGraphPattern());
 			}
 			if (sub_ctx->triplesBlock())
-				triples_blocks.push_back(sub_ctx->triplesBlock());
+				triples_blocks.back().push_back(sub_ctx->triplesBlock());
 		}
-		// we don't have any unions -- we do not need to "rewrite" the query
-		// as queries are well-designed, we are allowed to process optionals last
-		if (union_patterns.empty()) {
-			for (auto tb : triples_blocks) {
-				visitTriplesBlock(tb);
+		if (gou_ctxs.empty()) {
+			for (auto tb_ctx : triples_blocks.back()) {
+				visitTriplesBlock(tb_ctx);
 			}
-			opt_operands.emplace_back();
-			for (auto op : optional_patterns) {
-				group_patterns.emplace_back();
-				visitWellDesignedOptionalPattern(op);
-				group_patterns.pop_back();
-			}
-			opt_operands.pop_back();
-		} else if (union_patterns.size() == 1) {
-			for (auto gp_ctx : union_patterns.back()->groupGraphPattern()) {
-				for (auto tb : triples_blocks) {
-					visitTriplesBlock(tb);
-				}
-				visitWellDesignedPattern(gp_ctx->groupGraphPatternSub());
-				opt_operands.emplace_back();
-				for (auto op : optional_patterns) {
-					group_patterns.emplace_back();
-					visitWellDesignedOptionalPattern(op);
-					group_patterns.pop_back();
-				}
-				opt_operands.pop_back();
-				group_patterns.back().clear();
-			}
-		} else {
-			throw std::runtime_error{"Multiple UNIONs not supported."};
-		}
-	}
-
-	void SelectAskQueryVisitor::visitWellDesignedOptionalPattern(SparqlParser::OptionalGraphPatternContext *ctx) {
-		std::vector<SparqlParser::TriplesBlockContext *> triples_blocks{};
-		std::vector<SparqlParser::GroupOrUnionGraphPatternContext *> union_patterns{};
-		std::vector<SparqlParser::OptionalGraphPatternContext *> optional_patterns{};
-		auto opt_ctx = ctx->groupGraphPattern()->groupGraphPatternSub();
-		// gather sub-contexts -- we are allowed to do that as the queries are well-designed
-		if (opt_ctx->triplesBlock())
-			triples_blocks.push_back(opt_ctx->triplesBlock());
-		for (auto sub_ctx : opt_ctx->groupGraphPatternSubList()) {
-			if (sub_ctx->graphPatternNotTriples()) {
-				if (sub_ctx->graphPatternNotTriples()->groupOrUnionGraphPattern())
-					union_patterns.push_back(sub_ctx->graphPatternNotTriples()->groupOrUnionGraphPattern());
-				else if (sub_ctx->graphPatternNotTriples()->optionalGraphPattern())
-					optional_patterns.push_back(sub_ctx->graphPatternNotTriples()->optionalGraphPattern());
-			}
-			if (sub_ctx->triplesBlock())
-				triples_blocks.push_back(sub_ctx->triplesBlock());
-		}
-		// we don't have any unions -- we do not need to "rewrite" the query
-		// as queries are well-designed, we are allowed to process optionals last
-		if (union_patterns.empty()) {
-			for (auto tb : triples_blocks) {
-				visitTriplesBlock(tb);
-			}
-			group_dependencies(group_patterns[group_patterns.size() - 2], group_patterns[group_patterns.size() - 1]);
-			// connections for cartesian
-			for (auto cur_op : group_patterns.back()) {
-				for (auto opt_op : opt_operands.back()) {
-					query->odg_.addConnection(cur_op, opt_op);
-					query->odg_.addConnection(opt_op, cur_op);
-				}
-			}
-			// update opt_operands
-			for (auto cur_op : group_patterns.back()) {
-				opt_operands.back().push_back(cur_op);
-			}
-			opt_operands.emplace_back();
-			for (auto op : optional_patterns) {
-				group_patterns.emplace_back();
-				visitWellDesignedOptionalPattern(op);
-				group_patterns.pop_back();
-			}
-			opt_operands.pop_back();
-		} else if (union_patterns.size() == 1) {
-			std::vector<uint8_t> union_operands{};
-			for (auto gp_ctx : union_patterns.back()->groupGraphPattern()) {
-				for (auto tb : triples_blocks) {
-					visitTriplesBlock(tb);
-				}
-				visitWellDesignedPattern(gp_ctx->groupGraphPatternSub());
-				group_dependencies(group_patterns[group_patterns.size() - 2], group_patterns[group_patterns.size() - 1]);
-				// connections for cartesian
+			// if we are in an optional we need to capture dependencies
+			if (not opt_operands.empty()) {
+				// dependencies with parent group
+				group_dependencies(group_patterns[group_patterns.size() - 2], group_patterns.back());
+				// cartesian dependencies between optional patterns
 				for (auto cur_op : group_patterns.back()) {
 					for (auto opt_op : opt_operands.back()) {
-						query->odg_.addConnection(cur_op, opt_op);
-						query->odg_.addConnection(opt_op, cur_op);
+						if (std::find(union_operands.back().begin(), union_operands.back().end(), opt_op) == union_operands.back().end()) {
+							query->odg_.addConnection(cur_op, opt_op);
+							query->odg_.addConnection(opt_op, cur_op);
+						}
 					}
 				}
-				for (size_t i = triples_blocks.size(); i < group_patterns.back().size(); i++) {
-					union_operands.push_back(group_patterns.back()[i]);
+				for (auto cur_op : group_patterns.back()) {
+					union_operands.back().push_back(cur_op);
+					opt_operands.back().push_back(cur_op);
 				}
-				opt_operands.emplace_back();
-				for (auto op : optional_patterns) {
-					group_patterns.emplace_back();
-					visitWellDesignedOptionalPattern(op);
-					group_patterns.pop_back();
-				}
-				opt_operands.pop_back();
-				group_patterns.back().clear();
 			}
-			for (auto op : union_operands) {
-				opt_operands.back().push_back(op);
+			opt_operands.emplace_back();
+			union_operands.emplace_back();
+			for (auto opt_ctx : optional_blocks.back()) {
+				group_patterns.emplace_back();
+				triples_blocks.emplace_back();
+				optional_blocks.emplace_back();
+				visitWellDesignedPattern(opt_ctx->groupGraphPattern()->groupGraphPatternSub(), {});
+				union_operands.back().clear();
+				optional_blocks.pop_back();
+				triples_blocks.pop_back();
+				group_patterns.pop_back();
 			}
-		} else {
-			throw std::runtime_error{"Multiple UNIONs not supported."};
+			union_operands.pop_back();
+			opt_operands.pop_back();
+			// prepare for the next union
+			group_patterns.back().clear();
+		} else  {
+			SparqlParser::GroupOrUnionGraphPatternContext *cur_gou_ctx = gou_ctxs.back();
+			gou_ctxs.pop_back();
+			size_t current_tbs = triples_blocks.back().size();
+			size_t current_opts = optional_blocks.back().size();
+			for (auto grp_ctx : cur_gou_ctx->groupGraphPattern()) {
+				visitWellDesignedPattern(grp_ctx->groupGraphPatternSub(), gou_ctxs);
+				triples_blocks.back().resize(current_tbs);
+				optional_blocks.back().resize(current_opts);
+			}
 		}
-	}
-
-	void SelectAskQueryVisitor::visitWellDesignedUnionPattern(SparqlParser::GroupOrUnionGraphPatternContext *ctx) {
 	}
 
 	antlrcpp::Any SelectAskQueryVisitor::visitTriplesBlock(SparqlParser::TriplesBlockContext *ctx) {
@@ -261,29 +203,17 @@ namespace Dice::sparql2tensor::parser::visitors {
 		return nullptr;
 	}
 	antlrcpp::Any SelectAskQueryVisitor::visitGraphPatternNotTriples([[maybe_unused]] SparqlParser::GraphPatternNotTriplesContext *ctx) {
-		if (ctx->groupOrUnionGraphPattern())
-			visitGroupOrUnionGraphPattern(ctx->groupOrUnionGraphPattern());
-		if (ctx->optionalGraphPattern())
-			visitOptionalGraphPattern(ctx->optionalGraphPattern());
 		return nullptr;
 	}
+
 	antlrcpp::Any SelectAskQueryVisitor::visitOptionalGraphPattern([[maybe_unused]] SparqlParser::OptionalGraphPatternContext *ctx) {
 		return nullptr;
 	}
+
 	antlrcpp::Any SelectAskQueryVisitor::visitGroupOrUnionGraphPattern([[maybe_unused]] SparqlParser::GroupOrUnionGraphPatternContext *ctx) {
-		assert(not ctx->groupGraphPattern().empty());
-		// if union is within optional, treat it as a left join
-		bool in_opt = ctx->parent->getText().find("OPTIONAL");
-		bool join = not in_opt and ctx->groupGraphPattern().size() == 1;
-		for (auto ggp : ctx->groupGraphPattern()) {
-			group_patterns.emplace_back();
-			visitGroupGraphPattern(ggp);
-			if (group_patterns.size() > 1)
-				group_dependencies(group_patterns[group_patterns.size() - 2], group_patterns[group_patterns.size() - 1], join, not in_opt);
-			group_patterns.pop_back();
-		}
 		return nullptr;
 	}
+
 	antlrcpp::Any SelectAskQueryVisitor::visitMinusGraphPattern([[maybe_unused]] SparqlParser::MinusGraphPatternContext *ctx) {
 		return nullptr;
 	}
@@ -501,10 +431,7 @@ namespace Dice::sparql2tensor::parser::visitors {
 		gp.push_back(v_id);
 	}
 
-	void SelectAskQueryVisitor::group_dependencies(std::vector<uint8_t> const &prev_group,
-												   std::vector<uint8_t> const &cur_group,
-												   bool bidirectional,
-												   bool is_union) {
+	void SelectAskQueryVisitor::group_dependencies(std::vector<uint8_t> const &prev_group, std::vector<uint8_t> const &cur_group, bool bidirectional) {
 		for (const auto &prev_tp : prev_group) {
 			auto const &prev_labels = query->odg_.operandLabels(prev_tp);
 			for (const auto &cur_tp : cur_group) {

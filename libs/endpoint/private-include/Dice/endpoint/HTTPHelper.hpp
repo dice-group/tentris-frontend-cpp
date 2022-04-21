@@ -25,7 +25,7 @@ namespace Dice::endpoint {
 		try {
 			sparql_query = SPARQLQuery::parse(sparql_query_str);
 		} catch (std::exception &ex) {
-			static auto const message = "Query parameter 'query' is missing.";
+			static auto const message = ex.what();
 			spdlog::warn("HTTP response {}: {}", status_bad_request(), message);
 			req->create_response(status_bad_request()).set_body(message).done();
 			return std::nullopt;
