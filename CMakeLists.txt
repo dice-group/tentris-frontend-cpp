@@ -8,6 +8,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/version.hpp.in ${CMAKE_CURRENT_SOURCE_DIR}/execs/tentris_server/src/Dice/tentris_server/tentris_version.hpp)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/version.hpp.in ${CMAKE_CURRENT_SOURCE_DIR}/execs/tentris_loader/src/Dice/tentris_loader/tentris_version.hpp)
 
 ### conan cmake
 if (NOT EXISTS "${CMAKE_CURRENT_BINARY_DIR}/conan.cmake")
@@ -89,7 +90,7 @@ include(FetchContent)
 FetchContent_Declare(
         RDF4CPP
         GIT_REPOSITORY "https://github.com/rdf4cpp/rdf4cpp"
-        GIT_TAG "feature/adjust_for_better_integration_with_custom_backends_draft2"
+        GIT_TAG "7c16fcfc2459e2223098dec4e2b8c8bde3e8c89f"
         UPDATE_COMMAND ""
 )
 FetchContent_MakeAvailable(RDF4CPP)

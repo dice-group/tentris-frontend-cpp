@@ -16,11 +16,11 @@ find_package(Taskflow REQUIRED)
 find_package(restinio REQUIRED)
 find_package(spdlog REQUIRED)
 
-set(cppitertools_INSTALL_CMAKE_DIR share CACHE INTERNAL "")
+set(ENV{cppitertools_INSTALL_CMAKE_DIR} TRUE)
 FetchContent_Declare(
         cppitertools
         GIT_REPOSITORY https://github.com/ryanhaining/cppitertools.git
-        GIT_TAG b2b98e60438f1ed6b04b77cdb6cc5d5516af301b
+        GIT_TAG v2.1
         GIT_SHALLOW TRUE)
 FetchContent_MakeAvailable(cppitertools)
 
