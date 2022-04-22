@@ -404,9 +404,9 @@ namespace Dice::sparql2tensor::parser::visitors {
 		// create new node in the operand dependency graph
 		auto v_id = query->odg_.addOperand(var_ids);
 		auto &gp = group_patterns.back();
-		std::set<char> done{};
 		// iterate over the tps of the group and capture dependencies
 		for (auto iter = gp.rbegin(); iter != gp.rend(); iter++) {
+			std::set<char> done{}; // only one edge per label between two nodes
 			auto const &tp_vars = query->odg_.operandLabels(*iter);
 			bool cart = true;
 			for (auto const &var : var_ids) {
