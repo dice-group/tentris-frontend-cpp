@@ -55,7 +55,7 @@ int main(int argc, char *argv[]) {
 	}
 	auto const storage_path = fs::absolute(fs::path{parsed_args["storage"].as<std::string>()}).append("tentris_data");
 	if (fs::exists(storage_path)) {
-		std::cout << "Path already exists. Please provide a different path.";
+		std::cout << "Index storage path (-s,--storage) " << storage_path.string() << " already exists. Please provide a different path.";
 		exit(0);
 	}
 
