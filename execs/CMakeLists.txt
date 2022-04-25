@@ -1,0 +1,2 @@
+add_subdirectory(tentris_server)
+add_subdirectory(tentris_loader)
