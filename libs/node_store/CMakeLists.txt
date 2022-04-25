@@ -18,6 +18,7 @@ find_package(hypertrie REQUIRED)
 find_package(tsl-sparse-map REQUIRED)
 find_package(robin_hood REQUIRED)
 find_package(dice-hash REQUIRED)
+find_package(Boost REQUIRED)
 
 include(FetchContent)
 FetchContent_Declare(
@@ -42,6 +43,7 @@ target_link_libraries(node_store PUBLIC
         tsl::sparse_map
         dice-hash::dice-hash
         Metall
+        Boost::headers
         )
 
 target_include_directories(node_store PUBLIC
