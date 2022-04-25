@@ -28,7 +28,7 @@ namespace Dice::endpoint {
 			return cache[sparql_query_str];
 		} catch (std::exception &ex) {
 			static auto const message = "Value of query parameter 'query' is not parsable.";
-			spdlog::warn("HTTP response {}: {}", status_bad_request(), message);
+			spdlog::warn("HTTP response {}: {} (detail: {})", status_bad_request(), message, ex.what());
 			req->create_response(status_bad_request()).set_body(message).done();
 			return {};
 		}

@@ -10,7 +10,7 @@ add_library(node_store
         src/Dice/node_store/MetallIRIBackend.cpp
         src/Dice/node_store/MetallLiteralBackend.cpp
         src/Dice/node_store/MetallVariableBackend.cpp
-        src/Dice/node_store/metall_manager.hpp)
+        )
 
 add_library(Dice::node_store ALIAS node_store)
 
