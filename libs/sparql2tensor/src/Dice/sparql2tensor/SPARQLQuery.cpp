@@ -63,6 +63,8 @@ namespace Dice::sparql2tensor {
 					op_sc.push_back(var_to_id_.at((Variable) node));
 				}
 			}
+			if (op_sc.empty())
+				continue;
 			raw_sc.operands.push_back(std::move(op_sc));
 		}
 
