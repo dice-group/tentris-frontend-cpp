@@ -2,9 +2,8 @@
 boost/1.77.0
 fmt/8.0.1
 restinio/0.6.14
-hypertrie/0.7.0@dice-group/stable
-rdf-parser/0.14.0@dice-group/stable
-sparql-parser/0.3.0@dice-group/rc2
+hypertrie/0.8.0@dice-group/rc1
+sparql-parser-base/0.2.2@dice-group/stable
 cxxopts/2.2.1
 # override for conflict between sparql-parser and rdf-parser
 robin-hood-hashing/3.11.3
@@ -18,6 +17,7 @@ restinio:asio=boost
 restinio:with_zlib=True
 boost:shared=False
 *:shared=False
+boost:header_only=False # override hypertrie settings
 boost:without_context=True
 boost:without_contract=True
 boost:without_coroutine=True

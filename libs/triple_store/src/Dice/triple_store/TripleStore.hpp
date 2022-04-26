@@ -12,17 +12,19 @@
 #include <metall/metall.hpp>
 
 namespace Dice::triple_store {
-	template<typename Allocator = std::allocator<std::byte>>
 	class TripleStore {
 
 		sparql2tensor::HypertrieContext context_;
 		sparql2tensor::BoolHypertrie hypertrie_;
 
 	public:
-		explicit TripleStore(Allocator const &allocator = Allocator())
+		using htt_t = sparql2tensor::tr;
+		using Allocator = sparql2tensor::Allocator;
+
+		explicit TripleStore(Allocator const &allocator)
 			: context_(allocator),
 			  hypertrie_(3,
-						 [&]() { if constexpr(std::is_same_v<typename std::allocator_traits<Allocator>::void_pointer, void*>) return &context_; else return Dice::hypertrie::HypertrieContext_ptr<sparql2tensor::tr>(&context_); }()) {}
+						 [&]() { if constexpr(std::is_same_v<typename std::allocator_traits<Allocator>::void_pointer, void*>) return &context_; else return Dice::hypertrie::HypertrieContext_ptr<htt_t, Allocator>(&context_); }()) {}
 
 		[[nodiscard]] sparql2tensor::BoolHypertrie const &get_hypertrie() const {
 			return hypertrie_;
@@ -35,7 +37,7 @@ namespace Dice::triple_store {
 			sparql2tensor::HypertrieBulkInserter bulk_inserter{hypertrie_, bulk_size, call_back};
 			AddTripleCallback_function add_entry_callback =
 					[&bulk_inserter](rdf4cpp::rdf::Node subj, rdf4cpp::rdf::Node pred, rdf4cpp::rdf::Node obj) noexcept -> void {
-				hypertrie::internal::raw::SingleEntry<3, hypertrie::internal::raw::Hypertrie_core_t<sparql2tensor::tr>> entry{{subj, pred, obj}};
+				hypertrie::internal::raw::SingleEntry<3, htt_t> entry{{subj, pred, obj}};
 				bulk_inserter.add(entry);
 			};
 			serd_load(file_path, add_entry_callback);
