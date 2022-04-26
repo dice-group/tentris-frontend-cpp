@@ -100,7 +100,7 @@ int main(int argc, char *argv[]) {
 				NodeStorage::new_instance<PersistentNodeStorageBackend>(nodestore_backend));
 	}
 	// setup triple store
-	auto &triplestore = *storage_manager.find_or_construct<triple_store::TripleStore<typename metall_manager::allocator_type<std::byte>>>("triple_store")(storage_manager.get_allocator());
+	auto &triplestore = *storage_manager.find_or_construct<triple_store::TripleStore>("triple_store")(storage_manager.get_allocator());
 	// load data
 	fs::path ttl_file(parsed_args["file"].as<std::string>());
 	spdlog::info("Loading triples from file {}.", fs::absolute(ttl_file).string());

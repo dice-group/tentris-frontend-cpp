@@ -7,7 +7,7 @@
 
 namespace Dice::endpoint {
 	CountEndpoint::CountEndpoint(tf::Executor &executor,
-								 triple_store::TripleStore<typename Dice::node_store::metall_manager::allocator_type<std::byte>> &triplestore,
+								 triple_store::TripleStore &triplestore,
 								 SparqlQueryCache &sparql_query_cache,
 								 std::chrono::seconds timeoutDuration)
 		: executor_(executor),

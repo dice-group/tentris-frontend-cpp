@@ -101,14 +101,13 @@ namespace Dice::sparql2tensor {
 
 	using tr = Dice::hypertrie::Hypertrie_trait<key_part_type,
 												bool,
-												Allocator,
 												map_type,
 												set_type,
 												63>;
-	using HypertrieContext = Dice::hypertrie::HypertrieContext<tr>;
-	using BoolHypertrie = Dice::hypertrie::Hypertrie<tr>;
-	using const_BoolHypertrie = Dice::hypertrie::const_Hypertrie<tr>;
-	using HypertrieBulkInserter = Dice::hypertrie::BulkInserter<tr>;
+	using HypertrieContext = Dice::hypertrie::HypertrieContext<tr, Allocator>;
+	using BoolHypertrie = Dice::hypertrie::Hypertrie<tr, Allocator>;
+	using const_BoolHypertrie = Dice::hypertrie::const_Hypertrie<tr, Allocator>;
+	using HypertrieBulkInserter = Dice::hypertrie::BulkInserter<tr, Allocator>;
 	using SliceKey = Dice::hypertrie::SliceKey<tr>;
 	using Key = Dice::hypertrie::Key<tr>;
 	using NonZeroEntry = Dice::hypertrie::NonZeroEntry<tr>;

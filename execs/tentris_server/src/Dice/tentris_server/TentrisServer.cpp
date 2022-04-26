@@ -127,7 +127,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	// setup triple store
-	auto &triplestore = *storage_manager.find_or_construct<triple_store::TripleStore<typename metall_manager::allocator_type<std::byte>>>("triple_store")(storage_manager.get_allocator());
+	auto &triplestore = *storage_manager.find_or_construct<triple_store::TripleStore>("triple_store")(storage_manager.get_allocator());
 	// initialize task runners
 	tf::Executor executor(endpoint_cfg.threads);
 	// setup and configure endpoints

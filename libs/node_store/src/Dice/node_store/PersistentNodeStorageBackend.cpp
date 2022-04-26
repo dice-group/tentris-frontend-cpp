@@ -39,16 +39,16 @@ namespace Dice::node_store {
 	rdf4cpp::rdf::storage::node::view::VariableBackendView PersistentNodeStorageBackend::find_variable_backend_view(rdf4cpp::rdf::storage::node::identifier::NodeID id) const {
 		return impl_->find_variable_backend_view(id);
 	}
-	bool PersistentNodeStorageBackend::erase_iri(rdf4cpp::rdf::storage::node::identifier::NodeID id) const {
+	bool PersistentNodeStorageBackend::erase_iri([[maybe_unused]] rdf4cpp::rdf::storage::node::identifier::NodeID id) const {
 		throw std::runtime_error{"Not implemented."};
 	}
-	bool PersistentNodeStorageBackend::erase_literal(rdf4cpp::rdf::storage::node::identifier::NodeID id) const {
+	bool PersistentNodeStorageBackend::erase_literal([[maybe_unused]] rdf4cpp::rdf::storage::node::identifier::NodeID id) const {
 		throw std::runtime_error{"Not implemented."};
 	}
-	bool PersistentNodeStorageBackend::erase_bnode(rdf4cpp::rdf::storage::node::identifier::NodeID id) const {
+	bool PersistentNodeStorageBackend::erase_bnode([[maybe_unused]] rdf4cpp::rdf::storage::node::identifier::NodeID id) const {
 		throw std::runtime_error{"Not implemented."};
 	}
-	bool PersistentNodeStorageBackend::erase_variable(rdf4cpp::rdf::storage::node::identifier::NodeID id) const {
+	bool PersistentNodeStorageBackend::erase_variable([[maybe_unused]] rdf4cpp::rdf::storage::node::identifier::NodeID id) const {
 		throw std::runtime_error{"Not implemented."};
 	}
 }// namespace Dice::node_store

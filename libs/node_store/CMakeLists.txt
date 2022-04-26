@@ -32,7 +32,7 @@ FetchContent_MakeAvailable(tsl-sparse-map-our-version)
 FetchContent_Declare(
         metall
         GIT_REPOSITORY https://github.com/LLNL/metall.git
-        GIT_TAG v0.19
+        GIT_TAG v0.20
         GIT_SHALLOW TRUE
 )
 FetchContent_MakeAvailable(metall)

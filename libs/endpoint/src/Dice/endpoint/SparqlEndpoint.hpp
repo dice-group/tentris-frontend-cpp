@@ -15,14 +15,14 @@ namespace Dice::endpoint {
 
 		tf::Executor &executor_;
 
-		triple_store::TripleStore<typename Dice::node_store::metall_manager::allocator_type<std::byte>> &triplestore_;
+		triple_store::TripleStore &triplestore_;
 
 		SparqlQueryCache &sparql_query_cache_;
 
 		std::chrono::seconds timeout_duration_;
 
 	public:
-		SPARQLEndpoint(tf::Executor &executor, triple_store::TripleStore<typename Dice::node_store::metall_manager::allocator_type<std::byte>> &triplestore, SparqlQueryCache &sparql_query_cache, std::chrono::seconds timeoutDuration);
+		SPARQLEndpoint(tf::Executor &executor, triple_store::TripleStore &triplestore, SparqlQueryCache &sparql_query_cache, std::chrono::seconds timeoutDuration);
 
 		restinio::request_handling_status_t operator()(
 				restinio::request_handle_t req,
