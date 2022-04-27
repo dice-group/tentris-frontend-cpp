@@ -7,6 +7,7 @@ namespace Dice::tentris {
 	inline constexpr const char name[] = "@PROJECT_NAME@";
 	inline constexpr const char version[] = "@tentris_VERSION@";
 	inline constexpr std::array<int, 3> version_tuple = {@tentris_VERSION_MAJOR@, @tentris_VERSION_MINOR@, @tentris_VERSION_PATCH@};
+	inline constexpr const char rdf4cpp_version[] = "@rdf4cpp_VERSION@";
 }// namespace Dice::tentris
 
 #endif//TENTRIS_VERSION_HPP
