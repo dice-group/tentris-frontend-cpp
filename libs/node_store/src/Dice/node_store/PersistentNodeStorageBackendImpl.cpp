@@ -45,8 +45,6 @@ namespace Dice::node_store {
 					assert(mem);
 					alloc.construct(mem, view, alloc);
 					auto [found2, inserted_successfully] = reverse_storage.emplace(mem, id.value());
-					auto &element = *found2->first;
-					auto x = View_t(element);
 					assert(inserted_successfully);
 					storage.insert({id.value(), found2->first.get()});
 					return id;

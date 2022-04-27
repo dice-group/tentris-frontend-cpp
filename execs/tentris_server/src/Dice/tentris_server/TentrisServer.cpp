@@ -22,7 +22,7 @@ int main(int argc, char *argv[]) {
 	/*
 	 * Parse Commandline Arguments
 	 */
-	std::string version = fmt::format("tentris_server v{} is based on hypertrie v{} and rdf4cpp v{}.", Dice::tentris::version, hypertrie::version, "pre-release");
+	std::string version = fmt::format("tentris_server v{} is based on hypertrie v{} and rdf4cpp {}.", Dice::tentris::version, hypertrie::version, Dice::tentris::rdf4cpp_version);
 
 	cxxopts::Options options("tentris_server",
 							 fmt::format("{}\nA tensor-based triple store.", version));

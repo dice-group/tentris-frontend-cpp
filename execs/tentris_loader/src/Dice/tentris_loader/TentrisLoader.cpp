@@ -18,7 +18,7 @@ int main(int argc, char *argv[]) {
 	using namespace Dice;
 	namespace fs = std::filesystem;
 
-	std::string version = fmt::format("tentris_loader v{} is using hypertrie v{} and rdf4cpp v{}.", Dice::tentris::version, hypertrie::version, "pre-release");
+	std::string version = fmt::format("tentris_loader v{} is using hypertrie v{} and rdf4cpp {}.", Dice::tentris::version, hypertrie::version, Dice::tentris::rdf4cpp_version);
 	cxxopts::Options options("tentris_loader",
 							 fmt::format("{}\nA tensor-based triple store.", version));
 	options.add_options()                                                                                                                                                                                                                //

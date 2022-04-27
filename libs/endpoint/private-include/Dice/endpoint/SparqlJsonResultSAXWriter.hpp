@@ -79,7 +79,6 @@ namespace Dice::endpoint {
 					writer.Key(to_rapidjson(var.name()));
 					writer.StartObject();
 					writer.Key("type");
-					rdf4cpp::rdf::Node node;
 					if (term.is_iri()) {
 						writer.String("uri");
 						writer.Key("value");
