@@ -84,28 +84,28 @@ namespace Dice::node_store {
 	template<typename T>
 	struct NodeBackendHash {
 		size_t operator()(T const &node) const noexcept {
-			return Dice::hash::DiceHashxxh3<T>()(node);
+			return Dice::hash::DiceHashMartinus<T>()(node);
 		}
 
 		size_t operator()(typename metall_manager::allocator_type<T const>::pointer const &node_ptr) const noexcept {
-			return Dice::hash::DiceHashxxh3<T const>()(*node_ptr);
+			return Dice::hash::DiceHashMartinus<T const>()(*node_ptr);
 		}
 
 		size_t operator()(typename metall_manager::allocator_type<T>::pointer const &node_ptr) const noexcept {
-			return Dice::hash::DiceHashxxh3<T>()(*node_ptr);
+			return Dice::hash::DiceHashMartinus<T>()(*node_ptr);
 		}
 
 		size_t operator()(rdf4cpp::rdf::storage::node::view::LiteralBackendView const &x) const noexcept {
-			return Dice::hash::DiceHashxxh3<rdf4cpp::rdf::storage::node::view::LiteralBackendView>()(x);
+			return Dice::hash::DiceHashMartinus<rdf4cpp::rdf::storage::node::view::LiteralBackendView>()(x);
 		}
 		size_t operator()(rdf4cpp::rdf::storage::node::view::BNodeBackendView const &x) const noexcept {
-			return Dice::hash::DiceHashxxh3<rdf4cpp::rdf::storage::node::view::BNodeBackendView>()(x);
+			return Dice::hash::DiceHashMartinus<rdf4cpp::rdf::storage::node::view::BNodeBackendView>()(x);
 		}
 		size_t operator()(rdf4cpp::rdf::storage::node::view::VariableBackendView const &x) const noexcept {
-			return Dice::hash::DiceHashxxh3<rdf4cpp::rdf::storage::node::view::VariableBackendView>()(x);
+			return Dice::hash::DiceHashMartinus<rdf4cpp::rdf::storage::node::view::VariableBackendView>()(x);
 		}
 		size_t operator()(rdf4cpp::rdf::storage::node::view::IRIBackendView const &x) const noexcept {
-			return Dice::hash::DiceHashxxh3<rdf4cpp::rdf::storage::node::view::IRIBackendView>()(x);
+			return Dice::hash::DiceHashMartinus<rdf4cpp::rdf::storage::node::view::IRIBackendView>()(x);
 		}
 	};
 }// namespace Dice::node_store
