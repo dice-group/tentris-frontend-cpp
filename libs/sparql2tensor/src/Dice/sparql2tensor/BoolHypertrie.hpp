@@ -63,7 +63,7 @@ namespace Dice::sparql2tensor {
 		using Node = rdf4cpp::rdf::Node;
 
 		bool operator()(Node const &lhs, Node const &rhs) const noexcept {
-			return lhs.backend_handle().id().raw() == rhs.backend_handle().id().raw();
+			return lhs.backend_handle().raw() == rhs.backend_handle().raw();
 		}
 	};
 
@@ -97,9 +97,12 @@ namespace Dice::sparql2tensor {
 			tsl::sh::exception_safety::basic,
 			tsl::sh::sparsity::high>;
 
+	using Allocator = metall::basic_manager<uint32_t, (1ULL << 28ULL)>::allocator_type<std::byte>;
+//	using Allocator = metall::manager::allocator_type<std::byte>;
+
 	using tr = Dice::hypertrie::Hypertrie_trait<key_part_type,
 												bool,
-												metall::manager::allocator_type<std::byte>,
+												Allocator,
 												map_type,
 												set_type,
 												63>;
@@ -117,6 +120,7 @@ namespace Dice::sparql2tensor {
 	using COUNTED_t = std::size_t;
 	using Subscript = Dice::einsum::Subscript;
 	using Query = Dice::query::Query<tr>;
+
 }// namespace Dice::sparql2tensor
 
 #endif//TENTRIS_BOOLHYPERTRIE_HPP

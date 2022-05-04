@@ -2,15 +2,17 @@
 
 #include <spdlog/spdlog.h>
 
-#include "Dice/endpoint/HTTPHelper.hpp"
+#include "Dice/endpoint/ParseSPARQLQueryParam.hpp"
 #include "Dice/endpoint/SparqlJsonResultSAXWriter.hpp"
 
 namespace Dice::endpoint {
 	CountEndpoint::CountEndpoint(tf::Executor &executor,
-								 triple_store::TripleStore &triplestore,
+								 triple_store::TripleStore<typename Dice::node_store::metall_manager::allocator_type<std::byte>> &triplestore,
+								 SparqlQueryCache &sparql_query_cache,
 								 std::chrono::seconds timeoutDuration)
 		: executor_(executor),
 		  triplestore_(triplestore),
+		  sparql_query_cache_(sparql_query_cache),
 		  timeout_duration_(timeoutDuration) {}
 
 	restinio::request_handling_status_t CountEndpoint::operator()(
@@ -22,14 +24,12 @@ namespace Dice::endpoint {
 				using namespace Dice::sparql2tensor;
 				using namespace restinio;
 
-				SPARQLQuery sparql_query;
-				if (auto sparql_query_opt = get_sparql_query_param(req); sparql_query_opt.has_value())
-					sparql_query = std::move(sparql_query_opt.value());
-				else
+				std::shared_ptr<SPARQLQuery const> sparql_query = parse_sparql_query_param(req, this->sparql_query_cache_);
+				if (not sparql_query)
 					return;
 
 				try {
-					size_t count = this->triplestore_.count(sparql_query, timeout);
+					size_t count = this->triplestore_.count(*sparql_query, timeout);
 
 					req->create_response(status_ok())
 							.set_body(fmt::format("{}", count))

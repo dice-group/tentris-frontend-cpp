@@ -1,5 +1,5 @@
-#ifndef TENTRIS_HTTPHELPER_HPP
-#define TENTRIS_HTTPHELPER_HPP
+#ifndef TENTRIS_PARSESPARQLQUERYPARAM_HPP
+#define TENTRIS_PARSESPARQLQUERYPARAM_HPP
 
 #include <spdlog/spdlog.h>
 
@@ -8,9 +8,11 @@
 
 #include <Dice/sparql2tensor/SPARQLQuery.hpp>
 
+#include <Dice/endpoint/SparqlQueryCache.hpp>
+
 namespace Dice::endpoint {
 
-	inline std::optional<sparql2tensor::SPARQLQuery> get_sparql_query_param(restinio::request_handle_t &req) {
+	inline std::shared_ptr<sparql2tensor::SPARQLQuery const> parse_sparql_query_param(restinio::request_handle_t &req, SparqlQueryCache &cache) {
 		using namespace Dice::sparql2tensor;
 		using namespace restinio;
 		const auto qp = parse_query(req->header().query());
@@ -18,19 +20,18 @@ namespace Dice::endpoint {
 			static auto const message = "Query parameter 'query' is missing.";
 			spdlog::warn("HTTP response {}: {}", status_bad_request(), message);
 			req->create_response(status_bad_request()).set_body(message).done();
-			return std::nullopt;
+			return {};
 		}
 		std::string sparql_query_str = std::string{qp["query"]};
 		SPARQLQuery sparql_query;
 		try {
-			sparql_query = SPARQLQuery::parse(sparql_query_str);
+			return cache[sparql_query_str];
 		} catch (std::exception &ex) {
-			static auto const message = ex.what();
-			spdlog::warn("HTTP response {}: {}", status_bad_request(), message);
+			static auto const message = "Value of query parameter 'query' is not parsable.";
+			spdlog::warn("HTTP response {}: {} (detail: {})", status_bad_request(), message, ex.what());
 			req->create_response(status_bad_request()).set_body(message).done();
-			return std::nullopt;
+			return {};
 		}
-		return sparql_query;
 	}
 }// namespace Dice::endpoint
-#endif//TENTRIS_HTTPHELPER_HPP
+#endif//TENTRIS_PARSESPARQLQUERYPARAM_HPP

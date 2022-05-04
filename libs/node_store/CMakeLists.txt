@@ -18,6 +18,7 @@ find_package(hypertrie REQUIRED)
 find_package(tsl-sparse-map REQUIRED)
 find_package(robin_hood REQUIRED)
 find_package(dice-hash REQUIRED)
+find_package(Boost REQUIRED)
 
 include(FetchContent)
 FetchContent_Declare(
@@ -30,10 +31,8 @@ FetchContent_MakeAvailable(tsl-sparse-map-our-version)
 # TODO: remove work-around when merged
 FetchContent_Declare(
         metall
-#        GIT_REPOSITORY https://github.com/LLNL/metall.git
-        GIT_REPOSITORY https://github.com/dice-group/metall.git
-        GIT_TAG fix/inline
-#        GIT_TAG v0.18
+        GIT_REPOSITORY https://github.com/LLNL/metall.git
+        GIT_TAG v0.19
         GIT_SHALLOW TRUE
 )
 FetchContent_MakeAvailable(metall)
@@ -44,6 +43,7 @@ target_link_libraries(node_store PUBLIC
         tsl::sparse_map
         dice-hash::dice-hash
         Metall
+        Boost::headers
         )
 
 target_include_directories(node_store PUBLIC

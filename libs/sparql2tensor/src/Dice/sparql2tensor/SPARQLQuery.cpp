@@ -5,7 +5,9 @@
 
 #include "Dice/sparql2tensor/SPARQLQuery.hpp"
 #include "Dice/sparql2tensor/parser/visitors/PrologueVisitor.hpp"
+
 #include "Dice/sparql2tensor/parser/visitors/SelectAskQueryVisitor.hpp"
+
 
 namespace Dice::sparql2tensor {
 
@@ -16,6 +18,7 @@ namespace Dice::sparql2tensor {
 		Dice::sparql_parser::base::SparqlParser parser(&tokens);
 
 		auto q_ctx = parser.query();
+
 		if (not q_ctx->selectQuery() and not q_ctx->askQuery())
 			throw std::runtime_error("Only SELECT & ASK queries are supported currently.");
 
@@ -24,11 +27,13 @@ namespace Dice::sparql2tensor {
 			parser::visitors::PrologueVisitor p_visitor{};
 			p_sparql.prefixes_ = p_visitor.visitPrologue(q_ctx->prologue()).as<robin_hood::unordered_map<std::string, std::string>>();
 		}
+
 		parser::visitors::SelectAskQueryVisitor visitor{&p_sparql};
 		if (q_ctx->selectQuery())
 			visitor.visitSelectQuery(q_ctx->selectQuery());
 		else if(q_ctx->askQuery())
 			visitor.visitAskQuery(q_ctx->askQuery());
+
 		return p_sparql;
 	}
 

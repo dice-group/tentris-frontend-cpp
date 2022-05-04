@@ -11,17 +11,17 @@
 
 namespace Dice::hash {
 	template<typename Policy>
-	struct dice_hash_overload<Policy, rdf4cpp::rdf::storage::node::identifier::NodeIDValue> {
-		inline static std::size_t dice_hash(rdf4cpp::rdf::storage::node::identifier::NodeIDValue const &x) noexcept {
-			return Dice::hash::DiceHash<size_t, Policy>()(x.value);
+	struct dice_hash_overload<Policy, rdf4cpp::rdf::storage::node::identifier::NodeID> {
+		inline static std::size_t dice_hash(rdf4cpp::rdf::storage::node::identifier::NodeID const &x) noexcept {
+			return Dice::hash::DiceHash<size_t, Policy>()(x.value());
 		}
 	};
 
 	template<typename Policy>
-	struct dice_hash_overload<Policy, rdf4cpp::rdf::storage::node::handle::LiteralBackendView> {
-		inline static std::size_t dice_hash(rdf4cpp::rdf::storage::node::handle::LiteralBackendView const &x) noexcept {
+	struct dice_hash_overload<Policy, rdf4cpp::rdf::storage::node::view::LiteralBackendView> {
+		inline static std::size_t dice_hash(rdf4cpp::rdf::storage::node::view::LiteralBackendView const &x) noexcept {
 			return Dice::hash::dice_hash_templates<Policy>::dice_hash(std::make_tuple(
-					Dice::hash::dice_hash_templates<Policy>::dice_hash(x.datatype_id.raw()),
+					Dice::hash::dice_hash_templates<Policy>::dice_hash(x.datatype_id.value()),
 					Dice::hash::dice_hash_templates<Policy>::dice_hash(x.lexical_form),
 					Dice::hash::dice_hash_templates<Policy>::dice_hash(x.language_tag)));
 		}
@@ -30,15 +30,15 @@ namespace Dice::hash {
 	struct dice_hash_overload<Policy, Dice::node_store::MetallLiteralBackend> {
 		inline static std::size_t dice_hash(Dice::node_store::MetallLiteralBackend const &x) noexcept {
 			return Dice::hash::dice_hash_templates<Policy>::dice_hash(std::make_tuple(
-					Dice::hash::dice_hash_templates<Policy>::dice_hash(x.datatype_id().raw()),
+					Dice::hash::dice_hash_templates<Policy>::dice_hash(x.datatype_id().value()),
 					Dice::hash::dice_hash_templates<Policy>::dice_hash(x.lexical_form()),
 					Dice::hash::dice_hash_templates<Policy>::dice_hash(x.language_tag())));
 		}
 	};
 
 	template<typename Policy>
-	struct dice_hash_overload<Policy, rdf4cpp::rdf::storage::node::handle::BNodeBackendView> {
-		inline static std::size_t dice_hash(rdf4cpp::rdf::storage::node::handle::BNodeBackendView const &x) noexcept {
+	struct dice_hash_overload<Policy, rdf4cpp::rdf::storage::node::view::BNodeBackendView> {
+		inline static std::size_t dice_hash(rdf4cpp::rdf::storage::node::view::BNodeBackendView const &x) noexcept {
 			return Dice::hash::dice_hash_templates<Policy>::dice_hash(x.identifier);
 		}
 	};
@@ -50,8 +50,8 @@ namespace Dice::hash {
 	};
 
 	template<typename Policy>
-	struct dice_hash_overload<Policy, rdf4cpp::rdf::storage::node::handle::VariableBackendView> {
-		inline static std::size_t dice_hash(rdf4cpp::rdf::storage::node::handle::VariableBackendView const &x) noexcept {
+	struct dice_hash_overload<Policy, rdf4cpp::rdf::storage::node::view::VariableBackendView> {
+		inline static std::size_t dice_hash(rdf4cpp::rdf::storage::node::view::VariableBackendView const &x) noexcept {
 			return Dice::hash::dice_hash_templates<Policy>::dice_hash(std::make_tuple(
 					Dice::hash::dice_hash_templates<Policy>::dice_hash(x.is_anonymous),
 					Dice::hash::dice_hash_templates<Policy>::dice_hash(x.name)));
@@ -67,8 +67,8 @@ namespace Dice::hash {
 	};
 
 	template<typename Policy>
-	struct dice_hash_overload<Policy, rdf4cpp::rdf::storage::node::handle::IRIBackendView> {
-		inline static std::size_t dice_hash(rdf4cpp::rdf::storage::node::handle::IRIBackendView const &x) noexcept {
+	struct dice_hash_overload<Policy, rdf4cpp::rdf::storage::node::view::IRIBackendView> {
+		inline static std::size_t dice_hash(rdf4cpp::rdf::storage::node::view::IRIBackendView const &x) noexcept {
 			return Dice::hash::dice_hash_templates<Policy>::dice_hash(x.identifier);
 		}
 	};
@@ -86,26 +86,25 @@ namespace Dice::node_store {
 		size_t operator()(T const &node) const noexcept {
 			return Dice::hash::DiceHashxxh3<T>()(node);
 		}
-
-		size_t operator()(typename metall::manager::allocator_type<T const>::pointer const &node_ptr) const noexcept {
+		size_t operator()(typename metall_manager::allocator_type<T const>::pointer const &node_ptr) const noexcept {
 			return Dice::hash::DiceHashxxh3<T const>()(*node_ptr);
 		}
 
-		size_t operator()(typename metall::manager::allocator_type<T>::pointer const &node_ptr) const noexcept {
+		size_t operator()(typename metall_manager::allocator_type<T>::pointer const &node_ptr) const noexcept {
 			return Dice::hash::DiceHashxxh3<T>()(*node_ptr);
 		}
 
-		size_t operator()(rdf4cpp::rdf::storage::node::handle::LiteralBackendView const &x) const noexcept {
-			return Dice::hash::DiceHashxxh3<rdf4cpp::rdf::storage::node::handle::LiteralBackendView>()(x);
+		size_t operator()(rdf4cpp::rdf::storage::node::view::LiteralBackendView const &x) const noexcept {
+			return Dice::hash::DiceHashxxh3<rdf4cpp::rdf::storage::node::view::LiteralBackendView>()(x);
 		}
-		size_t operator()(rdf4cpp::rdf::storage::node::handle::BNodeBackendView const &x) const noexcept {
-			return Dice::hash::DiceHashxxh3<rdf4cpp::rdf::storage::node::handle::BNodeBackendView>()(x);
+		size_t operator()(rdf4cpp::rdf::storage::node::view::BNodeBackendView const &x) const noexcept {
+			return Dice::hash::DiceHashxxh3<rdf4cpp::rdf::storage::node::view::BNodeBackendView>()(x);
 		}
-		size_t operator()(rdf4cpp::rdf::storage::node::handle::VariableBackendView const &x) const noexcept {
-			return Dice::hash::DiceHashxxh3<rdf4cpp::rdf::storage::node::handle::VariableBackendView>()(x);
+		size_t operator()(rdf4cpp::rdf::storage::node::view::VariableBackendView const &x) const noexcept {
+			return Dice::hash::DiceHashxxh3<rdf4cpp::rdf::storage::node::view::VariableBackendView>()(x);
 		}
-		size_t operator()(rdf4cpp::rdf::storage::node::handle::IRIBackendView const &x) const noexcept {
-			return Dice::hash::DiceHashxxh3<rdf4cpp::rdf::storage::node::handle::IRIBackendView>()(x);
+		size_t operator()(rdf4cpp::rdf::storage::node::view::IRIBackendView const &x) const noexcept {
+			return Dice::hash::DiceHashxxh3<rdf4cpp::rdf::storage::node::view::IRIBackendView>()(x);
 		}
 	};
 }// namespace Dice::node_store

@@ -26,7 +26,11 @@ namespace Dice::sparql2tensor {
 
 		bool project_all_variables_ = false;
 
+		SPARQLQuery() = default;
+
 		static SPARQLQuery parse(std::string const &sparql_query_str);
+
+		SPARQLQuery(std::string const &sparql_query_str) : SPARQLQuery(SPARQLQuery::parse(sparql_query_str)) {}
 
 		[[nodiscard]] bool is_distinct() const noexcept;
 

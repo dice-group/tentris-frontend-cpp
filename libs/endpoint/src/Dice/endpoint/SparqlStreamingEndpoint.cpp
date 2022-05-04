@@ -2,17 +2,19 @@
 
 #include <spdlog/spdlog.h>
 
-#include "Dice/endpoint/HTTPHelper.hpp"
+#include "Dice/endpoint/ParseSPARQLQueryParam.hpp"
 #include "Dice/endpoint/SparqlJsonResultSAXWriter.hpp"
 
 namespace Dice::endpoint {
 
 
 	SPARQLStreamingEndpoint::SPARQLStreamingEndpoint(tf::Executor &executor,
-													 triple_store::TripleStore &triplestore,
+													 triple_store::TripleStore<typename Dice::node_store::metall_manager::allocator_type<std::byte>> &triplestore,
+													 SparqlQueryCache &sparql_query_cache,
 													 std::chrono::seconds timeoutDuration)
 		: executor_(executor),
 		  triplestore_(triplestore),
+		  sparql_query_cache_(sparql_query_cache),
 		  timeout_duration_(timeoutDuration) {
 	}
 	restinio::request_handling_status_t SPARQLStreamingEndpoint::operator()(
@@ -24,22 +26,18 @@ namespace Dice::endpoint {
 				using namespace Dice::sparql2tensor;
 				using namespace restinio;
 
-				SPARQLQuery sparql_query;
-				if (auto sparql_query_opt = get_sparql_query_param(req); sparql_query_opt.has_value())
-					sparql_query = std::move(sparql_query_opt.value());
-				else
+				std::shared_ptr<SPARQLQuery const> sparql_query = parse_sparql_query_param(req, this->sparql_query_cache_);
+				if (not sparql_query)
 					return;
 
 				bool asio_write_failed = false;
 
-				endpoint::SparqlJsonResultSAXWriter json_writer{sparql_query.projected_variables_, 100'000};
+				endpoint::SparqlJsonResultSAXWriter json_writer{sparql_query->projected_variables_, 100'000};
 
 				response_builder_t<chunked_output_t> resp = req->template create_response<chunked_output_t>();
 				resp.append_header(http_field::content_type, "application/sparql-results+json");
 
-				size_t count = 0;
-				for (auto const &entry : this->triplestore_.query(sparql_query, timeout)) {
-					count += entry.value();
+				for (auto const &entry : this->triplestore_.query(*sparql_query, timeout)) {
 					json_writer.add(entry);
 					if (json_writer.full()) {
 						resp.append_chunk(std::string{json_writer.string_view()});
@@ -54,7 +52,11 @@ namespace Dice::endpoint {
 				json_writer.close();
 				resp.append_chunk(std::string{json_writer.string_view()});
 				resp.done();
-				spdlog::info("HTTP response {}: {} variables {} results", status_ok(), sparql_query.projected_variables_.size(), count);
+				spdlog::info("HTTP response {}: {} variables, {} solutions, {} bindings",
+							 status_ok(),
+							 sparql_query->projected_variables_.size(),
+							 json_writer.number_of_written_solutions(),
+							 json_writer.number_of_written_bindings());
 			},
 								   std::move(req));
 			return restinio::request_accepted();

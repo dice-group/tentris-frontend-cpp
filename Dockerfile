@@ -1,4 +1,4 @@
-FROM ubuntu:impish AS builder
+FROM ubuntu:22.04 AS builder
 ARG DEBIAN_FRONTEND=noninteractive
 ARG TENTRIS_MARCH="x86-64-v3"
 ARG CONAN_USER="none"
@@ -6,14 +6,14 @@ ARG CONAN_PW="none"
 
 
 RUN apt-get -qq update && \
-    apt-get -qq install -y make cmake uuid-dev git openjdk-11-jdk python3-pip python3-setuptools python3-wheel libstdc++-11-dev clang-13 g++-11 pkg-config lld-13 autoconf libtool
-RUN rm /usr/bin/ld && ln -s /usr/bin/lld-13 /usr/bin/ld
-ARG CXX="clang++-13"
-ARG CC="clang-13"
+    apt-get -qq install -y make cmake uuid-dev git openjdk-11-jdk python3-pip python3-setuptools python3-wheel libstdc++-11-dev clang-14 g++-11 pkg-config lld-14 autoconf libtool
+RUN rm /usr/bin/ld && ln -s /usr/bin/lld-14 /usr/bin/ld
+ARG CXX="clang++-14"
+ARG CC="clang-14"
 ENV CXXFLAGS="${CXXFLAGS} -march=${TENTRIS_MARCH}"
 ENV CMAKE_EXE_LINKER_FLAGS="-L/usr/local/lib/x86_64-linux-gnu -L/lib/x86_64-linux-gnu -L/usr/lib/x86_64-linux-gnu -L/usr/local/lib"
 
-# Compile more recent tcmalloc-minimal with clang-13 + -march
+# Compile more recent tcmalloc-minimal with clang-14 + -march
 RUN git clone --quiet --branch gperftools-2.9.1 https://github.com/gperftools/gperftools
 WORKDIR /gperftools
 RUN ./autogen.sh
@@ -60,7 +60,8 @@ RUN conan install . --build=missing --profile default
 # import project files
 WORKDIR /tentris
 COPY thirdparty thirdparty
-COPY src src
+COPY libs libs
+COPY execs execs
 COPY cmake cmake
 COPY CMakeLists.txt CMakeLists.txt
 COPY conanfile.txt conanfile.txt
@@ -78,9 +79,6 @@ RUN cmake \
 RUN make -j $(nproc)
 FROM scratch
 COPY --from=builder /tentris/build/bin/tentris_server /tentris_server
-COPY --from=builder /tentris/build/bin/tentris_terminal /tentris_terminal
-COPY --from=builder /tentris/build/bin/ids2hypertrie /ids2hypertrie
-COPY --from=builder /tentris/build/bin/rdf2ids /rdf2ids
-COPY LICENSE LICENSE
+COPY --from=builder /tentris/build/bin/tentris_loader /tentris_loader
 COPY README.MD README.MD
 ENTRYPOINT ["/tentris_server"]

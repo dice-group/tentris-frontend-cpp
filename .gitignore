@@ -1,6 +1,8 @@
 ## project specific
 execs/tentris_server/src/Dice/tentris_server/tentris_version.hpp
 execs/tentris_loader/src/Dice/tentris_loader/tentris_version.hpp
+
+
 # log files
 tentris.log
 

@@ -26,8 +26,8 @@ namespace Dice::endpoint {
 		using Variable = rdf4cpp::rdf::query::Variable;
 		using Entry = Dice::sparql2tensor::EinsumEntry<Dice::sparql2tensor::COUNTED_t>;
 
-		std::size_t result_count = 0;
-		std::size_t term_count_ = 0;
+		std::size_t number_of_solutions_ = 0;
+		std::size_t number_of_bindings_ = 0;
 
 		std::vector<Variable> variables{};
 
@@ -115,16 +115,23 @@ namespace Dice::endpoint {
 					}
 
 					writer.EndObject();
-					term_count_++;
+					number_of_bindings_++;
 				}
 				writer.EndObject();
 			}
-
-			result_count += entry.value();
+			number_of_solutions_ += entry.value();
 		}
 
 		[[nodiscard]] std::size_t size() const {
 			return buffer.GetSize();
+		}
+
+		[[nodiscard]] std::size_t number_of_written_solutions() const {
+			return number_of_solutions_;
+		}
+
+		[[nodiscard]] std::size_t number_of_written_bindings() const {
+			return number_of_bindings_;
 		}
 
 		[[nodiscard]] bool full() const {

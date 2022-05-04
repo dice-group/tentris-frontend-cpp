@@ -1,13 +1,9 @@
 #ifndef RDF4CPP_METALLIRIBACKEND_HPP
 #define RDF4CPP_METALLIRIBACKEND_HPP
 
-#include <rdf4cpp/rdf/storage/node/handle/IRIBackendView.hpp>
+#include <rdf4cpp/rdf/storage/node/view/IRIBackendView.hpp>
 
-#include <metall/container/string.hpp>
-#ifndef BOOST_BIND_GLOBAL_PLACEHOLDERS
-#define BOOST_BIND_GLOBAL_PLACEHOLDERS
-#endif
-#include <metall/metall.hpp>
+#include <Dice/node_store/metall_manager.hpp>
 
 #include <compare>
 #include <memory>
@@ -16,28 +12,29 @@
 
 namespace Dice::node_store {
 	class MetallIRIBackend {
-		metall::container::string iri;
+		metall_string iri;
 
 	public:
-		using pointer_t = metall::manager::allocator_type<MetallIRIBackend>::pointer;
-		explicit MetallIRIBackend(std::string_view iri, metall::manager::allocator_type<std::byte> const &allocator) noexcept;
-		std::strong_ordering operator<=>(const MetallIRIBackend &other) const noexcept;
-		std::strong_ordering operator<=>(pointer_t const &other) const noexcept;
-
+		using pointer_t = metall_manager::allocator_type<MetallIRIBackend>::pointer;
+		explicit MetallIRIBackend(std::string_view iri, metall_manager::allocator_type<std::byte> const &allocator) noexcept;
+		explicit MetallIRIBackend(rdf4cpp::rdf::storage::node::view::IRIBackendView, metall_manager::allocator_type<std::byte> const &allocator) noexcept;
+		std::partial_ordering operator<=>(const MetallIRIBackend &other) const noexcept;
+		std::partial_ordering operator<=>(pointer_t const &other) const noexcept;
+		bool operator==(const MetallIRIBackend &other) const noexcept = default;
 		[[nodiscard]] std::string_view identifier() const noexcept;
 
 		[[nodiscard]] std::string n_string() const noexcept;
 
-		explicit operator rdf4cpp::rdf::storage::node::handle::IRIBackendView() const noexcept;
+		explicit operator rdf4cpp::rdf::storage::node::view::IRIBackendView() const noexcept;
 	};
 
-	std::strong_ordering operator<=>(MetallIRIBackend::pointer_t const &self, MetallIRIBackend::pointer_t const &other) noexcept;
+	std::partial_ordering operator<=>(MetallIRIBackend::pointer_t const &self, MetallIRIBackend::pointer_t const &other) noexcept;
 }// namespace Dice::node_store
 
-namespace rdf4cpp::rdf::storage::node::handle {
+namespace rdf4cpp::rdf::storage::node::view {
 
 	std::partial_ordering operator<=>(Dice::node_store::MetallIRIBackend::pointer_t const &self, IRIBackendView const &other) noexcept;
 	bool operator==(Dice::node_store::MetallIRIBackend::pointer_t const &self, IRIBackendView const &other) noexcept;
-}// namespace rdf4cpp::rdf::storage::node::handle
+}// namespace rdf4cpp::rdf::storage::node::view
 
 #endif//RDF4CPP_METALLIRIBACKEND_HPP

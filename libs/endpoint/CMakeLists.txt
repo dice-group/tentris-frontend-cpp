@@ -9,16 +9,26 @@ add_library(endpoint
         src/Dice/endpoint/CountEndpoint.cpp
         src/Dice/endpoint/AskEndpoint.cpp
         src/Dice/endpoint/SparqlStreamingEndpoint.cpp
+        src/Dice/endpoint/SparqlQueryCache.cpp
         )
 
 find_package(Taskflow REQUIRED)
 find_package(restinio REQUIRED)
 find_package(spdlog REQUIRED)
 
+set(ENV{cppitertools_INSTALL_CMAKE_DIR} TRUE)
+FetchContent_Declare(
+        cppitertools
+        GIT_REPOSITORY https://github.com/ryanhaining/cppitertools.git
+        GIT_TAG v2.1
+        GIT_SHALLOW TRUE)
+FetchContent_MakeAvailable(cppitertools)
+
 add_library(Dice::endpoint ALIAS endpoint)
 
 target_link_libraries(endpoint PUBLIC
         Dice::triple_store
+        Dice::node_store
         restinio::restinio
         Taskflow::Taskflow
         PRIVATE

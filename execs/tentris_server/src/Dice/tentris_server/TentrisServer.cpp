@@ -95,14 +95,16 @@ int main(int argc, char *argv[]) {
 			.threads = parsed_args["threads"].as<uint16_t>(),
 			.timeout_duration = std::chrono::seconds{parsed_args["timeout"].as<uint>()}};
 
+	using metall_manager = metall::basic_manager<uint32_t, (1ULL << 28ULL)>;
+
 	auto const storage_path = fs::absolute(fs::path{parsed_args["storage"].as<std::string>()}).append("tentris_data");
-	if (not metall::manager::consistent(storage_path.c_str())) {
+	if (not metall_manager::consistent(storage_path.c_str())) {
 		spdlog::info("No index storage or corrupted index storage found at {}. Checking for snapshot.", storage_path);
 		auto const snapshot_path = storage_path.string().append("_snapshot");
-		if (metall::manager::consistent(snapshot_path.c_str())) {
+		if (metall_manager::consistent(snapshot_path.c_str())) {
 			spdlog::info("Found snapshot at {}.", storage_path.string());
 			spdlog::info("Reconstructing index.");
-			metall::manager storage_manager{metall::open_only, snapshot_path.c_str()};
+			metall_manager storage_manager{metall::open_only, snapshot_path.c_str()};
 			storage_manager.snapshot(storage_path.c_str());
 			spdlog::info("Reconstructed index at {}.", storage_path.string());
 		} else {
@@ -113,23 +115,23 @@ int main(int argc, char *argv[]) {
 	} else {
 		spdlog::info("Existing index storage at {}.", storage_path.string());
 	}
-	metall::manager storage_manager{metall::open_only, storage_path.c_str()};
+
+	metall_manager storage_manager{metall::open_only, storage_path.c_str()};
+
 
 
 	{// set up node store
 		using namespace rdf4cpp::rdf::storage::node;
 		using namespace Dice::node_store;
 		auto *nodestore_backend = storage_manager.find_or_construct<PersistentNodeStorageBackendImpl>("node_store")(storage_manager.get_allocator());
-		NodeStorage::primary_instance(
+		NodeStorage::default_instance(
 				NodeStorage::new_instance<PersistentNodeStorageBackend>(nodestore_backend));
 	}
 
 	// setup triple store
-	triple_store::TripleStore &triplestore = *storage_manager.find_or_construct<triple_store::TripleStore>("triple_store")(storage_manager.get_allocator());
-
+	auto &triplestore = *storage_manager.find_or_construct<triple_store::TripleStore<typename metall_manager::allocator_type<std::byte>>>("triple_store")(storage_manager.get_allocator());
 	// initialize task runners
 	tf::Executor executor(endpoint_cfg.threads);
-
 	// setup and configure endpoints
 	endpoint::HTTPServer http_server{executor, triplestore, endpoint_cfg};
 	const auto cards = triplestore.get_hypertrie().get_cards({0, 1, 2});
