@@ -85,11 +85,10 @@ int main(int argc, char *argv[]) {
 		auto distinct_callback = [&](rdf4cpp::rdf::Node s, rdf4cpp::rdf::Node p, rdf4cpp::rdf::Node o) {
 			static tsl::sparse_set<uint64_t> deduplication;
 
-			terminate_at_limit();
-
 			IDTriple id_triple = std::make_tuple(s.backend_handle().raw(), p.backend_handle().raw(), o.backend_handle().raw());
 			auto hash = hasher(id_triple);
 			if (not deduplication.contains(hash)) {
+				terminate_at_limit();
 				tsv_writer << id_triple;
 				deduplication.insert(hash);
 			}
