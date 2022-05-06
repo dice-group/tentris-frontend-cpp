@@ -1,0 +1,1 @@
+add_subdirectory(rdf2ids)
