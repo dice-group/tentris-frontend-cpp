@@ -1,7 +1,10 @@
 #ifndef TENTRIS_METALL_MANAGER_HPP
 #define TENTRIS_METALL_MANAGER_HPP
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wnull-pointer-arithmetic"
 #include <metall/basic_manager.hpp>
+#pragma GCC diagnostic pop
 
 namespace Dice::rdf_tensor {
 	using metall_manager = metall::basic_manager<uint32_t, (1ULL << 28ULL)>;

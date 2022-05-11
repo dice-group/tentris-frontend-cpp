@@ -3,6 +3,7 @@
 
 #include <Dice/hash/DiceHash.hpp>
 #include <rdf4cpp/rdf.hpp>
+//#include <Dice/rdf_tensor/check_no_throw.hpp>
 
 namespace Dice::rdf_tensor {
 	using namespace rdf4cpp::rdf;
@@ -17,11 +18,15 @@ namespace Dice::rdf_tensor {
 		NodeWrapper(Node node) noexcept : Node(node) {}
 
 		bool operator==(const NodeWrapper &other) const noexcept {
-			return this->backend_handle() == other.backend_handle();
+			return this->backend_handle().raw() == other.backend_handle().raw();
+		}
+
+		bool operator!=(const NodeWrapper &other) const noexcept {
+			return this->backend_handle().raw() != other.backend_handle().raw();
 		}
 
 		auto operator<=>(const NodeWrapper &other) const noexcept {
-			return this->backend_handle() <=> other.backend_handle();
+			return this->backend_handle().raw() <=> other.backend_handle().raw();
 		};
 
 		operator std::optional<Node>() const noexcept {
@@ -39,8 +44,8 @@ struct Dice::hash::dice_hash_overload<Policy, Dice::rdf_tensor::NodeWrapper> {
 
 template<>
 struct std::hash<Dice::rdf_tensor::NodeWrapper> {
-	inline size_t operator()(Dice::rdf_tensor::NodeWrapper const &v) const noexcept {
-		return Dice::hash::DiceHash<Dice::rdf_tensor::NodeWrapper, Dice::hash::Policies::Martinus>()(v);
+	size_t operator()(Dice::rdf_tensor::NodeWrapper const &x) const noexcept {
+		return x.backend_handle().raw();
 	}
 };
 
