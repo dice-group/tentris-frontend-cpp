@@ -13,6 +13,7 @@ message("rdf4cpp_version ${rdf4cpp_VERSION}")
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/version.hpp.in ${CMAKE_CURRENT_SOURCE_DIR}/execs/tentris_server/src/Dice/tentris_server/tentris_version.hpp)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/version.hpp.in ${CMAKE_CURRENT_SOURCE_DIR}/execs/tentris_loader/src/Dice/tentris_loader/tentris_version.hpp)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/version.hpp.in ${CMAKE_CURRENT_SOURCE_DIR}/execs/tools/rdf2ids/src/Dice/tools/rdf2ids/tentris_version.hpp)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/version.hpp.in ${CMAKE_CURRENT_SOURCE_DIR}/execs/tools/deduplicated_nt/src/Dice/tools/deduplicated_nt/tentris_version.hpp)
 
 
 ### conan cmake
