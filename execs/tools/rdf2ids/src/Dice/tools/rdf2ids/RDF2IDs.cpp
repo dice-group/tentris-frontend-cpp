@@ -8,6 +8,7 @@
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
 #include <tsl/sparse_set.h>
+#include <Dice/hash/DiceHash.hpp>
 
 #include "tentris_version.hpp"
 

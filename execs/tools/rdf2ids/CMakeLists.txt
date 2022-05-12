@@ -12,6 +12,7 @@ find_library(serd
         NO_CACHE)
 
 find_package(tsl-sparse-map REQUIRED)
+find_package(robin_hood REQUIRED)
 find_package(dice-hash REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(cxxopts REQUIRED)
@@ -23,6 +24,7 @@ target_link_libraries(rdf2ids PRIVATE
         dice-hash::dice-hash
         rdf4cpp::rdf4cpp
         tsl::sparse_map
+        robin_hood::robin_hood
         spdlog::spdlog
         cxxopts::cxxopts
         vincentlaucsb-csv-parser::vincentlaucsb-csv-parser
