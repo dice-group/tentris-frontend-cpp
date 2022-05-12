@@ -1,7 +1,6 @@
 #include <chrono>
 #include <filesystem>
 
-#include <Dice/node_store/PersistentNodeStorageBackend.hpp>
 #include <csv.hpp>
 #include <cxxopts.hpp>
 #include <fmt/format.h>
@@ -59,7 +58,6 @@ int main(int argc, char *argv[]) {
 	spdlog::set_level(log_level);
 	spdlog::set_pattern("%Y-%m-%dT%T.%e%z | %n | %t | %l | %v");
 	spdlog::info(version);
-	spdlog::flush_every(std::chrono::seconds{5});
 
 	auto const limit = parsed_args["limit"].as<size_t>();
 	size_t count = 0;

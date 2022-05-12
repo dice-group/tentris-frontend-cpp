@@ -11,6 +11,8 @@ find_library(serd
         NAMES serd-0
         NO_CACHE)
 
+find_package(tsl-sparse-map REQUIRED)
+find_package(dice-hash REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(cxxopts REQUIRED)
 find_package(vincentlaucsb-csv-parser)
@@ -18,7 +20,9 @@ find_package(vincentlaucsb-csv-parser)
 target_link_libraries(rdf2ids PRIVATE
         ${TENTRIS_STATIC_DEF}
         ${TENTRIS_PTHREAD_DEF}
-        Dice::node_store
+        dice-hash::dice-hash
+        rdf4cpp::rdf4cpp
+        tsl::sparse_map
         spdlog::spdlog
         cxxopts::cxxopts
         vincentlaucsb-csv-parser::vincentlaucsb-csv-parser
