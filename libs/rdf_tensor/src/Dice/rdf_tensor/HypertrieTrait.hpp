@@ -13,8 +13,8 @@ namespace Dice::rdf_tensor {
 	template<typename Key, typename T, typename Allocator>
 	using map_type = tsl::sparse_map<Key,
 									 T,
-									 std::hash<Key>,
-									 std::equal_to<>,
+									 Dice::hash::DiceHashMartinus<Key>,
+									 std::equal_to<Key>,
 									 typename std::allocator_traits<Allocator>::template rebind_alloc<std::pair<Key, T>>,
 									 tsl::sh::power_of_two_growth_policy<2>,
 									 tsl::sh::exception_safety::basic,
@@ -23,8 +23,8 @@ namespace Dice::rdf_tensor {
 	template<typename Key, typename Allocator>
 	using set_type = tsl::sparse_set<
 			Key,
-			Dice::hash::DiceHash<Key>,
-			std::equal_to<>,
+			Dice::hash::DiceHashMartinus<Key>,
+			std::equal_to<Key>,
 			typename std::allocator_traits<Allocator>::template rebind_alloc<Key>,
 			tsl::sh::power_of_two_growth_policy<2>,
 			tsl::sh::exception_safety::basic,
