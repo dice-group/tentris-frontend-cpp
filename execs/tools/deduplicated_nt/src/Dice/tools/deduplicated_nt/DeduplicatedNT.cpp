@@ -1,13 +1,13 @@
 #include <chrono>
 #include <filesystem>
 
+#include <Dice/hash/DiceHash.hpp>
 #include <cxxopts.hpp>
 #include <fmt/format.h>
 #include <spdlog/logger.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
 #include <tsl/sparse_set.h>
-#include <Dice/hash/DiceHash.hpp>
 
 #include "tentris_version.hpp"
 
@@ -20,33 +20,33 @@ int main(int argc, char *argv[]) {
 	/*
 	 * Parse Commandline Arguments
 	 */
-	std::string version = fmt::format("rdf2ids v{} is based on rdf4cpp {}.", Dice::tentris::version, Dice::tentris::rdf4cpp_version);
+	std::string version = fmt::format("deduplicate_nt v{} is based on rdf4cpp {}.", Dice::tentris::version, Dice::tentris::rdf4cpp_version);
 
-	cxxopts::Options options("rdf2ids",
-							 fmt::format("{}\nConverting RDF 2 ID triples in tsv format. Result is written to stdout", version));
-	options.add_options()                                                                                                                                        //
-			("f,file", "TURTLE or NTRIPLE RDF file that should be processed.", cxxopts::value<std::string>())                                                    //
-			("m,limit", "Maximum number of id triples returned.", cxxopts::value<size_t>()->default_value(fmt::format("{}", std::numeric_limits<size_t>::max())))//
-			("l,loglevel", fmt::format("Details of logging. Available values are: [{}, {}, {}, {}, {}, {}, {}]",                                                 //
-									   spdlog::level::to_string_view(spdlog::level::trace),                                                                      //
-									   spdlog::level::to_string_view(spdlog::level::debug),                                                                      //
-									   spdlog::level::to_string_view(spdlog::level::info),                                                                       //
-									   spdlog::level::to_string_view(spdlog::level::warn),                                                                       //
-									   spdlog::level::to_string_view(spdlog::level::err),                                                                        //
-									   spdlog::level::to_string_view(spdlog::level::critical),                                                                   //
-									   spdlog::level::to_string_view(spdlog::level::off)),                                                                       //
-			 cxxopts::value<std::string>()->default_value("info"))                                                                                               //
-			("v,version", "Version info.")                                                                                                                       //
-			("h,help", "Print this help page.")                                                                                                                  //
+	cxxopts::Options options("deduplicate_nt",
+							 fmt::format("{}\nDeduplicating RDF files (TURTLE, NTRIPLE). Result is serialized in NTRIPLE on console out. Logs are written to console error.", version));
+	options.add_options()                                                                                                                                                                              //
+			("f,file", "TURTLE or NTRIPLE RDF file that should be processed.", cxxopts::value<std::string>())                                                                                          //
+			("m,limit", "Maximum number of result triples. When the limit is reached, the tool quits.", cxxopts::value<size_t>()->default_value(fmt::format("{}", std::numeric_limits<size_t>::max())))//
+			("l,loglevel", fmt::format("Details of logging. Available values are: [{}, {}, {}, {}, {}, {}, {}]",                                                                                       //
+									   spdlog::level::to_string_view(spdlog::level::trace),                                                                                                            //
+									   spdlog::level::to_string_view(spdlog::level::debug),                                                                                                            //
+									   spdlog::level::to_string_view(spdlog::level::info),                                                                                                             //
+									   spdlog::level::to_string_view(spdlog::level::warn),                                                                                                             //
+									   spdlog::level::to_string_view(spdlog::level::err),                                                                                                              //
+									   spdlog::level::to_string_view(spdlog::level::critical),                                                                                                         //
+									   spdlog::level::to_string_view(spdlog::level::off)),                                                                                                             //
+			 cxxopts::value<std::string>()->default_value("info"))                                                                                                                                     //
+			("v,version", "Version info.")                                                                                                                                                             //
+			("h,help", "Print this help page.")                                                                                                                                                        //
 			;
 
 	auto parsed_args = options.parse(argc, argv);
 	if (parsed_args.count("help")) {
 		std::cerr << options.help() << std::endl;
-		exit(0);
+		exit(EXIT_SUCCESS);
 	} else if (parsed_args.count("version")) {
 		std::cerr << version << std::endl;
-		exit(0);
+		exit(EXIT_SUCCESS);
 	}
 
 	/*
@@ -71,9 +71,9 @@ int main(int argc, char *argv[]) {
 		auto terminate_at_limit = [&count, &limit] {
 			if (++count > limit) {
 				std::cout.flush();
-				spdlog::info("Limit of {} entries reached.", limit);
+				spdlog::info("Limit of {} triples reached.", limit);
 				spdlog::info("Shutdown successful.");
-				return exit(0);
+				exit(EXIT_SUCCESS);
 			}
 		};
 

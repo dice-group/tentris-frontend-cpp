@@ -1,6 +1,7 @@
 #include <chrono>
 #include <filesystem>
 
+#include <Dice/hash/DiceHash.hpp>
 #include <csv.hpp>
 #include <cxxopts.hpp>
 #include <fmt/format.h>
@@ -8,7 +9,6 @@
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
 #include <tsl/sparse_set.h>
-#include <Dice/hash/DiceHash.hpp>
 
 #include "tentris_version.hpp"
 
@@ -45,10 +45,10 @@ int main(int argc, char *argv[]) {
 	auto parsed_args = options.parse(argc, argv);
 	if (parsed_args.count("help")) {
 		std::cerr << options.help() << std::endl;
-		exit(0);
+		exit(EXIT_SUCCESS);
 	} else if (parsed_args.count("version")) {
 		std::cerr << version << std::endl;
-		exit(0);
+		exit(EXIT_SUCCESS);
 	}
 
 	/*
@@ -76,7 +76,7 @@ int main(int argc, char *argv[]) {
 				tsv_writer.flush();
 				spdlog::info("Limit of {} entries reached.", limit);
 				spdlog::info("Shutdown successful.");
-				return exit(0);
+				exit(EXIT_SUCCESS);
 			}
 		};
 

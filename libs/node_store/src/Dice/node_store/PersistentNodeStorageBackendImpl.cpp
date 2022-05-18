@@ -15,9 +15,8 @@ namespace Dice::node_store {
 		// some iri's like xsd:string are there by default
 
 		for (const auto &[id, iri] : NodeID::predefined_iris) {
-			metall_manager::allocator_type<MetallIRIBackend> alloc = allocator;
-			auto mem = alloc.allocate(1);
-			alloc.construct(mem, iri, alloc);
+			auto mem = iri_storage_.backend_allocator.allocate(1);
+			iri_storage_.backend_allocator.construct(mem, iri, allocator);
 			auto [iter, inserted_successfully] = iri_storage_.data2id.emplace(mem, id.value());
 			assert(inserted_successfully);
 			iri_storage_.id2data.emplace(id.value(), iter->first);
