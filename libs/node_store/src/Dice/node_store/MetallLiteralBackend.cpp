@@ -1,28 +1,18 @@
 #include "MetallLiteralBackend.hpp"
+#include <Dice/hash/DiceHash.hpp>
 #include <tuple>
 namespace Dice::node_store {
 
-	MetallLiteralBackend::MetallLiteralBackend(std::string_view lexical, const rdf4cpp::rdf::storage::node::identifier::NodeID &dataType, std::string_view langTag, metall_manager::allocator_type<std::byte> const &allocator) noexcept
-		: datatype_id_(dataType),
+	MetallLiteralBackend::MetallLiteralBackend(std::string_view lexical, const rdf4cpp::rdf::storage::node::identifier::NodeID &datatype_id, std::string_view lang_tag, metall_manager::allocator_type<std::byte> const &allocator) noexcept
+		: datatype_id_(datatype_id),
 		  lexical(lexical, allocator),
-		  lang_tag(langTag, allocator) {}
+		  lang_tag(lang_tag, allocator),
+		  hash_(View(*this).hash()) {}
 	MetallLiteralBackend::MetallLiteralBackend(rdf4cpp::rdf::storage::node::view::LiteralBackendView view, metall_manager::allocator_type<std::byte> const &allocator) noexcept
 		: datatype_id_(view.datatype_id),
 		  lexical(view.lexical_form, allocator),
-		  lang_tag(view.language_tag, allocator) {}
-	std::partial_ordering MetallLiteralBackend::operator<=>(const MetallLiteralBackend &other) const noexcept {
-		return std::make_tuple(this->datatype_id_, this->lexical_form(), this->language_tag()) <=> std::make_tuple(other.datatype_id_, other.lexical_form(), other.language_tag());
-	}
-
-//	bool MetallLiteralBackend::operator==(const MetallLiteralBackend &other) const noexcept {
-//		return std::make_tuple(this->datatype_id_, this->lexical_form(), this->language_tag()) == std::make_tuple(other.datatype_id_, other.lexical_form(), other.language_tag());
-//	}
-	std::partial_ordering MetallLiteralBackend::operator<=>(const MetallLiteralBackend::pointer_t &other) const noexcept {
-		if (other)
-			return *this <=> *other;
-		else
-			return std::partial_ordering::greater;
-	}
+		  lang_tag(view.language_tag, allocator),
+		  hash_(View(*this).hash()) {}
 	std::string_view MetallLiteralBackend::language_tag() const noexcept {
 		return lang_tag;
 	}
@@ -38,16 +28,4 @@ namespace Dice::node_store {
 				.language_tag = language_tag()};
 	}
 
-	std::partial_ordering operator<=>(const MetallLiteralBackend::pointer_t &self, const MetallLiteralBackend::pointer_t &other) noexcept {
-		return *self <=> *other;
-	}
 }// namespace Dice::node_store
-
-namespace rdf4cpp::rdf::storage::node::view {
-	std::partial_ordering operator<=>(const Dice::node_store::MetallLiteralBackend::pointer_t &self, const LiteralBackendView &other) noexcept {
-		return LiteralBackendView{.datatype_id = self->datatype_id(), .lexical_form = self->lexical_form(), .language_tag = self->language_tag()} <=> other;
-	}
-	bool operator==(const Dice::node_store::MetallLiteralBackend::pointer_t &self, const LiteralBackendView &other) noexcept {
-		return LiteralBackendView{.datatype_id = self->datatype_id(), .lexical_form = self->lexical_form(), .language_tag = self->language_tag()} == other;
-	}
-}// namespace rdf4cpp::rdf::storage::node::view

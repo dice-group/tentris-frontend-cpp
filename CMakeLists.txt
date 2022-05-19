@@ -7,11 +7,14 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-SET("rdf4cpp_VERSION" "v0.0.1" CACHE STRING "" FORCE)
+SET("rdf4cpp_VERSION" "v0.0.2" CACHE STRING "" FORCE)
 message("rdf4cpp_version ${rdf4cpp_VERSION}")
 # must be after rdf4cpp_VERSION is defined because it exposes the version
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/version.hpp.in ${CMAKE_CURRENT_SOURCE_DIR}/execs/tentris_server/src/Dice/tentris_server/tentris_version.hpp)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/version.hpp.in ${CMAKE_CURRENT_SOURCE_DIR}/execs/tentris_loader/src/Dice/tentris_loader/tentris_version.hpp)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/version.hpp.in ${CMAKE_CURRENT_SOURCE_DIR}/execs/tools/rdf2ids/src/Dice/tools/rdf2ids/tentris_version.hpp)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/version.hpp.in ${CMAKE_CURRENT_SOURCE_DIR}/execs/tools/deduplicated_nt/src/Dice/tools/deduplicated_nt/tentris_version.hpp)
+
 
 ### conan cmake
 if (NOT EXISTS "${CMAKE_CURRENT_BINARY_DIR}/conan.cmake")

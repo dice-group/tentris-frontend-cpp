@@ -15,9 +15,8 @@ add_library(Dice::triple_store ALIAS triple_store)
 
 target_link_libraries(triple_store PUBLIC
         Dice::sparql2tensor
-        PRIVATE
+        Dice::rdf_tensor
         ${serd}
-        Metall
         )
 
 target_include_directories(triple_store PUBLIC

@@ -12,16 +12,12 @@ add_library(sparql2tensor
 add_library(Dice::sparql2tensor ALIAS sparql2tensor)
 
 find_package(sparql-parser-base REQUIRED)
-find_package(hypertrie REQUIRED)
 find_package(robin_hood REQUIRED)
-find_package(Boost REQUIRED)
+
 
 target_link_libraries(sparql2tensor PUBLIC
-        rdf4cpp::rdf4cpp
-        hypertrie::hypertrie
+        rdf_tensor
         robin_hood::robin_hood
-        Metall
-        Boost::headers
         PRIVATE
         sparql-parser-base::sparql-parser-base
         )
