@@ -52,7 +52,9 @@ jobs:
           container_id=$(docker create dicegroup/tentris_server:current_build)
           docker cp ${container_id}:/tentris_server ./tentris_server
           docker cp ${container_id}:/tentris_loader ./tentris_loader
-          zip tentris_clang14_libstdcxx11.zip tentris_server tentris_loader
+          docker cp ${container_id}:/rdf2ids ./rdf2ids
+          docker cp ${container_id}:/deduplicated_nt ./deduplicated_nt
+          zip tentris_clang14_libstdcxx11.zip tentris_server tentris_loader rdf2ids deduplicated_nt
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1

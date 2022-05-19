@@ -33,11 +33,11 @@ namespace Dice::sparql2tensor {
 		return distinct_;
 	}
 
-	std::vector<Dice::hypertrie::SliceKey<tr>> SPARQLQuery::get_slice_keys() const {
-		std::vector<Dice::hypertrie::SliceKey<tr>> slice_keys;
+	std::vector<rdf_tensor::SliceKey> SPARQLQuery::get_slice_keys() const {
+		std::vector<rdf_tensor::SliceKey> slice_keys;
 		slice_keys.reserve(triple_patterns_.size());
 		for (auto const &tp : triple_patterns_) {
-			Dice::hypertrie::SliceKey<tr> slice_key;
+			rdf_tensor::SliceKey slice_key;
 			slice_key.reserve(3);
 			for (auto const &node : tp) {
 				if (node.is_variable())

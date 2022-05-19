@@ -80,5 +80,7 @@ RUN make -j $(nproc)
 FROM scratch
 COPY --from=builder /tentris/build/bin/tentris_server /tentris_server
 COPY --from=builder /tentris/build/bin/tentris_loader /tentris_loader
+COPY --from=builder /tentris/build/bin/deduplicated_nt /deduplicated_nt
+COPY --from=builder /tentris/build/bin/rdf2ids /rdf2ids
 COPY README.MD README.MD
 ENTRYPOINT ["/tentris_server"]

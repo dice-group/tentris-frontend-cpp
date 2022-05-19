@@ -14,7 +14,7 @@
 #include <itertools.hpp>
 #include <rdf4cpp/rdf.hpp>
 
-#include <Dice/sparql2tensor/BoolHypertrie.hpp>
+#include <Dice/rdf_tensor/RDFEinsum.hpp>
 
 namespace Dice::endpoint {
 
@@ -24,7 +24,7 @@ namespace Dice::endpoint {
 		using IRI = rdf4cpp::rdf::IRI;
 		using BlankNode = rdf4cpp::rdf::BlankNode;
 		using Variable = rdf4cpp::rdf::query::Variable;
-		using Entry = Dice::sparql2tensor::EinsumEntry<Dice::sparql2tensor::COUNTED_t>;
+		using Entry = Dice::rdf_tensor::EinsumEntry;
 
 		std::size_t number_of_solutions_ = 0;
 		std::size_t number_of_bindings_ = 0;
@@ -35,7 +35,7 @@ namespace Dice::endpoint {
 		rapidjson::StringBuffer buffer;
 		rapidjson::Writer<rapidjson::StringBuffer> writer;
 
-		inline static auto to_rapidjson(std::string_view view){
+		inline static auto to_rapidjson(std::string_view view) {
 			return rapidjson::GenericStringRef<char>(view.data() ? view.data() : "", view.size());
 		}
 	public:

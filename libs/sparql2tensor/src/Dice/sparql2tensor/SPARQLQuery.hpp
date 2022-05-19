@@ -5,8 +5,8 @@
 
 #include <Dice/einsum/Subscript.hpp>
 #include <Dice/hypertrie.hpp>
-
-#include "Dice/sparql2tensor/BoolHypertrie.hpp"
+#include <Dice/rdf_tensor/HypertrieTrait.hpp>
+#include <Dice/rdf_tensor/RDFNodeHashes.hpp>
 
 #include <robin_hood.h>
 
@@ -15,7 +15,7 @@ namespace Dice::sparql2tensor {
 	struct SPARQLQuery {
 		std::vector<rdf4cpp::rdf::query::Variable> projected_variables_;
 
-		robin_hood::unordered_map<rdf4cpp::rdf::query::Variable, char, Dice::hash::DiceHashxxh3<rdf4cpp::rdf::query::Variable>> var_to_id_;
+		robin_hood::unordered_map<rdf4cpp::rdf::query::Variable, char> var_to_id_;
 
 		std::vector<rdf4cpp::rdf::query::TriplePattern> triple_patterns_;
 
@@ -33,7 +33,7 @@ namespace Dice::sparql2tensor {
 
 		bool is_distinct() const noexcept;
 
-		std::vector<Dice::hypertrie::SliceKey<tr>> get_slice_keys() const;
+		std::vector<rdf_tensor::SliceKey> get_slice_keys() const;
 
 		std::shared_ptr<einsum::Subscript> get_subscript() const;
 	};
