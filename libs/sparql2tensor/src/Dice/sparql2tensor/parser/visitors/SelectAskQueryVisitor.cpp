@@ -1,8 +1,17 @@
-#include "Dice/sparql2tensor/parser/visitors/SelectQueryVisitor.hpp"
+#include "Dice/sparql2tensor/parser/visitors/SelectAskQueryVisitor.hpp"
 
 namespace Dice::sparql2tensor::parser::visitors {
 
-	antlrcpp::Any SelectQueryVisitor::visitSelectQuery(SparqlParser::SelectQueryContext *ctx) {
+	antlrcpp::Any SelectAskQueryVisitor::visitAskQuery(SparqlParser::AskQueryContext *ctx) {
+		if (ctx->whereClause())
+			visitWhereClause(ctx->whereClause());
+		else
+			throw std::runtime_error("Query does not contain a WHERE clause");
+		query->ask_ = true;
+		return nullptr;
+	}
+
+	antlrcpp::Any SelectAskQueryVisitor::visitSelectQuery(SparqlParser::SelectQueryContext *ctx) {
 		if (ctx->whereClause())
 			visitWhereClause(ctx->whereClause());
 		else
@@ -11,7 +20,7 @@ namespace Dice::sparql2tensor::parser::visitors {
 		return nullptr;
 	}
 
-	antlrcpp::Any SelectQueryVisitor::visitSelectClause(SparqlParser::SelectClauseContext *ctx) {
+	antlrcpp::Any SelectAskQueryVisitor::visitSelectClause(SparqlParser::SelectClauseContext *ctx) {
 		if (ctx->selectModifier()) {
 			if (ctx->selectModifier()->DISTINCT())
 				query->distinct_ = true;
@@ -48,12 +57,18 @@ namespace Dice::sparql2tensor::parser::visitors {
 		return nullptr;
 	}
 
-	antlrcpp::Any SelectQueryVisitor::visitWhereClause(SparqlParser::WhereClauseContext *ctx) {
+	antlrcpp::Any SelectAskQueryVisitor::visitWhereClause(SparqlParser::WhereClauseContext *ctx) {
+		group_patterns.emplace_back();
+		triples_blocks.emplace_back();
+		optional_blocks.emplace_back();
 		visitGroupGraphPattern(ctx->groupGraphPattern());
+		optional_blocks.pop_back();
+		triples_blocks.pop_back();
+		group_patterns.pop_back();
 		return nullptr;
 	}
 
-	antlrcpp::Any SelectQueryVisitor::visitGroupGraphPattern(SparqlParser::GroupGraphPatternContext *ctx) {
+	antlrcpp::Any SelectAskQueryVisitor::visitGroupGraphPattern(SparqlParser::GroupGraphPatternContext *ctx) {
 		if (ctx->subSelect())
 			throw std::runtime_error("Subqueries are not supported yet");
 		else if (ctx->groupGraphPatternSub())
@@ -63,25 +78,87 @@ namespace Dice::sparql2tensor::parser::visitors {
 		return nullptr;
 	}
 
-	antlrcpp::Any SelectQueryVisitor::visitGroupGraphPatternSub(SparqlParser::GroupGraphPatternSubContext *ctx) {
-		if (ctx->triplesBlock())
-			visitTriplesBlock(ctx->triplesBlock());
-		for (auto sub_ctx : ctx->groupGraphPatternSubList()) {
-			if (sub_ctx->graphPatternNotTriples())
-				visitGraphPatternNotTriples(sub_ctx->graphPatternNotTriples());
-			if (sub_ctx->triplesBlock())
-				visitTriplesBlock(sub_ctx->triplesBlock());
-		}
+	antlrcpp::Any SelectAskQueryVisitor::visitGroupGraphPatternSub(SparqlParser::GroupGraphPatternSubContext *ctx) {
+		visitWellDesignedPattern(ctx, {});
 		return nullptr;
 	}
 
-	antlrcpp::Any SelectQueryVisitor::visitTriplesBlock(SparqlParser::TriplesBlockContext *ctx) {
+	void SelectAskQueryVisitor::visitWellDesignedPattern(SparqlParser::GroupGraphPatternSubContext *ctx,
+														 std::vector<SparqlParser::GroupOrUnionGraphPatternContext *> gou_ctxs) {
+		/*
+		 * The visitor first collects all triple patterns, group/union graph patterns and optional patterns
+		 * For each union all triple patterns and optional patterns that are explored so far are visited
+		 */
+		if (ctx->triplesBlock())
+			triples_blocks.back().push_back(ctx->triplesBlock());
+		for (auto sub_ctx : ctx->groupGraphPatternSubList()) {
+			if (sub_ctx->graphPatternNotTriples()) {
+				if (sub_ctx->graphPatternNotTriples()->groupOrUnionGraphPattern())
+					gou_ctxs.push_back(sub_ctx->graphPatternNotTriples()->groupOrUnionGraphPattern());
+				else if (sub_ctx->graphPatternNotTriples()->optionalGraphPattern())
+					optional_blocks.back().push_back(sub_ctx->graphPatternNotTriples()->optionalGraphPattern());
+			}
+			if (sub_ctx->triplesBlock())
+				triples_blocks.back().push_back(sub_ctx->triplesBlock());
+		}
+		if (gou_ctxs.empty()) {
+			for (auto tb_ctx : triples_blocks.back()) {
+				visitTriplesBlock(tb_ctx);
+			}
+			// if we are in an optional we need to capture dependencies
+			if (not opt_operands.empty()) {
+				// dependencies with parent group
+				group_dependencies(group_patterns[group_patterns.size() - 2], group_patterns.back());
+				// cartesian dependencies between optional patterns
+				for (auto cur_op : group_patterns.back()) {
+					for (auto opt_op : opt_operands.back()) {
+						if (std::find(union_operands.back().begin(), union_operands.back().end(), opt_op) == union_operands.back().end()) {
+							query->odg_.addConnection(cur_op, opt_op);
+							query->odg_.addConnection(opt_op, cur_op);
+						}
+					}
+				}
+				for (auto cur_op : group_patterns.back()) {
+					union_operands.back().push_back(cur_op);
+					opt_operands.back().push_back(cur_op);
+				}
+			}
+			opt_operands.emplace_back();
+			union_operands.emplace_back();
+			for (auto opt_ctx : optional_blocks.back()) {
+				group_patterns.emplace_back();
+				triples_blocks.emplace_back();
+				optional_blocks.emplace_back();
+				visitWellDesignedPattern(opt_ctx->groupGraphPattern()->groupGraphPatternSub(), {});
+				union_operands.back().clear();
+				optional_blocks.pop_back();
+				triples_blocks.pop_back();
+				group_patterns.pop_back();
+			}
+			union_operands.pop_back();
+			opt_operands.pop_back();
+			// prepare for the next union
+			group_patterns.back().clear();
+		} else {
+			SparqlParser::GroupOrUnionGraphPatternContext *cur_gou_ctx = gou_ctxs.back();
+			gou_ctxs.pop_back();
+			size_t current_tbs = triples_blocks.back().size();
+			size_t current_opts = optional_blocks.back().size();
+			for (auto grp_ctx : cur_gou_ctx->groupGraphPattern()) {
+				visitWellDesignedPattern(grp_ctx->groupGraphPatternSub(), gou_ctxs);
+				triples_blocks.back().resize(current_tbs);
+				optional_blocks.back().resize(current_opts);
+			}
+		}
+	}
+
+	antlrcpp::Any SelectAskQueryVisitor::visitTriplesBlock(SparqlParser::TriplesBlockContext *ctx) {
 		for (auto sub_ctx : ctx->triplesSameSubjectPath())
 			visitTriplesSameSubjectPath(sub_ctx);
 		return nullptr;
 	}
 
-	antlrcpp::Any SelectQueryVisitor::visitTriplesSameSubjectPath(SparqlParser::TriplesSameSubjectPathContext *ctx) {
+	antlrcpp::Any SelectAskQueryVisitor::visitTriplesSameSubjectPath(SparqlParser::TriplesSameSubjectPathContext *ctx) {
 		if (ctx->varOrTerm() and ctx->propertyListPathNotEmpty()) {
 			active_subject = visitVarOrTerm(ctx->varOrTerm());
 			if (active_subject.is_variable())
@@ -93,7 +170,7 @@ namespace Dice::sparql2tensor::parser::visitors {
 		return nullptr;
 	}
 
-	antlrcpp::Any SelectQueryVisitor::visitPropertyListPathNotEmpty(SparqlParser::PropertyListPathNotEmptyContext *ctx) {
+	antlrcpp::Any SelectAskQueryVisitor::visitPropertyListPathNotEmpty(SparqlParser::PropertyListPathNotEmptyContext *ctx) {
 		if (ctx->verbPath()) {
 			active_predicate = visitPath(ctx->verbPath()->path());
 		} else {
@@ -119,26 +196,7 @@ namespace Dice::sparql2tensor::parser::visitors {
 		return nullptr;
 	}
 
-	antlrcpp::Any SelectQueryVisitor::visitTriplesNodePath([[maybe_unused]] SparqlParser::TriplesNodePathContext *ctx) {
-		return nullptr;
-	}
-	antlrcpp::Any SelectQueryVisitor::visitBlankNodePropertyListPath([[maybe_unused]] SparqlParser::BlankNodePropertyListPathContext *ctx) {
-		return nullptr;
-	}
-	antlrcpp::Any SelectQueryVisitor::visitGraphPatternNotTriples([[maybe_unused]] SparqlParser::GraphPatternNotTriplesContext *ctx) {
-		return nullptr;
-	}
-	antlrcpp::Any SelectQueryVisitor::visitOptionalGraphPattern([[maybe_unused]] SparqlParser::OptionalGraphPatternContext *ctx) {
-		return nullptr;
-	}
-	antlrcpp::Any SelectQueryVisitor::visitGroupOrUnionGraphPattern([[maybe_unused]] SparqlParser::GroupOrUnionGraphPatternContext *ctx) {
-		return nullptr;
-	}
-	antlrcpp::Any SelectQueryVisitor::visitMinusGraphPattern([[maybe_unused]] SparqlParser::MinusGraphPatternContext *ctx) {
-		return nullptr;
-	}
-
-	antlrcpp::Any SelectQueryVisitor::visitVarOrTerm(SparqlParser::VarOrTermContext *ctx) {
+	antlrcpp::Any SelectAskQueryVisitor::visitVarOrTerm(SparqlParser::VarOrTermContext *ctx) {
 		if (ctx->var()) {
 			return rdf4cpp::rdf::Node(visitVar(ctx->var()).as<rdf4cpp::rdf::query::Variable>());
 		} else {
@@ -157,7 +215,7 @@ namespace Dice::sparql2tensor::parser::visitors {
 		}
 	}
 
-	antlrcpp::Any SelectQueryVisitor::visitIri(SparqlParser::IriContext *ctx) {
+	antlrcpp::Any SelectAskQueryVisitor::visitIri(SparqlParser::IriContext *ctx) {
 		if (ctx->IRIREF()) {
 			auto iri = ctx->IRIREF()->getText();
 			return rdf4cpp::rdf::IRI(iri.substr(1, iri.size() - 2));
@@ -171,30 +229,30 @@ namespace Dice::sparql2tensor::parser::visitors {
 		}
 	}
 
-	antlrcpp::Any SelectQueryVisitor::visitBlankNode(SparqlParser::BlankNodeContext *ctx) {
+	antlrcpp::Any SelectAskQueryVisitor::visitBlankNode(SparqlParser::BlankNodeContext *ctx) {
 		if (ctx->BLANK_NODE_LABEL())
 			return rdf4cpp::rdf::query::Variable(ctx->BLANK_NODE_LABEL()->getText().substr(2), true);
 		else
 			throw std::runtime_error("BlankNode ANON not supported.");
 	}
 
-	antlrcpp::Any SelectQueryVisitor::visitVar(SparqlParser::VarContext *ctx) {
+	antlrcpp::Any SelectAskQueryVisitor::visitVar(SparqlParser::VarContext *ctx) {
 		return rdf4cpp::rdf::query::Variable(ctx->getText().substr(1));
 	}
 
-	antlrcpp::Any SelectQueryVisitor::visitObjectListPath(SparqlParser::ObjectListPathContext *ctx) {
+	antlrcpp::Any SelectAskQueryVisitor::visitObjectListPath(SparqlParser::ObjectListPathContext *ctx) {
 		for (auto objp_ctx : ctx->objectPath())
 			visitObjectPath(objp_ctx);
 		return nullptr;
 	}
 
-	antlrcpp::Any SelectQueryVisitor::visitObjectList(SparqlParser::ObjectListContext *ctx) {
+	antlrcpp::Any SelectAskQueryVisitor::visitObjectList(SparqlParser::ObjectListContext *ctx) {
 		for (auto obj_ctx : ctx->object())
 			visitObject(obj_ctx);
 		return nullptr;
 	}
 
-	antlrcpp::Any SelectQueryVisitor::visitObjectPath(SparqlParser::ObjectPathContext *ctx) {
+	antlrcpp::Any SelectAskQueryVisitor::visitObjectPath(SparqlParser::ObjectPathContext *ctx) {
 		if (ctx->graphNodePath()->varOrTerm()) {
 			rdf4cpp::rdf::Node obj = visitVarOrTerm(ctx->graphNodePath()->varOrTerm());
 			if (obj.is_variable())
@@ -207,7 +265,7 @@ namespace Dice::sparql2tensor::parser::visitors {
 		return nullptr;
 	}
 
-	antlrcpp::Any SelectQueryVisitor::visitObject(SparqlParser::ObjectContext *ctx) {
+	antlrcpp::Any SelectAskQueryVisitor::visitObject(SparqlParser::ObjectContext *ctx) {
 		if (ctx->graphNode()->varOrTerm()) {
 			rdf4cpp::rdf::Node obj = visitVarOrTerm(ctx->graphNode()->varOrTerm());
 			if (obj.is_variable())
@@ -220,32 +278,32 @@ namespace Dice::sparql2tensor::parser::visitors {
 		return nullptr;
 	}
 
-	antlrcpp::Any SelectQueryVisitor::visitPath(SparqlParser::PathContext *ctx) {
+	antlrcpp::Any SelectAskQueryVisitor::visitPath(SparqlParser::PathContext *ctx) {
 		if (ctx->pathAlternative())
 			return visitPathAlternative(ctx->pathAlternative());
 		else
 			throw std::runtime_error("Malformed query.");
 	}
 
-	antlrcpp::Any SelectQueryVisitor::visitPathAlternative(SparqlParser::PathAlternativeContext *ctx) {
+	antlrcpp::Any SelectAskQueryVisitor::visitPathAlternative(SparqlParser::PathAlternativeContext *ctx) {
 		if (ctx->pathSequence().size() > 1)
 			throw std::runtime_error("Property paths are not supported yet");
 		return visitPathSequence(ctx->pathSequence(0));
 	}
 
-	antlrcpp::Any SelectQueryVisitor::visitPathSequence(SparqlParser::PathSequenceContext *ctx) {
+	antlrcpp::Any SelectAskQueryVisitor::visitPathSequence(SparqlParser::PathSequenceContext *ctx) {
 		if (ctx->pathEltOrInverse().size() > 1)
 			throw std::runtime_error("Property paths are not supported yet");
 		return visitPathEltOrInverse(ctx->pathEltOrInverse(0));
 	}
 
-	antlrcpp::Any SelectQueryVisitor::visitPathEltOrInverse(SparqlParser::PathEltOrInverseContext *ctx) {
+	antlrcpp::Any SelectAskQueryVisitor::visitPathEltOrInverse(SparqlParser::PathEltOrInverseContext *ctx) {
 		if (ctx->INVERSE())
 			throw std::runtime_error("Property paths are not supported yet");
 		return visitPathElt(ctx->pathElt());
 	}
 
-	antlrcpp::Any SelectQueryVisitor::visitPathElt(SparqlParser::PathEltContext *ctx) {
+	antlrcpp::Any SelectAskQueryVisitor::visitPathElt(SparqlParser::PathEltContext *ctx) {
 		if (ctx->pathPrimary()->iri())
 			return rdf4cpp::rdf::Node(visitIri(ctx->pathPrimary()->iri()).as<rdf4cpp::rdf::IRI>());
 		else if (ctx->pathPrimary()->A())
@@ -256,17 +314,17 @@ namespace Dice::sparql2tensor::parser::visitors {
 			return visitPath(ctx->pathPrimary()->path());
 	}
 
-	antlrcpp::Any SelectQueryVisitor::visitRdfLiteral(SparqlParser::RdfLiteralContext *ctx) {
+	antlrcpp::Any SelectAskQueryVisitor::visitRdfLiteral(SparqlParser::RdfLiteralContext *ctx) {
 		std::string value = visitString(ctx->string());
 		if (ctx->iri())
 			return rdf4cpp::rdf::Literal(value, visitIri(ctx->iri()).as<rdf4cpp::rdf::IRI>());
 		else if (ctx->LANGTAG())
-			return rdf4cpp::rdf::Literal(value, ctx->LANGTAG()->getText());
+			return rdf4cpp::rdf::Literal(value, ctx->LANGTAG()->getText().substr(1));
 		else
 			return rdf4cpp::rdf::Literal(value);
 	}
 
-	antlrcpp::Any SelectQueryVisitor::visitNumericLiteral(SparqlParser::NumericLiteralContext *ctx) {
+	antlrcpp::Any SelectAskQueryVisitor::visitNumericLiteral(SparqlParser::NumericLiteralContext *ctx) {
 		auto number = ctx->getText();
 		if (ctx->numericLiteralPositive()) {
 			if (ctx->numericLiteralPositive()->DECIMAL_POSITIVE())
@@ -292,14 +350,14 @@ namespace Dice::sparql2tensor::parser::visitors {
 		}
 	}
 
-	antlrcpp::Any SelectQueryVisitor::visitBooleanLiteral(SparqlParser::BooleanLiteralContext *ctx) {
+	antlrcpp::Any SelectAskQueryVisitor::visitBooleanLiteral(SparqlParser::BooleanLiteralContext *ctx) {
 		if (ctx->TRUE())
 			return rdf4cpp::rdf::Literal("true", rdf4cpp::rdf::IRI("http://www.w3.org/2001/XMLSchema#boolean"));
 		else
 			return rdf4cpp::rdf::Literal("false", rdf4cpp::rdf::IRI("http://www.w3.org/2001/XMLSchema#boolean"));
 	}
 
-	antlrcpp::Any SelectQueryVisitor::visitString(SparqlParser::StringContext *ctx) {
+	antlrcpp::Any SelectAskQueryVisitor::visitString(SparqlParser::StringContext *ctx) {
 		std::string value = ctx->getText();
 		if (ctx->STRING_LITERAL1() or ctx->STRING_LITERAL2())
 			return value.substr(1, value.size() - 2);
@@ -307,19 +365,80 @@ namespace Dice::sparql2tensor::parser::visitors {
 			return value.substr(3, value.size() - 6);
 	}
 
-	void SelectQueryVisitor::register_var(rdf4cpp::rdf::query::Variable const &var) {
+	void SelectAskQueryVisitor::register_var(rdf4cpp::rdf::query::Variable const &var) {
 		if (query->var_to_id_.contains(var))
 			return;
 		query->var_to_id_[var] = var_id;
 		var_id++;
 	}
 
-	void SelectQueryVisitor::add_tp(rdf4cpp::rdf::query::TriplePattern const &tp) {
+	void SelectAskQueryVisitor::add_tp(rdf4cpp::rdf::query::TriplePattern const &tp) {
 		std::vector<char> var_ids{};
 		for (auto const &node : tp) {
 			if (not node.is_variable())
 				continue;
 			var_ids.push_back(query->var_to_id_[rdf4cpp::rdf::query::Variable(node)]);
+		}
+		// create new node in the operand dependency graph
+		auto v_id = query->odg_.addOperand(var_ids);
+		auto &gp = group_patterns.back();
+		// iterate over the tps of the group and capture dependencies
+		for (auto iter = gp.rbegin(); iter != gp.rend(); iter++) {
+			std::set<char> done{};// only one edge per label between two nodes
+			auto const &tp_vars = query->odg_.operandLabels(*iter);
+			bool cart = true;
+			for (auto const &var : var_ids) {
+				for (auto const &tp_var : tp_vars) {
+					if (var == tp_var) {
+						cart = false;
+						if (done.contains(var))
+							continue;
+						done.insert(var);
+						query->odg_.addDependency(*iter, v_id, var);
+						query->odg_.addDependency(v_id, *iter, var);
+					}
+				}
+			}
+			// the triple patterns do not share a variable --> cartesian join
+			if (cart) {
+				query->odg_.addDependency(*iter, v_id);
+				query->odg_.addDependency(v_id, *iter);
+			}
+		}
+		// add current tp/node to the active group pattern
+		gp.push_back(v_id);
+	}
+
+	void SelectAskQueryVisitor::group_dependencies(std::vector<uint8_t> const &prev_group, std::vector<uint8_t> const &cur_group, bool bidirectional) {
+		for (const auto &prev_tp : prev_group) {
+			auto const &prev_labels = query->odg_.operandLabels(prev_tp);
+			for (const auto &cur_tp : cur_group) {
+				auto const &cur_labels = query->odg_.operandLabels(cur_tp);
+				bool done = false;
+				for (auto const &prev_label : prev_labels) {
+					if (std::find(cur_labels.begin(), cur_labels.end(), prev_label) != cur_labels.end()) {
+						query->odg_.addDependency(prev_tp, cur_tp, prev_label);
+						if (bidirectional)
+							query->odg_.addDependency(cur_tp, prev_tp, prev_label);
+						done = true;
+					}
+				}
+				if (not done) {
+					query->odg_.addDependency(prev_tp, cur_tp);
+					if (bidirectional)
+						query->odg_.addDependency(cur_tp, prev_tp);
+				}
+			}
+		}
+	}
+
+	void SelectAskQueryVisitor::group_connections(std::vector<uint8_t> const &prev_group,
+												  std::vector<uint8_t> const &cur_group) {
+		for (const auto &prev_tp : prev_group) {
+			for (const auto &cur_tp : cur_group) {
+				query->odg_.addConnection(prev_tp, cur_tp);
+				query->odg_.addConnection(cur_tp, prev_tp);
+			}
 		}
 	}
 

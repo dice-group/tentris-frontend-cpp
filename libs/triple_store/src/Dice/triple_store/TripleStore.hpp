@@ -1,8 +1,8 @@
 #ifndef TENTRIS_STORE_TRIPLESTORE
 #define TENTRIS_STORE_TRIPLESTORE
 
+#include <Dice/rdf_tensor/Query.hpp>
 #include <Dice/rdf_tensor/RDFTensor.hpp>
-#include <Dice/rdf_tensor/RDFEinsum.hpp>
 
 #include <Dice/sparql2tensor/SPARQLQuery.hpp>
 
@@ -23,11 +23,10 @@ namespace Dice::triple_store {
 		using const_BoolHypertrie = rdf_tensor::const_BoolHypertrie;
 		using Key = rdf_tensor::Key;
 		using htt_t = rdf_tensor::htt_t;
-		using UncountedEinsumEntry = rdf_tensor::UncountedEinsumEntry;
 
 	public:
 		using allocator_type = rdf_tensor::allocator_type;
-		using EinsumEntry = rdf_tensor::EinsumEntry;
+		using Entry = rdf_tensor::Entry;
 
 	private:
 
@@ -64,39 +63,42 @@ namespace Dice::triple_store {
 			hypertrie_.set(key, true);
 		}
 
-		std::generator<EinsumEntry const &> query(
-				sparql2tensor::SPARQLQuery query,
-				std::chrono::steady_clock::time_point endtime = std::chrono::steady_clock::time_point::max()) {
+		std::generator<rdf_tensor::Entry const &>
+		query(sparql2tensor::SPARQLQuery query, std::chrono::steady_clock::time_point endtime) {
 			std::vector<const_BoolHypertrie> operands;
 			for (auto const &slice_key : query.get_slice_keys()) {
 				auto slice_result = hypertrie_[slice_key];
 				if (slice_key.get_fixed_depth() == 3) {
 					auto entry_exists = std::get<bool>(slice_result);
-					if (not entry_exists)
-						co_return;
+					BoolHypertrie ht_0{0, &context_};
+					if (entry_exists)
+						ht_0.set({}, true);
+					operands.push_back(ht_0);
 				} else {
 					auto operand = std::get<const_BoolHypertrie>(slice_result);
-					if (operand.empty())
-						co_return;
-					else
-						operands.push_back(std::move(operand));
+					operands.push_back(std::move(operand));
 				}
 			}
-			auto subscript = query.get_subscript();
+			std::vector<char> proj_vars_id{};
+			for (auto const &proj_var : query.projected_variables_) {
+				proj_vars_id.push_back(query.var_to_id_[proj_var]);
+			}
+			rdf_tensor::Query q{query.odg_, operands, proj_vars_id};
 			if (query.distinct_) {
-				EinsumEntry entry;
+				rdf_tensor::Entry entry;
 				entry.key().resize(query.projected_variables_.size());
-				for (auto const &distinct_entry : ::Dice::einsum::einsum<rdf_tensor::DISTINCT_t , htt_t>(subscript, operands, endtime)) {
+				for (auto const &distinct_entry : Dice::query::Evaluation::evaluate<htt_t, allocator_type, true>(q)) {
 					std::copy(distinct_entry.key().begin(), distinct_entry.key().end(), entry.key().begin());
 					co_yield entry;
 				}
 			} else {
-				for (auto const &entry : ::Dice::einsum::einsum<rdf_tensor::COUNTED_t , htt_t>(subscript, operands, endtime))
+				for (auto const &entry : Dice::query::Evaluation::evaluate<htt_t, allocator_type>(q)) {
 					co_yield entry;
+				}
 			}
 		}
 
-		size_t count(sparql2tensor::SPARQLQuery query,
+		size_t count(const sparql2tensor::SPARQLQuery& query,
 					 std::chrono::steady_clock::time_point endtime = std::chrono::steady_clock::time_point::max()) {
 			using namespace sparql2tensor;
 			if (query.triple_patterns_.size() == 1) {// O(1)
@@ -110,26 +112,6 @@ namespace Dice::triple_store {
 				for (auto const &entry : this->query(query, endtime))
 					count += entry.value();
 				return count;
-			}
-		}
-
-		bool ask(sparql2tensor::SPARQLQuery query,
-				 std::chrono::steady_clock::time_point endtime = std::chrono::steady_clock::time_point::max()) {
-			if (query.triple_patterns_.size() == 1) {// O(1)
-				auto slice_key = query.get_slice_keys()[0];
-				if (slice_key.get_fixed_depth() == 3)
-					return std::get<bool>(get_hypertrie()[slice_key]);
-				else
-					return not std::get<const_BoolHypertrie>(get_hypertrie()[slice_key]).empty();
-			} else {
-				query.projected_variables_.clear();
-				query.project_all_variables_ = false;
-				query.distinct_ = true;
-				for ([[maybe_unused]] auto const &_ : this->query(query, endtime)) {
-					return true;
-					break;
-				}
-				return false;
 			}
 		}
 

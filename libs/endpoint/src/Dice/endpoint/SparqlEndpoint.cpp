@@ -46,7 +46,7 @@ namespace Dice::endpoint {
 								 sparql_query->projected_variables_.size(),
 								 json_writer.number_of_written_solutions(),
 								 json_writer.number_of_written_bindings());
-				} catch (Dice::einsum::TimeoutException const &timeout_exception) {
+				} catch (std::runtime_error const &timeout_exception) {
 					const auto timeout_message = fmt::format("Request processing timed out after {}.", this->timeout_duration_);
 					spdlog::warn("HTTP response {}: {}", status_gateway_time_out(), timeout_message);
 					req->create_response(status_gateway_time_out()).set_body(timeout_message).done();

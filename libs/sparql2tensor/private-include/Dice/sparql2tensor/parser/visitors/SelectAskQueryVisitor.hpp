@@ -1,5 +1,5 @@
-#ifndef DICE_SPARQL_SELECTQUERYVISITOR_HPP
-#define DICE_SPARQL_SELECTQUERYVISITOR_HPP
+#ifndef DICE_SPARQL_SELECTASKQUERYVISITOR_HPP
+#define DICE_SPARQL_SELECTASKQUERYVISITOR_HPP
 
 #include <rdf4cpp/rdf.hpp>
 
@@ -13,7 +13,7 @@ namespace Dice::sparql2tensor::parser::visitors {
 
 	using namespace sparql_parser::base;
 
-	class SelectQueryVisitor : public SparqlParserBaseVisitor {
+	class SelectAskQueryVisitor : public SparqlParserBaseVisitor {
 
 	private:
 		SPARQLQuery *const query;
@@ -21,11 +21,19 @@ namespace Dice::sparql2tensor::parser::visitors {
 		rdf4cpp::rdf::Node active_predicate;
 		char var_id = 'a';
 		// for the construction of the operand dependency graph
+		std::deque<std::vector<uint8_t>> group_patterns;
+		std::deque<std::vector<uint8_t>> opt_operands;
+		std::deque<std::vector<uint8_t>> union_operands; // used to avoid connecting union patterns of the same optional pattern
+		// for the "rewriting"
+		std::vector<std::vector<SparqlParser::TriplesBlockContext *>> triples_blocks;
+		std::vector<std::vector<SparqlParser::OptionalGraphPatternContext *>> optional_blocks;
 
 	public:
-		SelectQueryVisitor() = delete;
+		SelectAskQueryVisitor() = delete;
 
-		explicit SelectQueryVisitor(SPARQLQuery *q) : query{q} {}
+		explicit SelectAskQueryVisitor(SPARQLQuery *q) : query{q} {}
+
+		antlrcpp::Any visitAskQuery(SparqlParser::AskQueryContext *ctx) override;
 
 		antlrcpp::Any visitSelectQuery(SparqlParser::SelectQueryContext *) override;
 
@@ -42,18 +50,6 @@ namespace Dice::sparql2tensor::parser::visitors {
 		antlrcpp::Any visitTriplesSameSubjectPath(SparqlParser::TriplesSameSubjectPathContext *) override;
 
 		antlrcpp::Any visitPropertyListPathNotEmpty(SparqlParser::PropertyListPathNotEmptyContext *) override;
-
-		antlrcpp::Any visitTriplesNodePath(SparqlParser::TriplesNodePathContext *) override;
-
-		antlrcpp::Any visitBlankNodePropertyListPath(SparqlParser::BlankNodePropertyListPathContext *) override;
-
-		antlrcpp::Any visitGraphPatternNotTriples(SparqlParser::GraphPatternNotTriplesContext *) override;
-
-		antlrcpp::Any visitOptionalGraphPattern(SparqlParser::OptionalGraphPatternContext *) override;
-
-		antlrcpp::Any visitGroupOrUnionGraphPattern(SparqlParser::GroupOrUnionGraphPatternContext *) override;
-
-		antlrcpp::Any visitMinusGraphPattern(SparqlParser::MinusGraphPatternContext *) override;
 
 		antlrcpp::Any visitVarOrTerm(SparqlParser::VarOrTermContext *) override;
 
@@ -90,11 +86,31 @@ namespace Dice::sparql2tensor::parser::visitors {
 		antlrcpp::Any visitString(SparqlParser::StringContext *) override;
 
 	private:
-		void register_var(rdf4cpp::rdf::query::Variable const &);
+		void register_var(rdf4cpp::rdf::query::Variable const &var);
 
+		/**
+		 * @brief: Creates a new node in the operand dependency graph.
+		 * Creates dependencies for the new node within the same group graph pattern
+		 */
 		void add_tp(rdf4cpp::rdf::query::TriplePattern const &tp);
+
+		/**
+		 * @brief: Creates dependencies between group graph patterns
+		 */
+		void group_dependencies(std::vector<uint8_t> const &prev_group, std::vector<uint8_t> const &cur_group, bool bidirectional = false);
+
+		/**
+		 * @brief: Creates simple connections between group graph patterns (important to capture optional cartesian products)
+		 */
+		void group_connections(std::vector<uint8_t> const &prev_group, std::vector<uint8_t> const &cur_group);
+
+		/**
+		 * @brief: Visitor for well-designed SPARQL patterns
+		 */
+		void visitWellDesignedPattern(SparqlParser::GroupGraphPatternSubContext *ctx,
+									  std::vector<SparqlParser::GroupOrUnionGraphPatternContext *> gou_ctxs);
 	};
 
 }// namespace Dice::sparql2tensor::parser::visitors
 
-#endif//DICE_SPARQL_SELECTQUERYVISITOR_HPP
+#endif//DICE_SPARQL_SELECTASKQUERYVISITOR_HPP
