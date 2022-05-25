@@ -4,9 +4,9 @@
 #include <array>
 
 namespace Dice::tentris {
-	inline constexpr const char name[] = "@PROJECT_NAME@";
-	inline constexpr const char version[] = "@tentris_VERSION@";
-	inline constexpr std::array<int, 3> version_tuple = {@tentris_VERSION_MAJOR@, @tentris_VERSION_MINOR@, @tentris_VERSION_PATCH@};
+	inline constexpr const char name[] = "tentris";
+	inline constexpr const char version[] = "@tentris_lib_VERSION@";
+	inline constexpr std::array<int, 3> version_tuple = {@tentris_lib_VERSION_MAJOR@, @tentris_lib_VERSION_MINOR@, @tentris_lib_VERSION_PATCH@};
 	inline constexpr const char rdf4cpp_version[] = "@rdf4cpp_VERSION@";
 }// namespace Dice::tentris
 

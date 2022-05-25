@@ -38,3 +38,17 @@ target_include_directories(rdf_tensor INTERFACE
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
         )
+
+install(TARGETS rdf_tensor
+        EXPORT rdf_tensor_Targets
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+
+install(EXPORT rdf_tensor_Targets
+        FILE rdf_tensorTargets.cmake
+        NAMESPACE Dice::
+        DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/rdf_tensor/cmake)
+
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+

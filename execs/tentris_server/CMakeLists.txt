@@ -10,6 +10,7 @@ add_executable(tentris_server
 find_package(Taskflow REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(cxxopts REQUIRED)
+find_package(restinio REQUIRED)
 
 target_link_libraries(tentris_server PRIVATE
         ${TENTRIS_STATIC_DEF}

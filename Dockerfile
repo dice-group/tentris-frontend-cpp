@@ -54,7 +54,7 @@ RUN conan user ${CONAN_USER} -p ${CONAN_PW} -r tentris-private
 
 # build and cache dependencies via conan
 WORKDIR /conan_cache
-COPY conanfile.txt conanfile.txt
+COPY lib_conanfile.txt conanfile.txt
 RUN conan install . --build=missing --profile default
 
 # import project files
@@ -64,7 +64,7 @@ COPY libs libs
 COPY execs execs
 COPY cmake cmake
 COPY CMakeLists.txt CMakeLists.txt
-COPY conanfile.txt conanfile.txt
+COPY lib_conanfile.txt conanfile.txt
 
 ##build
 WORKDIR /tentris/build
