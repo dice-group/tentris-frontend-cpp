@@ -9,11 +9,6 @@
 #include <Dice/hash/DiceHash.hpp>
 #include <rdf4cpp/rdf/storage/node/INodeStorageBackend.hpp>
 
-#ifndef BOOST_BIND_GLOBAL_PLACEHOLDERS
-#define BOOST_BIND_GLOBAL_PLACEHOLDERS
-#endif
-#include <metall/metall.hpp>
-
 #include "Dice/node_store/MetallBNodeBackend.hpp"
 #include "Dice/node_store/MetallIRIBackend.hpp"
 #include "Dice/node_store/MetallLiteralBackend.hpp"

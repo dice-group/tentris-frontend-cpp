@@ -95,7 +95,7 @@ int main(int argc, char *argv[]) {
 			.threads = parsed_args["threads"].as<uint16_t>(),
 			.timeout_duration = std::chrono::seconds{parsed_args["timeout"].as<uint>()}};
 
-	using metall_manager = metall::basic_manager<uint32_t, (1ULL << 28ULL)>;
+	using metall_manager = rdf_tensor::metall_manager;
 
 	auto const storage_path = fs::absolute(fs::path{parsed_args["storage"].as<std::string>()}).append("tentris_data");
 	if (not metall_manager::consistent(storage_path.c_str())) {
