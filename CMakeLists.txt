@@ -1,13 +1,13 @@
 cmake_minimum_required(VERSION 3.18)
 project(tentris
         LANGUAGES CXX
-        VERSION 1.2.1)
+        VERSION 1.2.3)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-SET("rdf4cpp_VERSION" "v0.0.2" CACHE STRING "" FORCE)
+SET("rdf4cpp_VERSION" "v0.0.3" CACHE STRING "" FORCE)
 message("rdf4cpp_version ${rdf4cpp_VERSION}")
 # must be after rdf4cpp_VERSION is defined because it exposes the version
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/version.hpp.in ${CMAKE_CURRENT_SOURCE_DIR}/execs/tentris_server/src/Dice/tentris_server/tentris_version.hpp)
