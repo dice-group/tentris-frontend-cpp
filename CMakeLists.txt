@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.18)
+cmake_minimum_required(VERSION 3.15)
 project(tentris
         LANGUAGES CXX
         VERSION 1.2.3)
@@ -53,7 +53,6 @@ target_include_directories(rapidjson INTERFACE
         )
 
 find_package(Boost REQUIRED COMPONENTS system log_setup log thread)
-find_package(restinio REQUIRED)
 
 include(FetchContent)
 FetchContent_Declare(
@@ -74,9 +73,5 @@ install(EXPORT rdf4cpp_Targets
         FILE rdf4cppTargets.cmake
         NAMESPACE Dice::
         DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/rdf4cpp/cmake)
-
-install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-
-
 
 add_subdirectory(libs)
