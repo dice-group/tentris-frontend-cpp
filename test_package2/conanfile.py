@@ -9,7 +9,7 @@ class Tentris2TestConan(ConanFile):
     settings = "os", "compiler", "build_type", "arch"
     # VirtualBuildEnv and VirtualRunEnv can be avoided if "tools.env.virtualenv:auto_use" is defined
     # (it will be defined in Conan 2.0)
-    generators = "cmake_find_package", "CMakeToolchain", "VirtualBuildEnv", "VirtualRunEnv"
+    generators = ("CMakeDeps", "CMakeToolchain")#, "cmake_find_package"# , "CMakeToolchain", "VirtualBuildEnv", "VirtualRunEnv"
     apply_env = False
     test_type = "explicit"
 

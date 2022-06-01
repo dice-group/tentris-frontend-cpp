@@ -61,7 +61,7 @@ class TentrisConan(ConanFile):
         "vincentlaucsb-csv-parser/2.1.3",
     )
 
-    generators = ("CMakeDeps", "cmake_find_package")
+    generators = ("CMakeDeps", "CMakeToolchain")  # ("CMakeDeps", "cmake_find_package")
 
     # Sources are located in the same place as this recipe, copy them to the recipe
     exports_sources = "libs/*", "CMakeLists.txt", "cmake/*", "lib_conanfile.txt"
@@ -91,6 +91,3 @@ class TentrisConan(ConanFile):
         cmake = CMake(self)
         cmake.configure()
         cmake.install()
-
-    def package_info(self):
-        self.cpp_info.libs = ["triple_store", "node_store", "sparql2tensor", "rdf_tensor"]

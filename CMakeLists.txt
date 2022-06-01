@@ -15,9 +15,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 SET("rdf4cpp_VERSION" "v0.0.3" CACHE STRING "" FORCE)
+
 # must be after rdf4cpp_VERSION is defined because it exposes the version
 
-if (NOT TENTRIS_BINARY_BUILD)
+#[[if (NOT TENTRIS_BINARY_BUILD)
     ### conan cmake
     if (NOT EXISTS "${CMAKE_CURRENT_BINARY_DIR}/conan.cmake")
         message(STATUS "Downloading conan.cmake from https://github.com/conan-io/cmake-conan")
@@ -37,7 +38,7 @@ if (NOT TENTRIS_BINARY_BUILD)
             SETTINGS ${settings})
 
     include(${CMAKE_CURRENT_BINARY_DIR}/conan_paths.cmake)
-endif ()
+endif ()]]
 
 if (NOT EXISTS ${CMAKE_CURRENT_BINARY_DIR}/CMakeCache.txt)
     if (NOT CMAKE_BUILD_TYPE)
@@ -62,16 +63,38 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(RDF4CPP)
 
+# Necessary includes
+include(GNUInstallDirs)
+include(CMakePackageConfigHelpers)
 
+# define export
 install(TARGETS rdf4cpp
-        EXPORT rdf4cpp_Targets
+        EXPORT rdf4cpp-targets
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+        INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+        )
 
-install(EXPORT rdf4cpp_Targets
-        FILE rdf4cppTargets.cmake
-        NAMESPACE Dice::
-        DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/rdf4cpp/cmake)
+# generate version file and install it
+write_basic_package_version_file(rdf4cpp-config-version.cmake
+        VERSION ${rdf4cpp_VERSION}
+        COMPATIBILITY SameMajorVersion)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/rdf4cpp-config-version.cmake DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+
+# dummy config file
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/dummy-config.cmake.in rdf4cpp-config.cmake @ONLY)
+
+# install header files
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+        FILES_MATCHING PATTERN "*.hpp")
+
+# Export the package
+install(EXPORT rdf4cpp-targets
+        FILE rdf4cpp-config.cmake
+        NAMESPACE rdf4cpp::
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/rdf4cpp)
+
 
 add_subdirectory(libs)
