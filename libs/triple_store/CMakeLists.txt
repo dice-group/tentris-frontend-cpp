@@ -51,7 +51,7 @@ write_basic_package_version_file(triple_store-config-version.cmake
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/triple_store-config-version.cmake DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 # dummy config file
-configure_file(../../cmake/dummy-config.cmake.in triple_store-config.cmake @ONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/../../cmake/dummy-config.cmake.in triple_store-config.cmake @ONLY)
 
 # install header files
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/

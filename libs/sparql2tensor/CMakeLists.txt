@@ -53,7 +53,7 @@ write_basic_package_version_file(sparql2tensor-config-version.cmake
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/sparql2tensor-config-version.cmake DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 # dummy config file
-configure_file(../../cmake/dummy-config.cmake.in sparql2tensor-config.cmake @ONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/../../cmake/dummy-config.cmake.in sparql2tensor-config.cmake @ONLY)
 
 # install header files
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/
