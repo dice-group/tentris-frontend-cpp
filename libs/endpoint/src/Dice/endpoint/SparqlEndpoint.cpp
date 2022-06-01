@@ -30,22 +30,31 @@ namespace Dice::endpoint {
 					return;
 
 				try {
-					endpoint::SparqlJsonResultSAXWriter json_writer{sparql_query->projected_variables_, 100'000};
+					if (sparql_query->ask_) {
+						bool ask_res = this->triplestore_.ask(*sparql_query, timeout);
+						std::string res = ask_res ? "true" : "false";
+						req->create_response(status_ok())
+								.append_header(http_field::content_type, "application/sparql-results+json")
+								.set_body(R"({ "head" : {}, "boolean" : )" + res + " }")
+								.done();
+					} else {
+						endpoint::SparqlJsonResultSAXWriter json_writer{sparql_query->projected_variables_, 100'000};
 
-					for (auto const &entry : this->triplestore_.query(*sparql_query, timeout)) {
-						json_writer.add(entry);
+						for (auto const &entry : this->triplestore_.query(*sparql_query, timeout)) {
+							json_writer.add(entry);
+						}
+						json_writer.close();
+
+						req->create_response(status_ok())
+								.append_header(http_field::content_type, "application/sparql-results+json")
+								.set_body(std::string{json_writer.string_view()})
+								.done();
+						spdlog::info("HTTP response {}: {} variables, {} solutions, {} bindings",
+									 status_ok(),
+									 sparql_query->projected_variables_.size(),
+									 json_writer.number_of_written_solutions(),
+									 json_writer.number_of_written_bindings());
 					}
-					json_writer.close();
-
-					req->create_response(status_ok())
-							.append_header(http_field::content_type, "application/sparql-results+json")
-							.set_body(std::string{json_writer.string_view()})
-							.done();
-					spdlog::info("HTTP response {}: {} variables, {} solutions, {} bindings",
-								 status_ok(),
-								 sparql_query->projected_variables_.size(),
-								 json_writer.number_of_written_solutions(),
-								 json_writer.number_of_written_bindings());
 				} catch (std::runtime_error const &timeout_exception) {
 					const auto timeout_message = fmt::format("Request processing timed out after {}.", this->timeout_duration_);
 					spdlog::warn("HTTP response {}: {}", status_gateway_time_out(), timeout_message);
