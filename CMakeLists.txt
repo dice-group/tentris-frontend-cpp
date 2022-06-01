@@ -104,7 +104,7 @@ FetchContent_MakeAvailable(RDF4CPP)
 
 # for rt and pthread linkage see:
 # * https://stackoverflow.com/questions/58848694/gcc-whole-archive-recipe-for-static-linking-to-pthread-stopped-working-in-rec
-# * https://stackoverflow.com/questions/35116327/when-g-static-link-pthread-cause-segmentation-fault-wh
+# * https://stackoverflow.com/questions/35116327/when-g-static-link-pthread-cause-segmentation-fault-why
 if (TENTRIS_STATIC)
     set(TENTRIS_STATIC_DEF -static)
     set(TENTRIS_PTHREAD_DEF -Wl,--whole-archive -lrt -lpthread -Wl,--no-whole-archive)
