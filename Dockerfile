@@ -6,7 +6,7 @@ ARG CONAN_PW="none"
 
 
 RUN apt-get -qq update && \
-    apt-get -qq install -y make cmake uuid-dev git openjdk-11-jdk python3-pip python3-setuptools python3-wheel libstdc++-11-dev clang-14 g++-11 pkg-config lld-14 autoconf libtool
+    apt-get -qq install -y make cmake uuid-dev git openjdk-11-jdk-headless python-is-python3 python3-pip python3-setuptools python3-wheel libstdc++-11-dev clang-14 g++-11 pkg-config lld-14 autoconf libtool
 RUN rm /usr/bin/ld && ln -s /usr/bin/lld-14 /usr/bin/ld
 ARG CXX="clang++-14"
 ARG CC="clang-14"
@@ -14,7 +14,7 @@ ENV CXXFLAGS="${CXXFLAGS} -march=${TENTRIS_MARCH}"
 ENV CMAKE_EXE_LINKER_FLAGS="-L/usr/local/lib/x86_64-linux-gnu -L/lib/x86_64-linux-gnu -L/usr/lib/x86_64-linux-gnu -L/usr/local/lib"
 
 # Compile more recent tcmalloc-minimal with clang-14 + -march
-RUN git clone --quiet --branch gperftools-2.9.1 https://github.com/gperftools/gperftools
+RUN git clone --quiet --branch gperftools-2.9.1 --depth 1 https://github.com/gperftools/gperftools
 WORKDIR /gperftools
 RUN ./autogen.sh
 RUN export LDFLAGS="${CMAKE_EXE_LINKER_FLAGS}" && ./configure \
@@ -22,18 +22,15 @@ RUN export LDFLAGS="${CMAKE_EXE_LINKER_FLAGS}" && ./configure \
     --disable-debugalloc \
     --enable-sized-delete \
     --enable-dynamic-sized-delete-support && \
-    make -j && \
+    make -j $(nproc) && \
     make install
 WORKDIR /
 
 # we need serd as static library. Not available from ubuntu repos
-RUN ln -s /usr/bin/python3 /usr/bin/python
-RUN git clone --quiet --branch v0.30.10 https://gitlab.com/drobilla/serd.git
-WORKDIR serd
-RUN git submodule update --quiet --init --recursive && \
-    ./waf configure --static && \
+RUN git clone --quiet --branch v0.30.10 --depth 1 --recurse-submodules --shallow-submodules https://gitlab.com/drobilla/serd.git
+WORKDIR /serd
+RUN ./waf configure --static && \
     ./waf install
-RUN rm /usr/bin/python
 WORKDIR /
 
 # install and configure conan
