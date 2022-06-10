@@ -27,7 +27,7 @@ RUN export LDFLAGS="${CMAKE_EXE_LINKER_FLAGS}" && ./configure \
 WORKDIR /
 
 # we need serd as static library. Not available from ubuntu repos
-RUN git clone --quiet --branch v0.30.10 --depth 1 --recurse-submodules --shallow-submodules https://gitlab.com/drobilla/serd.git
+RUN git clone --quiet --branch fix-stack-leak --depth 1 --recurse-submodules --shallow-submodules https://gitlab.com/drobilla/serd.git
 WORKDIR /serd
 RUN ./waf configure --static && \
     ./waf install
