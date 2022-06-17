@@ -113,8 +113,8 @@ namespace Dice::sparql2tensor::parser::visitors {
 				for (auto cur_op : group_patterns.back()) {
 					for (auto opt_op : opt_operands.back()) {
 						if (std::find(union_operands.back().begin(), union_operands.back().end(), opt_op) == union_operands.back().end()) {
-							query->odg_.addConnection(cur_op, opt_op);
-							query->odg_.addConnection(opt_op, cur_op);
+							query->odg_.add_connection(cur_op, opt_op);
+							query->odg_.add_connection(opt_op, cur_op);
 						}
 					}
 				}
@@ -380,12 +380,12 @@ namespace Dice::sparql2tensor::parser::visitors {
 			var_ids.push_back(query->var_to_id_[rdf4cpp::rdf::query::Variable(node)]);
 		}
 		// create new node in the operand dependency graph
-		auto v_id = query->odg_.addOperand(var_ids);
+		auto v_id = query->odg_.add_operand(var_ids);
 		auto &gp = group_patterns.back();
 		// iterate over the tps of the group and capture dependencies
 		for (auto iter = gp.rbegin(); iter != gp.rend(); iter++) {
 			std::set<char> done{};// only one edge per label between two nodes
-			auto const &tp_vars = query->odg_.operandLabels(*iter);
+			auto const &tp_vars = query->odg_.operand_var_ids(*iter);
 			bool cart = true;
 			for (auto const &var : var_ids) {
 				for (auto const &tp_var : tp_vars) {
@@ -394,15 +394,15 @@ namespace Dice::sparql2tensor::parser::visitors {
 						if (done.contains(var))
 							continue;
 						done.insert(var);
-						query->odg_.addDependency(*iter, v_id, var);
-						query->odg_.addDependency(v_id, *iter, var);
+						query->odg_.add_dependency(*iter, v_id, var);
+						query->odg_.add_dependency(v_id, *iter, var);
 					}
 				}
 			}
 			// the triple patterns do not share a variable --> cartesian join
 			if (cart) {
-				query->odg_.addDependency(*iter, v_id);
-				query->odg_.addDependency(v_id, *iter);
+				query->odg_.add_dependency(*iter, v_id);
+				query->odg_.add_dependency(v_id, *iter);
 			}
 		}
 		// add current tp/node to the active group pattern
@@ -411,22 +411,22 @@ namespace Dice::sparql2tensor::parser::visitors {
 
 	void SelectAskQueryVisitor::group_dependencies(std::vector<uint8_t> const &prev_group, std::vector<uint8_t> const &cur_group, bool bidirectional) {
 		for (const auto &prev_tp : prev_group) {
-			auto const &prev_labels = query->odg_.operandLabels(prev_tp);
+			auto const &prev_labels = query->odg_.operand_var_ids(prev_tp);
 			for (const auto &cur_tp : cur_group) {
-				auto const &cur_labels = query->odg_.operandLabels(cur_tp);
+				auto const &cur_labels = query->odg_.operand_var_ids(cur_tp);
 				bool done = false;
 				for (auto const &prev_label : prev_labels) {
 					if (std::find(cur_labels.begin(), cur_labels.end(), prev_label) != cur_labels.end()) {
-						query->odg_.addDependency(prev_tp, cur_tp, prev_label);
+						query->odg_.add_dependency(prev_tp, cur_tp, prev_label);
 						if (bidirectional)
-							query->odg_.addDependency(cur_tp, prev_tp, prev_label);
+							query->odg_.add_dependency(cur_tp, prev_tp, prev_label);
 						done = true;
 					}
 				}
 				if (not done) {
-					query->odg_.addDependency(prev_tp, cur_tp);
+					query->odg_.add_dependency(prev_tp, cur_tp);
 					if (bidirectional)
-						query->odg_.addDependency(cur_tp, prev_tp);
+						query->odg_.add_dependency(cur_tp, prev_tp);
 				}
 			}
 		}
@@ -436,8 +436,8 @@ namespace Dice::sparql2tensor::parser::visitors {
 												  std::vector<uint8_t> const &cur_group) {
 		for (const auto &prev_tp : prev_group) {
 			for (const auto &cur_tp : cur_group) {
-				query->odg_.addConnection(prev_tp, cur_tp);
-				query->odg_.addConnection(cur_tp, prev_tp);
+				query->odg_.add_connection(prev_tp, cur_tp);
+				query->odg_.add_connection(cur_tp, prev_tp);
 			}
 		}
 	}
