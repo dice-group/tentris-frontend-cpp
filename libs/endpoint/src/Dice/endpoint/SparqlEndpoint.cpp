@@ -31,7 +31,7 @@ namespace Dice::endpoint {
 
 				try {
 					if (sparql_query->ask_) {
-						bool ask_res = this->triplestore_.ask(*sparql_query, timeout);
+						bool ask_res = this->triplestore_.eval_ask(*sparql_query, timeout);
 						std::string res = ask_res ? "true" : "false";
 						req->create_response(status_ok())
 								.append_header(http_field::content_type, "application/sparql-results+json")
@@ -40,7 +40,7 @@ namespace Dice::endpoint {
 					} else {
 						endpoint::SparqlJsonResultSAXWriter json_writer{sparql_query->projected_variables_, 100'000};
 
-						for (auto const &entry : this->triplestore_.query(*sparql_query, timeout)) {
+						for (auto const &entry : this->triplestore_.eval_select(*sparql_query, timeout)) {
 							json_writer.add(entry);
 						}
 						json_writer.close();

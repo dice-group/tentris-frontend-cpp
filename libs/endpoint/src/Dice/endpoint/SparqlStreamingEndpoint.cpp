@@ -38,7 +38,7 @@ namespace Dice::endpoint {
 				resp.append_header(http_field::content_type, "application/sparql-results+json");
 
 				try {
-					for (auto const &entry : this->triplestore_.query(*sparql_query, timeout)) {
+					for (auto const &entry : this->triplestore_.eval_select(*sparql_query, timeout)) {
 						json_writer.add(entry);
 						if (json_writer.full()) {
 							resp.append_chunk(std::string{json_writer.string_view()});

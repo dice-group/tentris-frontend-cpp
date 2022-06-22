@@ -26,15 +26,12 @@ namespace Dice::triple_store {
 
 	public:
 		using allocator_type = rdf_tensor::allocator_type;
-		using Entry = rdf_tensor::Entry;
 
 	private:
-
 		HypertrieContext context_;
 		BoolHypertrie hypertrie_;
 
 	public:
-
 		explicit TripleStore(allocator_type const &allocator)
 			: context_(allocator),
 			  hypertrie_(3, HypertrieContext_ptr(&context_)) {}
@@ -50,9 +47,9 @@ namespace Dice::triple_store {
 			HypertrieBulkInserter bulk_inserter{hypertrie_, bulk_size, call_back};
 			AddTripleCallback_function add_entry_callback =
 					[&bulk_inserter](rdf4cpp::rdf::Node subj, rdf4cpp::rdf::Node pred, rdf4cpp::rdf::Node obj) noexcept -> void {
-				hypertrie::internal::raw::SingleEntry<3, htt_t> entry{{subj, pred, obj}};
-				bulk_inserter.add(entry);
-			};
+						hypertrie::internal::raw::SingleEntry<3, htt_t> entry{{subj, pred, obj}};
+						bulk_inserter.add(entry);
+					};
 			serd_load(file_path, add_entry_callback);
 		}
 
@@ -63,23 +60,16 @@ namespace Dice::triple_store {
 			hypertrie_.set(key, true);
 		}
 
+		/**
+		 * @brief Evaluation of SPARQL SELECT queries.
+		 * @param query The parsed SPARQL query.
+		 * @param endtime The timeout value
+		 * @return A generator yielding the solutions of the query
+		 */
 		std::generator<rdf_tensor::Entry const &>
-		query(const sparql2tensor::SPARQLQuery& query,
-			  std::chrono::steady_clock::time_point endtime = std::chrono::steady_clock::time_point::max()) {
-			std::vector<const_BoolHypertrie> operands;
-			for (auto const &slice_key : query.get_slice_keys()) {
-				auto slice_result = hypertrie_[slice_key];
-				if (slice_key.get_fixed_depth() == 3) {
-					auto entry_exists = std::get<bool>(slice_result);
-					BoolHypertrie ht_0{0, &context_};
-					if (entry_exists)
-						ht_0.set({}, true);
-					operands.push_back(ht_0);
-				} else {
-					auto operand = std::get<const_BoolHypertrie>(slice_result);
-					operands.push_back(std::move(operand));
-				}
-			}
+		eval_select(const sparql2tensor::SPARQLQuery &query,
+					std::chrono::steady_clock::time_point endtime = std::chrono::steady_clock::time_point::max()) {
+			auto operands = generate_operands(query.get_slice_keys());
 			std::vector<char> proj_vars_id{};
 			for (auto const &proj_var : query.projected_variables_) {
 				proj_vars_id.push_back(query.var_to_id_.at(proj_var));
@@ -99,10 +89,53 @@ namespace Dice::triple_store {
 			}
 		}
 
-		bool ask(const sparql2tensor::SPARQLQuery& query,
-				 std::chrono::steady_clock::time_point endtime = std::chrono::steady_clock::time_point::max()) {
+		/**
+		 * @brief Evaluation of SPARQL ASK queries.
+		 * @param query The parsed SPARQL query.
+		 * @param endtime The timeout value
+		 * @return The result of the ask query (true or false).
+		 */
+		bool eval_ask(const sparql2tensor::SPARQLQuery &query,
+					  std::chrono::steady_clock::time_point endtime = std::chrono::steady_clock::time_point::max()) {
+			auto operands = generate_operands(query.get_slice_keys());
+			rdf_tensor::Query q{query.odg_, operands, {}, endtime};
+			return Dice::query::Evaluation::evaluate_ask<htt_t, allocator_type>(q);
+		}
+
+		size_t count(const sparql2tensor::SPARQLQuery &query,
+					 std::chrono::steady_clock::time_point endtime = std::chrono::steady_clock::time_point::max()) {
+			using namespace sparql2tensor;
+			if (query.triple_patterns_.size() == 1) {// O(1)
+				auto slice_key = query.get_slice_keys()[0];
+				if (slice_key.get_fixed_depth() == 3)
+					return (size_t) std::get<bool>(get_hypertrie()[slice_key]);
+				else
+					return std::get<const_BoolHypertrie>(get_hypertrie()[slice_key]).size();
+			} else {
+				size_t count = 0;
+				for (auto const &entry : this->eval_select(query, endtime))
+					count += entry.value();
+				return count;
+			}
+		}
+
+		bool contains(const rdf4cpp::rdf::Statement &statement) {
+			return hypertrie_[Key{statement.subject(), statement.predicate(), statement.object()}];
+		}
+
+		[[nodiscard]] size_t size() const {
+			return hypertrie_.size();
+		}
+
+	private:
+		/**
+		 * @brief Generates the tensor operands of a query
+		 * @param slice_keys The slice keys corresponding to the query being evaluated
+		 * @return A vector of tensor operands (const_BoolHypertries).
+		 */
+		std::vector<const_BoolHypertrie> generate_operands(std::vector<rdf_tensor::SliceKey> const &slice_keys) {
 			std::vector<const_BoolHypertrie> operands;
-			for (auto const &slice_key : query.get_slice_keys()) {
+			for (auto const &slice_key : slice_keys) {
 				auto slice_result = hypertrie_[slice_key];
 				if (slice_key.get_fixed_depth() == 3) {
 					auto entry_exists = std::get<bool>(slice_result);
@@ -115,34 +148,7 @@ namespace Dice::triple_store {
 					operands.push_back(std::move(operand));
 				}
 			}
-			rdf_tensor::Query q{query.odg_, operands, {}, endtime};
-			return Dice::query::Evaluation::evaluate_ask<htt_t, allocator_type>(q);
-		}
-
-		size_t count(const sparql2tensor::SPARQLQuery& query,
-					 std::chrono::steady_clock::time_point endtime = std::chrono::steady_clock::time_point::max()) {
-			using namespace sparql2tensor;
-			if (query.triple_patterns_.size() == 1) {// O(1)
-				auto slice_key = query.get_slice_keys()[0];
-				if (slice_key.get_fixed_depth() == 3)
-					return (size_t) std::get<bool>(get_hypertrie()[slice_key]);
-				else
-					return std::get<const_BoolHypertrie>(get_hypertrie()[slice_key]).size();
-			} else {
-				size_t count = 0;
-				for (auto const &entry : this->query(query, endtime))
-					count += entry.value();
-				return count;
-			}
-		}
-
-		bool contains(const rdf4cpp::rdf::Statement &statement) {
-			return hypertrie_[Key{statement.subject(), statement.predicate(), statement.object()}];
-		}
-
-
-		[[nodiscard]] size_t size() const {
-			return hypertrie_.size();
+			return operands;
 		}
 	};
 };    // namespace Dice::triple_store
