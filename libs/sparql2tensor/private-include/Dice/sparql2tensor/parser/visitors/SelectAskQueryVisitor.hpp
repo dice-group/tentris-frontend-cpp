@@ -20,11 +20,15 @@ namespace Dice::sparql2tensor::parser::visitors {
 		rdf4cpp::rdf::Node active_subject;
 		rdf4cpp::rdf::Node active_predicate;
 		char var_id = 'a';
-		// for the construction of the operand dependency graph
+		/* for the construction of the operand dependency graph */
+		// stack of group graph patterns
 		std::deque<std::vector<uint8_t>> group_patterns;
+		// stack of operands appearing in optional patterns; one vector per graph pattern
 		std::deque<std::vector<uint8_t>> opt_operands;
-		std::deque<std::vector<uint8_t>> union_operands; // used to avoid connecting union patterns of the same optional pattern
-		// for the "rewriting"
+		// stack of operands appearing in union patterns found in optional patterns; one vector per graph pattern
+		// it is used to avoid creating cartesian connections between optional operands of the same union pattern
+		std::deque<std::vector<uint8_t>> union_operands;
+		/* for the "query rewriting" */
 		std::vector<std::vector<SparqlParser::TriplesBlockContext *>> triples_blocks;
 		std::vector<std::vector<SparqlParser::OptionalGraphPatternContext *>> optional_blocks;
 
@@ -89,23 +93,32 @@ namespace Dice::sparql2tensor::parser::visitors {
 		void register_var(rdf4cpp::rdf::query::Variable const &var);
 
 		/**
-		 * @brief: Creates a new node in the operand dependency graph.
-		 * Creates dependencies for the new node within the same group graph pattern
+		 * @brief: Creates a new node in the operand dependency graph and the dependencies between
+		 * the new node and the nodes corresponding to triple patterns of the same group graph pattern.
+		 * @param tp A triple pattern
 		 */
 		void add_tp(rdf4cpp::rdf::query::TriplePattern const &tp);
 
 		/**
-		 * @brief: Creates dependencies between group graph patterns
+		 * @brief: Creates dependencies between the nodes (i.e., triple patterns) of differnt group graph patterns.
+		 * @param prev_group The previous group graph pattern.
+		 * @param cur_group The current group graph pattern.
+		 * @param bidirectional Whether the edges should be bidirectional (e.g., in OPTIONAL they are unidirectional).
 		 */
 		void group_dependencies(std::vector<uint8_t> const &prev_group, std::vector<uint8_t> const &cur_group, bool bidirectional = false);
 
 		/**
-		 * @brief: Creates simple connections between group graph patterns (important to capture optional cartesian products)
+		 * @brief: Creates connections between group graph patterns.
+		 * Used to capture cartesian products between different optional group graph patterns.
+		 * @param prev_group The previous group graph pattern.
+		 * @param cur_group The current group graph pattern.
 		 */
 		void group_connections(std::vector<uint8_t> const &prev_group, std::vector<uint8_t> const &cur_group);
 
 		/**
-		 * @brief: Visitor for well-designed SPARQL patterns
+		 * @brief: A visitor for well-designed SPARQL patterns only.
+		 * @param ctx A GroupGraphPatternSub context.
+		 * @param gou_ctxs A vector of GroupOrUnionGraphPattern contexts.
 		 */
 		void visitWellDesignedPattern(SparqlParser::GroupGraphPatternSubContext *ctx,
 									  std::vector<SparqlParser::GroupOrUnionGraphPatternContext *> gou_ctxs);

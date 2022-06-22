@@ -85,33 +85,37 @@ namespace Dice::sparql2tensor::parser::visitors {
 
 	void SelectAskQueryVisitor::visitWellDesignedPattern(SparqlParser::GroupGraphPatternSubContext *ctx,
 														 std::vector<SparqlParser::GroupOrUnionGraphPatternContext *> gou_ctxs) {
-		/*
-		 * The visitor first collects all triple patterns, group/union graph patterns and optional patterns
-		 * For each union all triple patterns and optional patterns that are explored so far are visited
-		 */
+		// store the context of the first triples block, if it is provided
 		if (ctx->triplesBlock())
 			triples_blocks.back().push_back(ctx->triplesBlock());
+		// iterate over all GroupGraphPatternSubs
 		for (auto sub_ctx : ctx->groupGraphPatternSubList()) {
 			if (sub_ctx->graphPatternNotTriples()) {
+				// store all GroupOrUnionGraphPatterns that appear in the pattern
 				if (sub_ctx->graphPatternNotTriples()->groupOrUnionGraphPattern())
 					gou_ctxs.push_back(sub_ctx->graphPatternNotTriples()->groupOrUnionGraphPattern());
+				// store all OptionalGraphPatterns that appear in the pattern
 				else if (sub_ctx->graphPatternNotTriples()->optionalGraphPattern())
 					optional_blocks.back().push_back(sub_ctx->graphPatternNotTriples()->optionalGraphPattern());
 			}
+			// store all triples blocks that appear in the pattern
 			if (sub_ctx->triplesBlock())
 				triples_blocks.back().push_back(sub_ctx->triplesBlock());
 		}
+		// the current pattern does not contain any GroupOrUnionGraphPatterns
 		if (gou_ctxs.empty()) {
+			// visit all triples blocks first
 			for (auto tb_ctx : triples_blocks.back()) {
 				visitTriplesBlock(tb_ctx);
 			}
-			// if we are in an optional we need to capture dependencies
+			// if we are in an optional pattern we need to capture dependencies
 			if (not opt_operands.empty()) {
 				// dependencies with parent group
 				group_dependencies(group_patterns[group_patterns.size() - 2], group_patterns.back());
-				// cartesian dependencies between optional patterns
+				// cartesian connections between optional patterns
 				for (auto cur_op : group_patterns.back()) {
 					for (auto opt_op : opt_operands.back()) {
+						// do not connect groups of the same union pattern
 						if (std::find(union_operands.back().begin(), union_operands.back().end(), opt_op) == union_operands.back().end()) {
 							query->odg_.add_connection(cur_op, opt_op);
 							query->odg_.add_connection(opt_op, cur_op);
@@ -125,6 +129,7 @@ namespace Dice::sparql2tensor::parser::visitors {
 			}
 			opt_operands.emplace_back();
 			union_operands.emplace_back();
+			// visit all optional patterns
 			for (auto opt_ctx : optional_blocks.back()) {
 				group_patterns.emplace_back();
 				triples_blocks.emplace_back();
@@ -139,13 +144,19 @@ namespace Dice::sparql2tensor::parser::visitors {
 			opt_operands.pop_back();
 			// prepare for the next union
 			group_patterns.back().clear();
-		} else {
+		}
+		// the pattern contains at least one GroupOrUnionGraphPattern
+		// in case of multiple GroupOrUnionGraphPatterns, join operations are distributed over unions
+		else {
 			SparqlParser::GroupOrUnionGraphPatternContext *cur_gou_ctx = gou_ctxs.back();
 			gou_ctxs.pop_back();
 			size_t current_tbs = triples_blocks.back().size();
 			size_t current_opts = optional_blocks.back().size();
+			// visit each group graph pattern of the GroupOrUnionGraphPattern
+			// while visiting each group graph pattern, the triples and optional blocks stored until this point will also be visited
 			for (auto grp_ctx : cur_gou_ctx->groupGraphPattern()) {
 				visitWellDesignedPattern(grp_ctx->groupGraphPatternSub(), gou_ctxs);
+				// we resize the vectors in order to keep only the blocks that were present before visiting grp_ctx
 				triples_blocks.back().resize(current_tbs);
 				optional_blocks.back().resize(current_opts);
 			}
@@ -409,12 +420,19 @@ namespace Dice::sparql2tensor::parser::visitors {
 		gp.push_back(v_id);
 	}
 
-	void SelectAskQueryVisitor::group_dependencies(std::vector<uint8_t> const &prev_group, std::vector<uint8_t> const &cur_group, bool bidirectional) {
+	void SelectAskQueryVisitor::group_dependencies(std::vector<uint8_t> const &prev_group,
+												   std::vector<uint8_t> const &cur_group,
+												   bool bidirectional) {
+		// iterate of the triple patterns (nodes) of the previous group
 		for (const auto &prev_tp : prev_group) {
+			// get the variable ids of the node
 			auto const &prev_labels = query->odg_.operand_var_ids(prev_tp);
+			// iterate over the triple patterns (nodes) of the current group
 			for (const auto &cur_tp : cur_group) {
+				// get the variable ids of the node
 				auto const &cur_labels = query->odg_.operand_var_ids(cur_tp);
 				bool done = false;
+				// create labelled dependencies if the nodes share variable ids
 				for (auto const &prev_label : prev_labels) {
 					if (std::find(cur_labels.begin(), cur_labels.end(), prev_label) != cur_labels.end()) {
 						query->odg_.add_dependency(prev_tp, cur_tp, prev_label);
@@ -423,6 +441,7 @@ namespace Dice::sparql2tensor::parser::visitors {
 						done = true;
 					}
 				}
+				// if the nodes do not share a label, create an unlabelled dependency
 				if (not done) {
 					query->odg_.add_dependency(prev_tp, cur_tp);
 					if (bidirectional)
