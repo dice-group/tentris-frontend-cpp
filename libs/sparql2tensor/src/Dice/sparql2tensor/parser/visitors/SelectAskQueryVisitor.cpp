@@ -58,10 +58,12 @@ namespace Dice::sparql2tensor::parser::visitors {
 	}
 
 	antlrcpp::Any SelectAskQueryVisitor::visitWhereClause(SparqlParser::WhereClauseContext *ctx) {
+		// push a new entry into the stacks, as we are about to visit a graph pattern
 		group_patterns.emplace_back();
 		triples_blocks.emplace_back();
 		optional_blocks.emplace_back();
 		visitGroupGraphPattern(ctx->groupGraphPattern());
+		// pop the top entry of the stacks, as we have finished visiting the graph pattern
 		optional_blocks.pop_back();
 		triples_blocks.pop_back();
 		group_patterns.pop_back();
@@ -90,13 +92,13 @@ namespace Dice::sparql2tensor::parser::visitors {
 			triples_blocks.back().push_back(ctx->triplesBlock());
 		// iterate over all GroupGraphPatternSubs
 		for (auto sub_ctx : ctx->groupGraphPatternSubList()) {
-			if (sub_ctx->graphPatternNotTriples()) {
+			if (auto const graph_pattern_not_triples = sub_ctx->graphPatternNotTriples()) {
 				// store all GroupOrUnionGraphPatterns that appear in the pattern
-				if (sub_ctx->graphPatternNotTriples()->groupOrUnionGraphPattern())
-					gou_ctxs.push_back(sub_ctx->graphPatternNotTriples()->groupOrUnionGraphPattern());
+				if (graph_pattern_not_triples->groupOrUnionGraphPattern())
+					gou_ctxs.push_back(graph_pattern_not_triples->groupOrUnionGraphPattern());
 				// store all OptionalGraphPatterns that appear in the pattern
-				else if (sub_ctx->graphPatternNotTriples()->optionalGraphPattern())
-					optional_blocks.back().push_back(sub_ctx->graphPatternNotTriples()->optionalGraphPattern());
+				else if (graph_pattern_not_triples->optionalGraphPattern())
+					optional_blocks.back().push_back(graph_pattern_not_triples->optionalGraphPattern());
 			}
 			// store all triples blocks that appear in the pattern
 			if (sub_ctx->triplesBlock())
@@ -131,11 +133,15 @@ namespace Dice::sparql2tensor::parser::visitors {
 			union_operands.emplace_back();
 			// visit all optional patterns
 			for (auto opt_ctx : optional_blocks.back()) {
+				// push a new vector into the stacks, as we are going to visit a new graph pattern
 				group_patterns.emplace_back();
 				triples_blocks.emplace_back();
 				optional_blocks.emplace_back();
 				visitWellDesignedPattern(opt_ctx->groupGraphPattern()->groupGraphPatternSub(), {});
+				// clear the vector from the operands of the visited graph pattern
+				// the top vector of the stack is shared across all optional subgraph pattern of the current graph pattern
 				union_operands.back().clear();
+				// pop the top vector from the stack, as we have finished processing the graph pattern
 				optional_blocks.pop_back();
 				triples_blocks.pop_back();
 				group_patterns.pop_back();
@@ -395,7 +401,7 @@ namespace Dice::sparql2tensor::parser::visitors {
 		auto &gp = group_patterns.back();
 		// iterate over the tps of the group and capture dependencies
 		for (auto iter = gp.rbegin(); iter != gp.rend(); iter++) {
-			std::set<char> done{};// only one edge per label between two nodes
+			boost::container::flat_set<char> done{};// only one edge per label between two nodes
 			auto const &tp_vars = query->odg_.operand_var_ids(*iter);
 			bool cart = true;
 			for (auto const &var : var_ids) {
