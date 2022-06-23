@@ -337,24 +337,25 @@ namespace Dice::sparql2tensor::parser::visitors {
 
 	antlrcpp::Any SelectAskQueryVisitor::visitNumericLiteral(SparqlParser::NumericLiteralContext *ctx) {
 		auto number = ctx->getText();
-		if (ctx->numericLiteralPositive()) {
-			if (ctx->numericLiteralPositive()->DECIMAL_POSITIVE())
+		if (auto pos_literal_ctx = ctx->numericLiteralPositive(); pos_literal_ctx) {
+			if (pos_literal_ctx->DECIMAL_POSITIVE())
 				return rdf4cpp::rdf::Literal(number, rdf4cpp::rdf::IRI("http://www.w3.org/2001/XMLSchema#decimal"));
-			else if (ctx->numericLiteralPositive()->DOUBLE_POSITIVE())
+			else if (pos_literal_ctx->DOUBLE_POSITIVE())
 				return rdf4cpp::rdf::Literal(number, rdf4cpp::rdf::IRI("http://www.w3.org/2001/XMLSchema#double"));
 			else
 				return rdf4cpp::rdf::Literal(number, rdf4cpp::rdf::IRI("http://www.w3.org/2001/XMLSchema#integer"));
-		} else if (ctx->numericLiteralPositive()) {
-			if (ctx->numericLiteralNegative()->DECIMAL_NEGATIVE())
+		} else if (auto neg_literal_ctx = ctx->numericLiteralNegative(); neg_literal_ctx) {
+			if (neg_literal_ctx->DECIMAL_NEGATIVE())
 				return rdf4cpp::rdf::Literal(number, rdf4cpp::rdf::IRI("http://www.w3.org/2001/XMLSchema#decimal"));
-			else if (ctx->numericLiteralNegative()->DOUBLE_NEGATIVE())
+			else if (neg_literal_ctx->DOUBLE_NEGATIVE())
 				return rdf4cpp::rdf::Literal(number, rdf4cpp::rdf::IRI("http://www.w3.org/2001/XMLSchema#double"));
 			else
 				return rdf4cpp::rdf::Literal(number, rdf4cpp::rdf::IRI("http://www.w3.org/2001/XMLSchema#integer"));
 		} else {
-			if (ctx->numericLiteralUnsigned()->DECIMAL())
+			auto unsigned_literal_ctx = ctx->numericLiteralUnsigned();
+			if (unsigned_literal_ctx->DECIMAL())
 				return rdf4cpp::rdf::Literal(number, rdf4cpp::rdf::IRI("http://www.w3.org/2001/XMLSchema#decimal"));
-			else if (ctx->numericLiteralUnsigned()->DOUBLE())
+			else if (unsigned_literal_ctx->DOUBLE())
 				return rdf4cpp::rdf::Literal(number, rdf4cpp::rdf::IRI("http://www.w3.org/2001/XMLSchema#double"));
 			else
 				return rdf4cpp::rdf::Literal(number, rdf4cpp::rdf::IRI("http://www.w3.org/2001/XMLSchema#integer"));
