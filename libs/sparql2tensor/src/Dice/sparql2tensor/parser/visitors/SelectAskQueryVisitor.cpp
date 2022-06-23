@@ -92,7 +92,7 @@ namespace Dice::sparql2tensor::parser::visitors {
 			triples_blocks.back().push_back(ctx->triplesBlock());
 		// iterate over all GroupGraphPatternSubs
 		for (auto sub_ctx : ctx->groupGraphPatternSubList()) {
-			if (auto const graph_pattern_not_triples = sub_ctx->graphPatternNotTriples()) {
+			if (auto graph_pattern_not_triples = sub_ctx->graphPatternNotTriples()) {
 				// store all GroupOrUnionGraphPatterns that appear in the pattern
 				if (graph_pattern_not_triples->groupOrUnionGraphPattern())
 					gou_ctxs.push_back(graph_pattern_not_triples->groupOrUnionGraphPattern());
