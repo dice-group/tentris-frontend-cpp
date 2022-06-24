@@ -2,9 +2,7 @@
 find_package(dice-hash REQUIRED)
 
 # Find external libraries
-find_library(serd
-        NAMES serd-0
-        NO_CACHE)
+find_package(serd REQUIRED VERSION EXACT 0)
 
 # Define the library
 add_library(triple_store
@@ -22,7 +20,7 @@ target_link_libraries(triple_store PUBLIC
         tentris::sparql2tensor
         tentris::rdf_tensor
         PRIVATE
-        ${serd}
+        serd::serd
         )
 
 ## Packaging and exporting the target

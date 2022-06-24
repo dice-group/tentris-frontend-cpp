@@ -54,6 +54,7 @@ class Recipe(ConanFile):
         "restinio/0.6.15",
         "hypertrie/0.9.0@dice-group/rc1",
         "metall/0.20@dice-group/stable",
+        "serd/0.30.13-f6437f", # private dependency
         "rdf4cpp/0.0.4@dice-group/experimental",
         "sparql-parser-base/0.2.2@dice-group/stable",
         "dice-hash/0.3.0@dice-group/stable",
@@ -164,7 +165,8 @@ class Recipe(ConanFile):
         self.cpp_info.components["triple_store"].requires = [
             "sparql2tensor",
             "rdf_tensor",
-        ]        # todo: add serd dependency
+            "serd::serd"
+        ]
 
         # self.cpp_info.components["endpoint"].requires = [
         #     "rdf_tensor",
