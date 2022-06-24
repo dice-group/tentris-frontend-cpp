@@ -3,6 +3,7 @@ find_package(Boost REQUIRED)
 find_package(hypertrie REQUIRED)
 find_package(Metall REQUIRED)
 find_package(rdf4cpp REQUIRED)
+find_package(dice-hash REQUIRED)
 
 # Define the library
 add_library(rdf_tensor INTERFACE)
@@ -12,6 +13,7 @@ target_link_libraries(rdf_tensor INTERFACE
         hypertrie::hypertrie
         Metall::Metall
         Boost::headers
+        dice-hash::dice-hash # todo: shouldn't this come with hypertrie?
         )
 
 target_include_directories(rdf_tensor INTERFACE

@@ -24,9 +24,9 @@ target_include_directories(endpoint PUBLIC
 set_target_properties(endpoint PROPERTIES
         VERSION ${PROJECT_VERSION}
         SOVERSION ${PROJECT_VERSION_MAJOR}
-        INTERFACE_CXX_STANDARD 20
-        INTERFACE_CXX_STANDARD_REQUIRED YES
-        INTERFACE_CXX_EXTENSIONS NO
+        CXX_STANDARD 20
+        CXX_STANDARD_REQUIRED YES
+        CXX_EXTENSIONS NO
         )
 
 target_link_libraries(endpoint PUBLIC

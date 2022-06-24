@@ -11,7 +11,7 @@
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/writer.h>
 
-#include <itertools.hpp>
+#include <cppitertools/itertools.hpp>
 #include <rdf4cpp/rdf.hpp>
 
 #include <Dice/rdf_tensor/Query.hpp>

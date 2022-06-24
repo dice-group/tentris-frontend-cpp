@@ -7,7 +7,6 @@ from conans.util.files import rmdir
 
 
 class Recipe(ConanFile):
-
     # Optional metadata
     author = "<Put your name here> <And your email here>"
     url = "<Package recipe repository url here, for issues about the package>"
@@ -52,6 +51,7 @@ class Recipe(ConanFile):
         "boost/1.79.0",
         "fmt/8.1.1",
         "restinio/0.6.15",
+        "expected-lite/0.6.0",  # overrides restinio dependency
         "hypertrie/0.9.0@dice-group/rc1",
         "metall/0.20@dice-group/stable",
         "serd/0.30.13-f6437f", # private dependency
@@ -61,22 +61,22 @@ class Recipe(ConanFile):
         "cxxopts/2.2.1",
         # override for conflict between sparql-parser and rdf-parser
         "robin-hood-hashing/3.11.5",
-        # "taskflow/3.3.0",
-        # "cppitertools/2.1",
-        # "rapidjson/cci.20211112",
+        "taskflow/3.3.0",
+        "cppitertools/2.1",
+        "rapidjson/cci.20211112",
         # "nlohmann_json/3.10.5",
-        # "spdlog/1.10.0",
+        "spdlog/1.10.0",
         # "vincentlaucsb-csv-parser/2.1.3",
     )
 
-    generators = ("cmake_find_package",) # ("cmake_find_package", "CMakeDeps", "CMakeToolchain")  # ("CMakeDeps", "cmake_find_package")
+    generators = ("cmake_find_package",)
 
     # Sources are located in the same place as this recipe, copy them to the recipe
     exports_sources = "libs/*", "CMakeLists.txt", "cmake/*", "lib_conanfile.txt"
 
     def build_requirements(self):
         # useful for example for conditional build_requires
-        pass # todo: use for e.g. sparql-parser-base?
+        pass  # todo: use for e.g. sparql-parser-base?
 
     def config_options(self):
         if self.settings.os == "Windows":
