@@ -22,13 +22,13 @@ namespace Dice::sparql2tensor::parser::visitors {
 		char var_id = 'a';
 		/* for the construction of the operand dependency graph */
 		// stack of group graph patterns
-		std::deque<std::vector<uint8_t>> group_patterns;
+		std::vector<std::vector<uint8_t>> group_patterns;
 		// stack of operands appearing in optional patterns; one vector per graph pattern
-		std::deque<std::vector<uint8_t>> opt_operands;
+		std::vector<std::vector<uint8_t>> opt_operands;
 		// stack of operands appearing in union patterns found in optional patterns; one vector per graph pattern
 		// it is used to avoid creating cartesian connections between optional operands of the same union pattern
-		// once an optional sub graph pattern is visited, this vector need to be cleared
-		std::deque<std::vector<uint8_t>> union_operands;
+		// once an optional sub graph pattern is visited, this vector needs to be cleared
+		std::vector<std::vector<uint8_t>> union_operands;
 		/* for the "query rewriting" */
 		std::vector<std::vector<SparqlParser::TriplesBlockContext *>> triples_blocks;
 		std::vector<std::vector<SparqlParser::OptionalGraphPatternContext *>> optional_blocks;
