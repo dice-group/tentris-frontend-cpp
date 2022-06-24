@@ -11,7 +11,7 @@ add_library(triple_store
         src/Dice/triple_store/SerdLoad.cpp
         )
 
-add_library(Dice::triple_store ALIAS triple_store)
+add_library(tentris::triple_store ALIAS triple_store)
 
 target_include_directories(triple_store PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>

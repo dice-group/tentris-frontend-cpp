@@ -1,14 +1,10 @@
 find_package(Taskflow REQUIRED)
 find_package(restinio REQUIRED)
 find_package(spdlog REQUIRED)
+find_package(cppitertools REQUIRED)
 
 # TODO: replace with conan package
-add_library(rapidjson INTERFACE)
-add_library(rapidjson::rapidjson ALIAS rapidjson)
-
-target_include_directories(rapidjson INTERFACE
-        ${CMAKE_CURRENT_SOURCE_DIR}/../../thirdparty/RapidJSON/include
-        )
+find_package(RapidJSON REQUIRED)
 
 add_library(endpoint
         src/Dice/endpoint/HTTPServer.cpp
@@ -41,7 +37,7 @@ target_link_libraries(endpoint PUBLIC
         PRIVATE
         spdlog::spdlog
         cppitertools::cppitertools
-        rapidjson::rapidjson
+        RapidJSON::RapidJSON
         )
 
 include(${PROJECT_SOURCE_DIR}/cmake/install_library.cmake)

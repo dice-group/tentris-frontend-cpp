@@ -19,4 +19,4 @@ target_include_directories(rdf_tensor INTERFACE
         )
 
 include(${PROJECT_SOURCE_DIR}/cmake/install_library.cmake)
-install_component(rdf_tensor src)
+install_interface_component(rdf_tensor src)
