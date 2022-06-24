@@ -35,7 +35,7 @@ namespace Dice::endpoint {
 							.set_body(fmt::format("{}", count))
 							.done();
 					spdlog::info("HTTP response {}: counted {} results", status_ok(), count);
-				} catch (Dice::einsum::TimeoutException const &timeout_exception) {
+				} catch (std::runtime_error const &timeout_exception) {
 					const auto timeout_message = fmt::format("Request processing timed out after {}.", this->timeout_duration_);
 					spdlog::warn("HTTP response {}: {}", status_gateway_time_out(), timeout_message);
 					req->create_response(status_gateway_time_out()).set_body(timeout_message).done();

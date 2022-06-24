@@ -1,14 +1,13 @@
-cmake_minimum_required(VERSION 3.15)
+cmake_minimum_required(VERSION 3.18)
 project(tentris
         LANGUAGES CXX
-        VERSION 1.2.3)
+        VERSION 1.3.0)
 include(GNUInstallDirs)
 
 SET("tentris_lib_VERSION" "${tentris_VERSION}" CACHE STRING "" FORCE)
 SET("tentris_lib_VERSION_MAJOR" "${tentris_VERSION_MAJOR}" CACHE STRING "" FORCE)
 SET("tentris_lib_VERSION_MINOR" "${tentris_VERSION_MINOR}" CACHE STRING "" FORCE)
 SET("tentris_lib_VERSION_PATCH" "${tentris_VERSION_PATCH}" CACHE STRING "" FORCE)
-
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)

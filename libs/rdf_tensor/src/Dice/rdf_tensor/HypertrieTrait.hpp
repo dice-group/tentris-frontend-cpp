@@ -3,7 +3,6 @@
 
 #include "Dice/rdf_tensor/NodeWrapper.hpp"
 
-#include <Dice/einsum/Subscript.hpp>
 #include <Dice/hypertrie.hpp>
 #include <tsl/sparse_map.h>
 #include <tsl/sparse_set.h>
@@ -39,7 +38,5 @@ namespace Dice::rdf_tensor {
 	using SliceKey = Dice::hypertrie::SliceKey<htt_t>;
 	using Key = Dice::hypertrie::Key<htt_t>;
 	using NonZeroEntry = Dice::hypertrie::NonZeroEntry<htt_t>;
-
-	using Subscript = Dice::einsum::Subscript;
 }// namespace Dice::rdf_tensor
 #endif//TENTRIS_HYPERTRIETRAIT_HPP

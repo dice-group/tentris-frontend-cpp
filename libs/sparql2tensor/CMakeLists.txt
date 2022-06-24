@@ -15,7 +15,7 @@ find_package(dice-hash REQUIRED)
 # Define the library
 add_library(sparql2tensor
         src/Dice/sparql2tensor/parser/visitors/PrologueVisitor.cpp
-        src/Dice/sparql2tensor/parser/visitors/SelectQueryVisitor.cpp
+        src/Dice/sparql2tensor/parser/visitors/SelectAskQueryVisitor.cpp
         src/Dice/sparql2tensor/SPARQLQuery.cpp
         )
 
