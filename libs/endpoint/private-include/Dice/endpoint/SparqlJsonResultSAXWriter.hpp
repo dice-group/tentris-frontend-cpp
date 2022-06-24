@@ -14,7 +14,7 @@
 #include <itertools.hpp>
 #include <rdf4cpp/rdf.hpp>
 
-#include <Dice/rdf_tensor/RDFEinsum.hpp>
+#include <Dice/rdf_tensor/Query.hpp>
 
 namespace Dice::endpoint {
 
@@ -24,7 +24,7 @@ namespace Dice::endpoint {
 		using IRI = rdf4cpp::rdf::IRI;
 		using BlankNode = rdf4cpp::rdf::BlankNode;
 		using Variable = rdf4cpp::rdf::query::Variable;
-		using Entry = Dice::rdf_tensor::EinsumEntry;
+		using Entry = Dice::rdf_tensor::Entry;
 
 		std::size_t number_of_solutions_ = 0;
 		std::size_t number_of_bindings_ = 0;

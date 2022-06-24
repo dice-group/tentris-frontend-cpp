@@ -5,7 +5,9 @@
 
 #include "Dice/sparql2tensor/SPARQLQuery.hpp"
 #include "Dice/sparql2tensor/parser/visitors/PrologueVisitor.hpp"
-#include "Dice/sparql2tensor/parser/visitors/SelectQueryVisitor.hpp"
+
+#include "Dice/sparql2tensor/parser/visitors/SelectAskQueryVisitor.hpp"
+
 
 namespace Dice::sparql2tensor {
 
@@ -16,16 +18,22 @@ namespace Dice::sparql2tensor {
 		Dice::sparql_parser::base::SparqlParser parser(&tokens);
 
 		auto q_ctx = parser.query();
-		if (not q_ctx->selectQuery())
-			throw std::runtime_error("Only SELECT queries are supported currently.");
+
+		if (not q_ctx->selectQuery() and not q_ctx->askQuery())
+			throw std::runtime_error("Only SELECT & ASK queries are supported currently.");
 
 		SPARQLQuery p_sparql{};
 		if (q_ctx->prologue()) {
 			parser::visitors::PrologueVisitor p_visitor{};
 			p_sparql.prefixes_ = p_visitor.visitPrologue(q_ctx->prologue()).as<robin_hood::unordered_map<std::string, std::string>>();
 		}
-		parser::visitors::SelectQueryVisitor visitor{&p_sparql};
-		visitor.visitSelectQuery(q_ctx->selectQuery());
+
+		parser::visitors::SelectAskQueryVisitor visitor{&p_sparql};
+		if (q_ctx->selectQuery())
+			visitor.visitSelectQuery(q_ctx->selectQuery());
+		else if(q_ctx->askQuery())
+			visitor.visitAskQuery(q_ctx->askQuery());
+
 		return p_sparql;
 	}
 
@@ -48,29 +56,5 @@ namespace Dice::sparql2tensor {
 			slice_keys.push_back(std::move(slice_key));
 		}
 		return slice_keys;
-	}
-
-	std::shared_ptr<einsum::Subscript> SPARQLQuery::get_subscript() const {
-		using RawSubscript = einsum::internal::RawSubscript;
-		using OperandSc = einsum::internal::OperandSc;
-		using Variable = rdf4cpp::rdf::query::Variable;
-		RawSubscript raw_sc;
-
-		for (auto const &tp : triple_patterns_) {
-			OperandSc op_sc;
-			for (auto const &node : tp) {
-				if (node.is_variable()) {
-					op_sc.push_back(var_to_id_.at((Variable) node));
-				}
-			}
-			if (op_sc.empty())
-				continue;
-			raw_sc.operands.push_back(std::move(op_sc));
-		}
-
-		for (auto const &variable : projected_variables_) {
-			raw_sc.result.push_back(var_to_id_.at(variable));
-		}
-		return std::make_shared<einsum::Subscript>(raw_sc);
 	}
 }// namespace Dice::sparql2tensor
