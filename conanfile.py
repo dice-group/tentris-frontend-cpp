@@ -19,37 +19,45 @@ class TentrisConan(ConanFile):
 
     # Binary configuration
     settings = "os", "compiler", "build_type", "arch"
-    options = {"shared": [True, False], "fPIC": [True, False]
-               }
-    default_options = {"shared": False, "fPIC": True,
-                       "restinio:asio": "boost",
-                       "restinio:with_zlib": True,
-                       "boost:header_only": False,  # override hypertrie settings
-                       "boost:without_context": True,
-                       "boost:without_contract": True,
-                       "boost:without_coroutine": True,
-                       "boost:without_fiber": True,
-                       "boost:without_graph": True,
-                       "boost:without_graph_parallel": True,
-                       "boost:without_iostreams": True,
-                       "boost:without_json": True,
-                       "boost:without_locale": True,
-                       "boost:without_math": True,
-                       "boost:without_mpi": True,
-                       "boost:without_nowide": True,
-                       "boost:without_program_options": True,
-                       "boost:without_python": True,
-                       "boost:without_serialization": True,
-                       "boost:without_stacktrace": True,
-                       "boost:without_test": True,
-                       "boost:without_timer": True,
-                       "boost:without_type_erasure": True,
-                       "boost:without_wave": True}
+    options = {
+        "shared": [True, False],
+        "fPIC": [True, False],
+        "with_test_deps": [True, False],
+    }
+    default_options = {
+        "shared": False,
+        "fPIC": True,
+        "with_test_deps": False,
+        "restinio:asio": "boost",
+        "restinio:with_zlib": True,
+        "boost:header_only": False,  # override hypertrie settings
+        "boost:without_context": True,
+        "boost:without_contract": True,
+        "boost:without_coroutine": True,
+        "boost:without_fiber": True,
+        "boost:without_graph": True,
+        "boost:without_graph_parallel": True,
+        "boost:without_iostreams": True,
+        "boost:without_json": True,
+        "boost:without_locale": True,
+        "boost:without_math": True,
+        "boost:without_mpi": True,
+        "boost:without_nowide": True,
+        "boost:without_program_options": True,
+        "boost:without_python": True,
+        "boost:without_serialization": True,
+        "boost:without_stacktrace": True,
+        "boost:without_test": True,
+        "boost:without_timer": True,
+        "boost:without_type_erasure": True,
+        "boost:without_wave": True}
     requires = (
-        "boost/1.78.0",
+        "boost/1.79.0",
         "fmt/8.1.1",
         "restinio/0.6.14",
-        "hypertrie/0.8.2@dice-group/stable",
+        "hypertrie/0.9.0@dice-group/rc1",
+        "metall/0.20@dice-group/stable",
+        "rdf4cpp/0.0.4@dice-group/experimental",
         "sparql-parser-base/0.2.2@dice-group/stable",
         "dice-hash/0.3.0@dice-group/stable",
         "cxxopts/2.2.1",
@@ -61,7 +69,7 @@ class TentrisConan(ConanFile):
         "vincentlaucsb-csv-parser/2.1.3",
     )
 
-    generators = ("CMakeDeps", "CMakeToolchain")  # ("CMakeDeps", "cmake_find_package")
+    generators = ("cmake_find_package", "CMakeDeps", "CMakeToolchain")  # ("CMakeDeps", "cmake_find_package")
 
     # Sources are located in the same place as this recipe, copy them to the recipe
     exports_sources = "libs/*", "CMakeLists.txt", "cmake/*", "lib_conanfile.txt"

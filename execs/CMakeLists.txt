@@ -76,6 +76,9 @@ if (TENTRIS_STATIC)
     SET(RESTINIO_USE_BOOST_ASIO=static)
 endif ()
 
+find_package(Boost REQUIRED COMPONENTS system log_setup log thread)
+
+
 # for rt and pthread linkage see:
 # * https://stackoverflow.com/questions/58848694/gcc-whole-archive-recipe-for-static-linking-to-pthread-stopped-working-in-rec
 # * https://stackoverflow.com/questions/35116327/when-g-static-link-pthread-cause-segmentation-fault-why
