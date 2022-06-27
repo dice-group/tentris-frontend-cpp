@@ -7,6 +7,7 @@
 #include <Dice/rdf_tensor/HypertrieTrait.hpp>
 #include <Dice/rdf_tensor/Query.hpp>
 #include <Dice/rdf_tensor/RDFNodeHashes.hpp>
+#include <Dice/rdf_tensor/Query.hpp>
 
 #include "expressions/expressions.hpp"
 

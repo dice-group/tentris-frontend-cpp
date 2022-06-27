@@ -54,7 +54,7 @@ int main(int argc, char *argv[]) {
 		exit(0);
 	}
 
-	using metall_manager = metall::basic_manager<uint32_t, (1ULL << 28ULL)>;
+	using metall_manager =  rdf_tensor::metall_manager;;
 
 	auto const storage_path = fs::absolute(fs::path{parsed_args["storage"].as<std::string>()}).append("tentris_data");
 	if (fs::exists(storage_path)) {

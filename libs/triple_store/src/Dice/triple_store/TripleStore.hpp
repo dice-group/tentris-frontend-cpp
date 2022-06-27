@@ -61,6 +61,12 @@ namespace Dice::triple_store {
 			hypertrie_.set(key, true);
 		}
 
+		/**
+		 * @brief Evaluation of SPARQL SELECT queries.
+		 * @param query The parsed SPARQL query.
+		 * @param endtime The timeout value
+		 * @return A generator yielding the solutions of the query
+		 */
 		std::generator<rdf_tensor::Entry const &>
 		eval_select(const sparql2tensor::SPARQLQuery &query,
 					std::chrono::steady_clock::time_point endtime = std::chrono::steady_clock::time_point::max()) {
@@ -182,6 +188,30 @@ namespace Dice::triple_store {
 				}
 				co_yield solution_mapping;
 			}
+		}
+
+	private:
+		/**
+		 * @brief Generates the tensor operands of a query
+		 * @param slice_keys The slice keys corresponding to the query being evaluated
+		 * @return A vector of tensor operands (const_BoolHypertries).
+		 */
+		std::vector<const_BoolHypertrie> generate_operands(std::vector<rdf_tensor::SliceKey> const &slice_keys) {
+			std::vector<const_BoolHypertrie> operands;
+			for (auto const &slice_key : slice_keys) {
+				auto slice_result = hypertrie_[slice_key];
+				if (slice_key.get_fixed_depth() == 3) {
+					auto entry_exists = std::get<bool>(slice_result);
+					BoolHypertrie ht_0{0, &context_};
+					if (entry_exists)
+						ht_0.set({}, true);
+					operands.push_back(ht_0);
+				} else {
+					auto operand = std::get<const_BoolHypertrie>(slice_result);
+					operands.push_back(std::move(operand));
+				}
+			}
+			return operands;
 		}
 	};
 };    // namespace Dice::triple_store
