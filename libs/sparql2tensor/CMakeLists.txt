@@ -6,6 +6,7 @@ include(GNUInstallDirs)
 add_library(sparql2tensor
         src/Dice/sparql2tensor/expressions/UnaryOperators.cpp
         src/Dice/sparql2tensor/expressions/BinaryOperators.cpp
+        src/Dice/sparql2tensor/expressions/BuiltInCalls.cpp
         src/Dice/sparql2tensor/expressions/PrimaryExpressions.cpp
         src/Dice/sparql2tensor/expressions/Aggregates.cpp
         src/Dice/sparql2tensor/expressions/Expression.cpp

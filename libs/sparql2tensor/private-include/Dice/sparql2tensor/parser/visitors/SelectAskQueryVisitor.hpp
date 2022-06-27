@@ -85,6 +85,8 @@ namespace Dice::sparql2tensor::parser::visitors {
 
 		antlrcpp::Any visitPrimaryExpression(SparqlParser::PrimaryExpressionContext *ctx) override;
 
+		antlrcpp::Any visitBuiltInCall(SparqlParser::BuiltInCallContext *ctx) override;
+
 		antlrcpp::Any visitAggregate(SparqlParser::AggregateContext *ctx) override;
 
 		antlrcpp::Any visitRdfLiteral(SparqlParser::RdfLiteralContext *) override;
