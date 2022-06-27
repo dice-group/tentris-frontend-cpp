@@ -1,6 +1,5 @@
 #include "HTTPServer.hpp"
 
-#include "Dice/endpoint/CountEndpoint.hpp"
 #include "Dice/endpoint/SparqlEndpoint.hpp"
 #include "Dice/endpoint/SparqlStreamingEndpoint.hpp"
 
@@ -31,10 +30,6 @@ namespace Dice::endpoint {
 		router_->http_get(R"(/stream)",
 						  SPARQLStreamingEndpoint{executor_, triplestore_, sparql_query_cache_, cfg_.timeout_duration});
 		spdlog::info("  GET  /stream?query= for queries with huge results");
-
-		router_->http_get(R"(/count)",
-						  CountEndpoint{executor_, triplestore_, sparql_query_cache_, cfg_.timeout_duration});
-		spdlog::info("  GET  /count?query= as a workaround for count");
 
 		spdlog::info("  GET  /ask?query= as a workaround for ask");
 

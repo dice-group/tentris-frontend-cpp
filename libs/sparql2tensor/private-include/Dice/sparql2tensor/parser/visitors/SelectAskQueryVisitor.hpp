@@ -20,10 +20,12 @@ namespace Dice::sparql2tensor::parser::visitors {
 		rdf4cpp::rdf::Node active_subject;
 		rdf4cpp::rdf::Node active_predicate;
 		char var_id = 'a';
+		std::unordered_set<rdf4cpp::rdf::query::Variable> vars_in_scope;
+		std::unordered_set<rdf4cpp::rdf::query::Variable> vars_in_group_by;
 		// for the construction of the operand dependency graph
-		std::deque<std::vector<uint8_t>> group_patterns;
-		std::deque<std::vector<uint8_t>> opt_operands;
-		std::deque<std::vector<uint8_t>> union_operands; // used to avoid connecting union patterns of the same optional pattern
+		std::vector<std::vector<uint8_t>> group_patterns;
+		std::vector<std::vector<uint8_t>> opt_operands;
+		std::vector<std::vector<uint8_t>> union_operands; // used to avoid connecting union patterns of the same optional pattern
 		// for the "rewriting"
 		std::vector<std::vector<SparqlParser::TriplesBlockContext *>> triples_blocks;
 		std::vector<std::vector<SparqlParser::OptionalGraphPatternContext *>> optional_blocks;
@@ -77,6 +79,14 @@ namespace Dice::sparql2tensor::parser::visitors {
 
 		antlrcpp::Any visitPathElt(SparqlParser::PathEltContext *) override;
 
+		antlrcpp::Any visitGroupClause(SparqlParser::GroupClauseContext *ctx) override;
+
+		antlrcpp::Any visitExpression(SparqlParser::ExpressionContext *ctx);
+
+		antlrcpp::Any visitPrimaryExpression(SparqlParser::PrimaryExpressionContext *ctx) override;
+
+		antlrcpp::Any visitAggregate(SparqlParser::AggregateContext *ctx) override;
+
 		antlrcpp::Any visitRdfLiteral(SparqlParser::RdfLiteralContext *) override;
 
 		antlrcpp::Any visitNumericLiteral(SparqlParser::NumericLiteralContext *) override;
@@ -87,6 +97,10 @@ namespace Dice::sparql2tensor::parser::visitors {
 
 	private:
 		void register_var(rdf4cpp::rdf::query::Variable const &var);
+
+		void track_variable(rdf4cpp::rdf::query::Variable const &var);
+
+		void register_alias(rdf4cpp::rdf::query::Variable const &var, std::unique_ptr<expressions::Expression> expression);
 
 		/**
 		 * @brief: Creates a new node in the operand dependency graph.

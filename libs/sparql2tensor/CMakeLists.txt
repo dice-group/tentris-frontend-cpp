@@ -4,6 +4,11 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 include(GNUInstallDirs)
 
 add_library(sparql2tensor
+        src/Dice/sparql2tensor/expressions/UnaryOperators.cpp
+        src/Dice/sparql2tensor/expressions/BinaryOperators.cpp
+        src/Dice/sparql2tensor/expressions/PrimaryExpressions.cpp
+        src/Dice/sparql2tensor/expressions/Aggregates.cpp
+        src/Dice/sparql2tensor/expressions/Expression.cpp
         src/Dice/sparql2tensor/parser/visitors/PrologueVisitor.cpp
         src/Dice/sparql2tensor/parser/visitors/SelectAskQueryVisitor.cpp
         src/Dice/sparql2tensor/SPARQLQuery.cpp

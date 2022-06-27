@@ -37,10 +37,6 @@ namespace Dice::sparql2tensor {
 		return p_sparql;
 	}
 
-	bool SPARQLQuery::is_distinct() const noexcept {
-		return distinct_;
-	}
-
 	std::vector<rdf_tensor::SliceKey> SPARQLQuery::get_slice_keys() const {
 		std::vector<rdf_tensor::SliceKey> slice_keys;
 		slice_keys.reserve(triple_patterns_.size());

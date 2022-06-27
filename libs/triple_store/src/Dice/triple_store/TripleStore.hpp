@@ -29,12 +29,10 @@ namespace Dice::triple_store {
 		using Entry = rdf_tensor::Entry;
 
 	private:
-
 		HypertrieContext context_;
 		BoolHypertrie hypertrie_;
 
 	public:
-
 		explicit TripleStore(allocator_type const &allocator)
 			: context_(allocator),
 			  hypertrie_(3, HypertrieContext_ptr(&context_)) {}
@@ -50,9 +48,9 @@ namespace Dice::triple_store {
 			HypertrieBulkInserter bulk_inserter{hypertrie_, bulk_size, call_back};
 			AddTripleCallback_function add_entry_callback =
 					[&bulk_inserter](rdf4cpp::rdf::Node subj, rdf4cpp::rdf::Node pred, rdf4cpp::rdf::Node obj) noexcept -> void {
-				hypertrie::internal::raw::SingleEntry<3, htt_t> entry{{subj, pred, obj}};
-				bulk_inserter.add(entry);
-			};
+						hypertrie::internal::raw::SingleEntry<3, htt_t> entry{{subj, pred, obj}};
+						bulk_inserter.add(entry);
+					};
 			serd_load(file_path, add_entry_callback);
 		}
 
@@ -64,85 +62,126 @@ namespace Dice::triple_store {
 		}
 
 		std::generator<rdf_tensor::Entry const &>
-		query(const sparql2tensor::SPARQLQuery& query,
-			  std::chrono::steady_clock::time_point endtime = std::chrono::steady_clock::time_point::max()) {
-			std::vector<const_BoolHypertrie> operands;
-			for (auto const &slice_key : query.get_slice_keys()) {
-				auto slice_result = hypertrie_[slice_key];
-				if (slice_key.get_fixed_depth() == 3) {
-					auto entry_exists = std::get<bool>(slice_result);
-					BoolHypertrie ht_0{0, &context_};
-					if (entry_exists)
-						ht_0.set({}, true);
-					operands.push_back(ht_0);
-				} else {
-					auto operand = std::get<const_BoolHypertrie>(slice_result);
-					operands.push_back(std::move(operand));
-				}
-			}
-			std::vector<char> proj_vars_id{};
-			for (auto const &proj_var : query.projected_variables_) {
-				proj_vars_id.push_back(query.var_to_id_.at(proj_var));
-			}
-			rdf_tensor::Query q{query.odg_, operands, proj_vars_id, endtime};
-			if (query.distinct_) {
-				rdf_tensor::Entry entry;
-				entry.key().resize(query.projected_variables_.size());
-				for (auto const &distinct_entry : Dice::query::Evaluation::evaluate<htt_t, allocator_type, true>(q)) {
-					std::copy(distinct_entry.key().begin(), distinct_entry.key().end(), entry.key().begin());
-					co_yield entry;
-				}
+		eval_select(const sparql2tensor::SPARQLQuery &query,
+					std::chrono::steady_clock::time_point endtime = std::chrono::steady_clock::time_point::max()) {
+			if (query.contains_aggregates_) {
+				co_yield std::elements_of(eval_select_aggr(query, endtime));
 			} else {
-				for (auto const &entry : Dice::query::Evaluation::evaluate<htt_t, allocator_type>(q)) {
-					co_yield entry;
-				}
+				co_yield std::elements_of(eval_select_without_aggr(query, endtime));
 			}
 		}
 
-		bool ask(const sparql2tensor::SPARQLQuery& query,
-				 std::chrono::steady_clock::time_point endtime = std::chrono::steady_clock::time_point::max()) {
-			std::vector<const_BoolHypertrie> operands;
-			for (auto const &slice_key : query.get_slice_keys()) {
-				auto slice_result = hypertrie_[slice_key];
-				if (slice_key.get_fixed_depth() == 3) {
-					auto entry_exists = std::get<bool>(slice_result);
-					BoolHypertrie ht_0{0, &context_};
-					if (entry_exists)
-						ht_0.set({}, true);
-					operands.push_back(ht_0);
-				} else {
-					auto operand = std::get<const_BoolHypertrie>(slice_result);
-					operands.push_back(std::move(operand));
-				}
-			}
+		bool eval_ask(const sparql2tensor::SPARQLQuery &query,
+					  std::chrono::steady_clock::time_point endtime = std::chrono::steady_clock::time_point::max()) {
+			auto operands = extract_operands(query.get_slice_keys());
 			rdf_tensor::Query q{query.odg_, operands, {}, endtime};
 			return Dice::query::Evaluation::evaluate_ask<htt_t, allocator_type>(q);
-		}
-
-		size_t count(const sparql2tensor::SPARQLQuery& query,
-					 std::chrono::steady_clock::time_point endtime = std::chrono::steady_clock::time_point::max()) {
-			using namespace sparql2tensor;
-			if (query.triple_patterns_.size() == 1) {// O(1)
-				auto slice_key = query.get_slice_keys()[0];
-				if (slice_key.get_fixed_depth() == 3)
-					return (size_t) std::get<bool>(get_hypertrie()[slice_key]);
-				else
-					return std::get<const_BoolHypertrie>(get_hypertrie()[slice_key]).size();
-			} else {
-				size_t count = 0;
-				for (auto const &entry : this->query(query, endtime))
-					count += entry.value();
-				return count;
-			}
 		}
 
 		bool contains(const rdf4cpp::rdf::Statement &statement) {
 			return hypertrie_[Key{statement.subject(), statement.predicate(), statement.object()}];
 		}
 
-
 		[[nodiscard]] size_t size() const {
 			return hypertrie_.size();
+		}
+
+	private:
+		std::vector<const_BoolHypertrie> extract_operands(std::vector<rdf_tensor::SliceKey> const &slice_keys) {
+			std::vector<const_BoolHypertrie> operands{};
+			for (auto const &slice_key : slice_keys) {
+				auto slice_result = hypertrie_[slice_key];
+				if (slice_key.get_fixed_depth() == 3) {
+					auto entry_exists = std::get<bool>(slice_result);
+					BoolHypertrie ht_0{0, &context_};
+					if (entry_exists)
+						ht_0.set({}, true);
+					operands.push_back(ht_0);
+				} else {
+					auto operand = std::get<const_BoolHypertrie>(slice_result);
+					operands.push_back(std::move(operand));
+				}
+			}
+			return operands;
+		}
+
+		std::generator<rdf_tensor::Entry const &>
+		eval_select_without_aggr(const sparql2tensor::SPARQLQuery &query,
+								 std::chrono::steady_clock::time_point endtime = std::chrono::steady_clock::time_point::max()) {
+			auto &solution_expressions =  query.solution_.expressions();
+			rdf_tensor::Entry solution_mapping;
+			solution_mapping.key().resize(solution_expressions.size());
+			auto operands = extract_operands(query.get_slice_keys());
+			std::vector<char> tracked_vars_id{};
+			tracked_vars_id.resize(query.tracked_variables_.size());
+			for (auto const &tracked_var : query.tracked_variables_) {
+				tracked_vars_id[tracked_var.second] = query.var_to_id_.at(tracked_var.first);
+			}
+			rdf_tensor::Query q{query.odg_, operands, tracked_vars_id, endtime};
+			if (query.distinct_) {
+				rdf_tensor::Entry entry;
+				entry.resize(solution_expressions.size());
+				for (auto const &distinct_entry : Dice::query::Evaluation::evaluate<htt_t, allocator_type, true>(q)) {
+					std::copy(distinct_entry.key().begin(), distinct_entry.key().end(), entry.key().begin());
+					for (size_t i = 0; i < solution_expressions.size(); i++) {
+						solution_expressions[i]->evaluate(entry);
+						solution_mapping[i] = solution_expressions[i]->result();
+					}
+					co_yield solution_mapping;
+				}
+			} else {
+				for (auto const &entry : Dice::query::Evaluation::evaluate<htt_t, allocator_type>(q)) {
+					for (size_t i = 0; i < solution_expressions.size(); i++) {
+						solution_expressions[i]->evaluate(entry);
+						solution_mapping[i] = solution_expressions[i]->result();
+					}
+					solution_mapping.value(entry.value());
+					co_yield solution_mapping;
+				}
+			}
+		}
+
+		std::generator<rdf_tensor::Entry const &>
+		eval_select_aggr(const sparql2tensor::SPARQLQuery &query,
+						 std::chrono::steady_clock::time_point endtime = std::chrono::steady_clock::time_point::max()) {
+			std::map<rdf_tensor::Entry, sparql2tensor::expressions::ExpressionList> grouped_solutions{};
+			rdf_tensor::Entry group_key;
+			group_key.key().resize(query.grouping_keys_.size());
+			rdf_tensor::Entry solution_mapping;
+			solution_mapping.key().resize(query.solution_.expressions().size());
+			auto operands = extract_operands(query.get_slice_keys());
+			std::vector<char> tracked_vars_id{};
+			tracked_vars_id.resize(query.tracked_variables_.size());
+			for (auto const &tracked_var : query.tracked_variables_) {
+				tracked_vars_id[tracked_var.second] = query.var_to_id_.at(tracked_var.first);
+			}
+			rdf_tensor::Query q{query.odg_, operands, tracked_vars_id, endtime};
+			for (auto const &entry : Dice::query::Evaluation::evaluate<htt_t, allocator_type>(q)) {
+				// prepare grouping key
+				for (size_t i = 0; i < group_key.size(); i++) {
+					query.grouping_keys_[i]->evaluate(entry);
+					group_key[i] = query.grouping_keys_[i]->result();
+				}
+				// new key, clone solution
+				if (not grouped_solutions.contains(group_key)) {
+					grouped_solutions[group_key] = query.solution_.clone();
+				}
+				// update aggregate values
+				auto card = entry.value();
+				while (card > 0) {
+					for (auto &aggr : grouped_solutions[group_key].expressions()) {
+						aggr->evaluate(entry);
+					}
+					card--;
+				}
+			}
+			for (auto const &[key, solution] : grouped_solutions) {
+				auto const &solution_expressions = solution.expressions();
+				for (size_t i = 0; i < solution_expressions.size(); i++) {
+					solution_mapping[i] = solution_expressions[i]->result();
+				}
+				co_yield solution_mapping;
+			}
 		}
 	};
 };    // namespace Dice::triple_store

@@ -1,6 +1,9 @@
 #include "Dice/sparql2tensor/parser/visitors/SelectAskQueryVisitor.hpp"
+#include "Dice/sparql2tensor/expressions/expressions.hpp"
 
 namespace Dice::sparql2tensor::parser::visitors {
+
+	using namespace Dice::sparql2tensor::expressions;
 
 	antlrcpp::Any SelectAskQueryVisitor::visitAskQuery(SparqlParser::AskQueryContext *ctx) {
 		if (ctx->whereClause())
@@ -16,44 +19,64 @@ namespace Dice::sparql2tensor::parser::visitors {
 			visitWhereClause(ctx->whereClause());
 		else
 			throw std::runtime_error("Query does not contain a WHERE clause");
+		if (ctx->solutionModifier()->groupClause())
+			visitGroupClause(ctx->solutionModifier()->groupClause());
 		visitSelectClause(ctx->selectClause());
 		return nullptr;
 	}
 
 	antlrcpp::Any SelectAskQueryVisitor::visitSelectClause(SparqlParser::SelectClauseContext *ctx) {
+		std::vector<std::unique_ptr<Expression>> select_expressions;
 		if (ctx->selectModifier()) {
 			if (ctx->selectModifier()->DISTINCT())
 				query->distinct_ = true;
 		}
 		if (ctx->ASTERISK()) {
-			query->project_all_variables_ = true;
-			std::unordered_set<rdf4cpp::rdf::query::Variable> seen_vars;
-			// set all non-anonymous variables from the triple patterns
-			for (auto const &tp : query->triple_patterns_) {
-				for (auto const &node : tp) {
-					if (node.is_variable()) {
-						auto var = (rdf4cpp::rdf::query::Variable) node;
-						if (not var.is_anonymous()) {
-							auto [_, was_new] = seen_vars.insert(var);
-							if (was_new)
-								query->projected_variables_.push_back(var);
-						}
-					}
-				}
+			for (auto const& var : vars_in_scope) {
+				query->projected_variables_.push_back(var);
+				select_expressions.push_back(std::make_unique<PrimaryVarExpression>(var, query->tracked_variables_[var]));
 			}
 		} else {
 			for (auto sel_ctx : ctx->selectVariables()) {
-				if (sel_ctx->var()) {
-					auto var = visitVar(sel_ctx->var()).as<rdf4cpp::rdf::query::Variable>();
-					register_var(var);
-					query->projected_variables_.push_back(var);
-				} else {
-					throw std::runtime_error("Expressions in SELECT clause are not supported yet.");
+				auto var = visitVar(sel_ctx->var()).as<rdf4cpp::rdf::query::Variable>();
+				// the same variable should not be projected multiple times
+				if (std::find(query->projected_variables_.begin(), query->projected_variables_.end(), var) !=
+					query->projected_variables_.end()) {
+					throw std::runtime_error("Variable " + var.backend_handle().variable_backend().n_string() + " is already projected." );
+				}
+				query->projected_variables_.push_back(var);
+				// AS expressions should not use variables that are already in scope
+				if (sel_ctx->AS()) {
+					if (vars_in_scope.contains(var)) {
+						throw std::runtime_error("Variable " + var.backend_handle().variable_backend().n_string() + " is already in scope." );
+					}
+					select_expressions.push_back(std::move(visitExpression(sel_ctx->expression()).as<std::unique_ptr<Expression>>()));
+					// in case of aggregates, check if non group key variables are projected
+				}
+				// the ids of projected variables (not of AS expressions) need to be passed to the query library
+				else {
+					track_variable(var);
+					select_expressions.push_back(std::make_unique<PrimaryVarExpression>(var, query->tracked_variables_[var]));
+				}
+				vars_in_scope.insert(var);
+			}
+			if (query->projected_variables_.empty()) {
+				throw std::runtime_error("At least one variable should be projected.");
+			} else if (query->contains_aggregates_) {
+				// check if there are non-aggregated and non group key variables in the select clause
+				for (auto const &select_expr : select_expressions) {
+					if (dynamic_cast<Aggregate *>(select_expr.get()))
+						continue;
+					auto expr_vars = select_expr->variables();
+					for (auto var : expr_vars) {
+						if (std::find(vars_in_group_by.begin(), vars_in_group_by.end(), var) == vars_in_group_by.end())
+							throw std::runtime_error("Variable " + var.backend_handle().variable_backend().n_string()
+													 + " is not part of the group key");
+					}
 				}
 			}
 		}
-		if (query->projected_variables_.empty())
-			throw std::runtime_error("At least one variable should be projected.");
+		query->solution_ = ExpressionList(std::move(select_expressions));
 		return nullptr;
 	}
 
@@ -161,8 +184,11 @@ namespace Dice::sparql2tensor::parser::visitors {
 	antlrcpp::Any SelectAskQueryVisitor::visitTriplesSameSubjectPath(SparqlParser::TriplesSameSubjectPathContext *ctx) {
 		if (ctx->varOrTerm() and ctx->propertyListPathNotEmpty()) {
 			active_subject = visitVarOrTerm(ctx->varOrTerm());
-			if (active_subject.is_variable())
-				register_var(rdf4cpp::rdf::query::Variable(active_subject));
+			if (active_subject.is_variable()) {
+				auto var = rdf4cpp::rdf::query::Variable(active_subject);
+				register_var(var);
+				vars_in_scope.insert(var);
+			}
 			visitPropertyListPathNotEmpty(ctx->propertyListPathNotEmpty());
 		} else if (ctx->triplesNodePath() and ctx->propertyListPath()) {
 			return nullptr;
@@ -176,6 +202,7 @@ namespace Dice::sparql2tensor::parser::visitors {
 		} else {
 			auto var = visitVar(ctx->verbSimple()->var()).as<rdf4cpp::rdf::query::Variable>();
 			register_var(var);
+			vars_in_scope.insert(var);
 			active_predicate = rdf4cpp::rdf::Node(var);
 		}
 		if (not ctx->objectListPath())
@@ -187,6 +214,7 @@ namespace Dice::sparql2tensor::parser::visitors {
 			} else {
 				auto var = visitVar(prop_ctx->verbSimple()->var()).as<rdf4cpp::rdf::query::Variable>();
 				register_var(var);
+				vars_in_scope.insert(var);
 				active_predicate = rdf4cpp::rdf::Node(var);
 			}
 			if (not prop_ctx->objectList())
@@ -255,8 +283,11 @@ namespace Dice::sparql2tensor::parser::visitors {
 	antlrcpp::Any SelectAskQueryVisitor::visitObjectPath(SparqlParser::ObjectPathContext *ctx) {
 		if (ctx->graphNodePath()->varOrTerm()) {
 			rdf4cpp::rdf::Node obj = visitVarOrTerm(ctx->graphNodePath()->varOrTerm());
-			if (obj.is_variable())
-				register_var(rdf4cpp::rdf::query::Variable(obj));
+			if (obj.is_variable()) {
+				auto var = rdf4cpp::rdf::query::Variable(obj);
+				register_var(var);
+				vars_in_scope.insert(var);
+			}
 			query->triple_patterns_.emplace_back(active_subject, active_predicate, obj);
 			add_tp(query->triple_patterns_.back());
 		} else {
@@ -268,8 +299,11 @@ namespace Dice::sparql2tensor::parser::visitors {
 	antlrcpp::Any SelectAskQueryVisitor::visitObject(SparqlParser::ObjectContext *ctx) {
 		if (ctx->graphNode()->varOrTerm()) {
 			rdf4cpp::rdf::Node obj = visitVarOrTerm(ctx->graphNode()->varOrTerm());
-			if (obj.is_variable())
-				register_var(rdf4cpp::rdf::query::Variable(obj));
+			if (obj.is_variable()) {
+				auto var = rdf4cpp::rdf::query::Variable(obj);
+				register_var(var);
+				vars_in_scope.insert(var);
+			}
 			query->triple_patterns_.emplace_back(active_subject, active_predicate, obj);
 			add_tp(query->triple_patterns_.back());
 		} else {
@@ -312,6 +346,105 @@ namespace Dice::sparql2tensor::parser::visitors {
 			throw std::runtime_error("Property paths are not supported yet");
 		else
 			return visitPath(ctx->pathPrimary()->path());
+	}
+
+	/* solution modifiers */
+
+	antlrcpp::Any SelectAskQueryVisitor::visitGroupClause(SparqlParser::GroupClauseContext *ctx) {
+		for (auto group_condition : ctx->groupCondition()) {
+			if (group_condition->builtInCall()) {
+				return nullptr; //built in call visitor
+			} else if (group_condition->functionCall()) {
+				return nullptr; //function call visitor
+			} else if (group_condition->var()) {
+				auto var = visitVar(group_condition->var()).as<rdf4cpp::rdf::query::Variable>();
+				track_variable(var);
+				query->grouping_keys_.push_back(std::make_unique<PrimaryVarExpression>(var, query->tracked_variables_[var]));
+				vars_in_group_by.insert(var);
+			} else if (group_condition->AS()) {
+				return nullptr; // need to visit expression and track/assign alias
+			} else {
+				throw std::runtime_error("Unsupported GroupCondition");
+			}
+		}
+		return nullptr;
+	}
+
+	/* expressions */
+
+	antlrcpp::Any SelectAskQueryVisitor::visitExpression(SparqlParser::ExpressionContext *ctx) {
+		if (auto base_ctx = dynamic_cast<SparqlParser::BaseExpressionContext *>(ctx); base_ctx) {
+			auto res = std::move(visitPrimaryExpression(base_ctx->primaryExpression()).as<std::unique_ptr<Expression>>());
+			return res;
+		} else
+			assert(false);
+	}
+
+	antlrcpp::Any SelectAskQueryVisitor::visitPrimaryExpression(SparqlParser::PrimaryExpressionContext *ctx) {
+		std::unique_ptr<Expression> expr;
+		if (ctx->var()) {
+			auto var = visitVar(ctx->var()).as<rdf4cpp::rdf::query::Variable>();
+			register_var(var);
+			track_variable(var);
+			vars_in_scope.insert(var); // todo: this needs to be changed when filters and minus are introduced
+			expr = std::make_unique<PrimaryVarExpression>(var, query->tracked_variables_[var]);
+		} else if (ctx->rdfLiteral()) {
+			auto rdf_literal = visitRdfLiteral(ctx->rdfLiteral()).as<rdf4cpp::rdf::Literal>();
+			expr = std::make_unique<PrimaryLiteralExpression>(rdf_literal);
+		} else if (ctx->booleanLiteral()) {
+			auto boolean_literal = visitBooleanLiteral(ctx->booleanLiteral()).as<rdf4cpp::rdf::Literal>();
+			expr = std::make_unique<PrimaryLiteralExpression>(boolean_literal);
+		} else if (ctx->numericLiteral()) {
+			auto numeric_literal = visitBooleanLiteral(ctx->booleanLiteral()).as<rdf4cpp::rdf::Literal>();
+			expr = std::make_unique<PrimaryLiteralExpression>(numeric_literal);
+		} else if (ctx->builtInCall()) {
+			if (ctx->builtInCall()->aggregate()) {
+				expr = std::move(visitAggregate(ctx->builtInCall()->aggregate()).as<std::unique_ptr<Expression>>());
+			}
+		} else {
+			expr = std::move(visitExpression(ctx->expression()).as<std::unique_ptr<Expression>>());
+		}
+		return expr;
+	}
+
+	antlrcpp::Any SelectAskQueryVisitor::visitAggregate(SparqlParser::AggregateContext *ctx) {
+		query->contains_aggregates_ = true;
+		std::unique_ptr<Expression> expr;
+		std::unique_ptr<Expression> nested_expr;
+		if (ctx->expression()) {
+			nested_expr = std::move(visitExpression(ctx->expression()).as<std::unique_ptr<Expression>>());
+			if (dynamic_cast<Aggregate *>(nested_expr.get())) {
+				throw std::runtime_error("Nested aggregates are not allowed");
+			}
+		}
+		if (ctx->DISTINCT()) {
+			if (ctx->COUNT()) {
+				if (ctx->ASTERISK()) {
+					for (auto const &var : vars_in_scope) {
+						track_variable(var);
+					}
+					expr = std::make_unique<CountStarDistinct>();
+				} else {
+					expr = std::make_unique<CountDistinct>(std::move(nested_expr));
+				}
+			} else {
+				throw std::runtime_error("not supported");
+			}
+		} else {
+			if (ctx->COUNT()) {
+				if (ctx->ASTERISK()) {
+					for (auto const &var : vars_in_scope) {
+						track_variable(var);
+					}
+					expr = std::make_unique<CountStar>();
+				} else {
+					expr = std::make_unique<Count>(std::move(nested_expr));
+				}
+			} else {
+				throw std::runtime_error("not supported");
+			}
+		}
+		return expr;
 	}
 
 	antlrcpp::Any SelectAskQueryVisitor::visitRdfLiteral(SparqlParser::RdfLiteralContext *ctx) {
@@ -370,6 +503,18 @@ namespace Dice::sparql2tensor::parser::visitors {
 			return;
 		query->var_to_id_[var] = var_id;
 		var_id++;
+	}
+
+	void SelectAskQueryVisitor::track_variable(rdf4cpp::rdf::query::Variable const &var) {
+		if (query->tracked_variables_.contains(var))
+			return;
+		size_t pos = query->tracked_variables_.size();
+		query->tracked_variables_[var] = pos;
+	}
+
+	void SelectAskQueryVisitor::register_alias(rdf4cpp::rdf::query::Variable const &var,
+											   std::unique_ptr<Expression> expression) {
+		query->aliases_[var] = std::move(expression);
 	}
 
 	void SelectAskQueryVisitor::add_tp(rdf4cpp::rdf::query::TriplePattern const &tp) {

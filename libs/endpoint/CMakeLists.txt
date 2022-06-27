@@ -6,7 +6,6 @@ include(GNUInstallDirs)
 add_library(endpoint
         src/Dice/endpoint/HTTPServer.cpp
         src/Dice/endpoint/SparqlEndpoint.cpp
-        src/Dice/endpoint/CountEndpoint.cpp
         src/Dice/endpoint/SparqlStreamingEndpoint.cpp
         src/Dice/endpoint/SparqlQueryCache.cpp
         )
