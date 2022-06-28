@@ -115,7 +115,8 @@ namespace Dice::triple_store {
 					std::copy(distinct_entry.key().begin(), distinct_entry.key().end(), entry.key().begin());
 					for (size_t i = 0; i < solution_expressions.size(); i++) {
 						solution_expressions[i]->evaluate(entry);
-						solution_mapping[i] = solution_expressions[i]->result();
+						auto sol_expr_result = solution_expressions[i]->result();
+						solution_mapping[i] = sol_expr_result.has_value() ? sol_expr_result.value() : rdf_tensor::NodeWrapper();
 					}
 					co_yield solution_mapping;
 				}
@@ -123,7 +124,8 @@ namespace Dice::triple_store {
 				for (auto const &entry : Dice::query::Evaluation::evaluate<htt_t, allocator_type>(q)) {
 					for (size_t i = 0; i < solution_expressions.size(); i++) {
 						solution_expressions[i]->evaluate(entry);
-						solution_mapping[i] = solution_expressions[i]->result();
+						auto sol_expr_result = solution_expressions[i]->result();
+						solution_mapping[i] = sol_expr_result.has_value() ? sol_expr_result.value() : rdf_tensor::NodeWrapper();
 					}
 					solution_mapping.value(entry.value());
 					co_yield solution_mapping;
@@ -137,7 +139,9 @@ namespace Dice::triple_store {
 						 std::chrono::steady_clock::time_point endtime = std::chrono::steady_clock::time_point::max()) {
 			std::map<rdf_tensor::Entry, sparql2tensor::expressions::ExpressionList> grouped_solutions{};
 			rdf_tensor::Entry group_key;
-			group_key.key().resize(query.grouping_keys_.size());
+			auto grouping_keys = query.grouping_keys_.clone();
+			auto &grouping_keys_expressions = grouping_keys.expressions();
+			group_key.key().resize(grouping_keys.expressions().size());
 			rdf_tensor::Entry solution_mapping;
 			solution_mapping.key().resize(query.solution_.expressions().size());
 			auto operands = generate_operands(query.get_slice_keys());
@@ -150,8 +154,9 @@ namespace Dice::triple_store {
 			for (auto const &entry : Dice::query::Evaluation::evaluate<htt_t, allocator_type>(q)) {
 				// prepare grouping key
 				for (size_t i = 0; i < group_key.size(); i++) {
-					query.grouping_keys_[i]->evaluate(entry);
-					group_key[i] = query.grouping_keys_[i]->result();
+					grouping_keys_expressions[i]->evaluate(entry);
+					auto expr_result = grouping_keys_expressions[i]->result();
+					group_key[i] = expr_result.has_value() ? expr_result.value() : rdf_tensor::NodeWrapper();
 				}
 				// new key, clone solution
 				if (not grouped_solutions.contains(group_key)) {
@@ -171,7 +176,8 @@ namespace Dice::triple_store {
 				for (auto const &[key, solution] : grouped_solutions) {
 					auto const &solution_expressions = solution.expressions();
 					for (size_t i = 0; i < solution_expressions.size(); i++) {
-						solution_mapping[i] = solution_expressions[i]->result();
+						auto sol_expr_result = solution_expressions[i]->result();
+						solution_mapping[i] = sol_expr_result.has_value() ? sol_expr_result.value() : rdf_tensor::NodeWrapper();
 					}
 					co_yield solution_mapping;
 				}
@@ -184,7 +190,8 @@ namespace Dice::triple_store {
 				for (auto const &[key, solution] : grouped_solutions) {
 					auto const &solution_expressions = solution.expressions();
 					for (size_t i = 0; i < solution_expressions.size(); i++) {
-						solution_mapping[i] = solution_expressions[i]->result();
+						auto sol_expr_result = solution_expressions[i]->result();
+						solution_mapping[i] = sol_expr_result.has_value() ? sol_expr_result.value() : rdf_tensor::NodeWrapper();
 					}
 					if (seen_entries.contains(solution_mapping))
 						continue;

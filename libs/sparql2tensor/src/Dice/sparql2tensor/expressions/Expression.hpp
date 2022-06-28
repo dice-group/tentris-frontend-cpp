@@ -11,7 +11,7 @@ namespace Dice::sparql2tensor::expressions {
 		Expression() = default;
 		virtual ~Expression() = default;
 		virtual void evaluate(rdf_tensor::Entry const &entry) = 0;
-		[[nodiscard]] virtual rdf4cpp::rdf::Node result() const = 0;
+		[[nodiscard]] virtual std::optional<rdf4cpp::rdf::Node> result() const = 0;
 		[[nodiscard]] virtual std::unique_ptr<Expression> clone() const = 0;
 		[[nodiscard]] virtual std::vector<rdf4cpp::rdf::query::Variable> variables() const = 0;
 	};

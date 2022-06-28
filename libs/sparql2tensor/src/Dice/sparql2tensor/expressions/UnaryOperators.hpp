@@ -12,7 +12,7 @@ namespace Dice::sparql2tensor::expressions {
 	public:
 		explicit NotExpression(std::unique_ptr<Expression> primary_expr);
 		void evaluate(rdf_tensor::Entry const &entry) override;
-		[[nodiscard]] rdf4cpp::rdf::Node result() const override;
+		[[nodiscard]] std::optional<rdf4cpp::rdf::Node> result() const override;
 		[[nodiscard]] std::unique_ptr<Expression> clone() const override;
 		[[nodiscard]] std::vector<rdf4cpp::rdf::query::Variable> variables() const override;
 	};
@@ -24,7 +24,7 @@ namespace Dice::sparql2tensor::expressions {
 	public:
 		explicit UnaryPlusExpression(std::unique_ptr<Expression> primary_expr);
 		void evaluate(rdf_tensor::Entry const &entry) override;
-		[[nodiscard]] rdf4cpp::rdf::Node result() const override;
+		[[nodiscard]] std::optional<rdf4cpp::rdf::Node> result() const override;
 		[[nodiscard]] std::unique_ptr<Expression> clone() const override;
 		[[nodiscard]] std::vector<rdf4cpp::rdf::query::Variable> variables() const override;
 	};
@@ -36,7 +36,7 @@ namespace Dice::sparql2tensor::expressions {
 	public:
 		explicit UnaryMinusExpression(std::unique_ptr<Expression> primary_expr);
 		void evaluate(rdf_tensor::Entry const &entry) override;
-		[[nodiscard]] rdf4cpp::rdf::Node result() const override;
+		[[nodiscard]] std::optional<rdf4cpp::rdf::Node> result() const override;
 		[[nodiscard]] std::unique_ptr<Expression> clone() const override;
 		[[nodiscard]] std::vector<rdf4cpp::rdf::query::Variable> variables() const override;
 	};

@@ -31,7 +31,7 @@ namespace Dice::sparql2tensor {
 		// maps variables to expressions
 		robin_hood::unordered_map<rdf4cpp::rdf::query::Variable, std::unique_ptr<expressions::Expression>, VariableHash> aliases_;
 		// the grouping keys of the query
-		std::vector<std::unique_ptr<expressions::Expression>> grouping_keys_;
+		expressions::ExpressionList grouping_keys_;
 		// the triple patterns of the query
 		std::vector<rdf4cpp::rdf::query::TriplePattern> triple_patterns_;
 		// the prefixes of the query

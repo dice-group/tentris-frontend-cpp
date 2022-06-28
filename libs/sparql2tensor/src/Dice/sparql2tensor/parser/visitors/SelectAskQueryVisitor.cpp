@@ -376,6 +376,7 @@ namespace Dice::sparql2tensor::parser::visitors {
 	/* solution modifiers */
 
 	antlrcpp::Any SelectAskQueryVisitor::visitGroupClause(SparqlParser::GroupClauseContext *ctx) {
+		std::vector<std::unique_ptr<Expression>> expressions{};
 		for (auto group_condition : ctx->groupCondition()) {
 			if (group_condition->builtInCall()) {
 				return nullptr;//built in call visitor
@@ -384,7 +385,7 @@ namespace Dice::sparql2tensor::parser::visitors {
 			} else if (group_condition->var()) {
 				auto var = visitVar(group_condition->var()).as<rdf4cpp::rdf::query::Variable>();
 				track_variable(var);
-				query->grouping_keys_.push_back(std::make_unique<PrimaryVarExpression>(var, query->tracked_variables_[var]));
+				expressions.push_back(std::make_unique<PrimaryVarExpression>(var, query->tracked_variables_[var]));
 				vars_in_group_by.insert(var);
 			} else if (group_condition->AS()) {
 				return nullptr;// need to visit expression and track/assign alias
@@ -392,6 +393,7 @@ namespace Dice::sparql2tensor::parser::visitors {
 				throw std::runtime_error("Unsupported GroupCondition");
 			}
 		}
+		query->grouping_keys_ = ExpressionList(std::move(expressions));
 		return nullptr;
 	}
 
@@ -438,9 +440,16 @@ namespace Dice::sparql2tensor::parser::visitors {
 
 	antlrcpp::Any SelectAskQueryVisitor::visitBuiltInCall(SparqlParser::BuiltInCallContext *ctx) {
 		std::unique_ptr<Expression> expr;
-		if (ctx->ISIRI()) {
+		if (ctx->ISIRI() or ctx->ISURI()) {
 			expr = std::make_unique<IsIRI>(std::move(visitExpression(ctx->expression(0)).as<std::unique_ptr<Expression>>()));
-		} else {
+		} else if (ctx->ISBLANK()) {
+			expr = std::make_unique<IsBlank>(std::move(visitExpression(ctx->expression(0)).as<std::unique_ptr<Expression>>()));
+		} else if (ctx->ISLITERAL()) {
+			expr = std::make_unique<IsLiteral>(std::move(visitExpression(ctx->expression(0)).as<std::unique_ptr<Expression>>()));
+		} else if (ctx->DATATYPE()) {
+			expr = std::make_unique<Datatype>(std::move(visitExpression(ctx->expression(0)).as<std::unique_ptr<Expression>>()));
+		}
+		else {
 			assert(false);
 		}
 		return expr;

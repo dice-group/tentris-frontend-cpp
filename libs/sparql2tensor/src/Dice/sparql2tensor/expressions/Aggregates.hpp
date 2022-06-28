@@ -13,7 +13,7 @@ namespace Dice::sparql2tensor::expressions {
 		explicit Aggregate(std::unique_ptr<Expression> op_expr);
 		virtual ~Aggregate() = default;
 		void evaluate(rdf_tensor::Entry const &entry) override = 0;
-		[[nodiscard]] rdf4cpp::rdf::Node result() const override = 0;
+		[[nodiscard]] std::optional<rdf4cpp::rdf::Node> result() const override = 0;
 		[[nodiscard]] std::unique_ptr<Expression> clone() const override = 0;
 		[[nodiscard]] std::vector<rdf4cpp::rdf::query::Variable> variables() const override;
 	};
@@ -24,7 +24,7 @@ namespace Dice::sparql2tensor::expressions {
 	public:
 		explicit CountStar(size_t count = 0);
 		void evaluate(rdf_tensor::Entry const &entry) override;
-		[[nodiscard]] rdf4cpp::rdf::Node result() const override;
+		[[nodiscard]] std::optional<rdf4cpp::rdf::Node> result() const override;
 		[[nodiscard]] std::unique_ptr<Expression> clone() const override;
 	};
 
@@ -34,7 +34,7 @@ namespace Dice::sparql2tensor::expressions {
 	public:
 		explicit CountStarDistinct(std::set<rdf_tensor::Entry> entries = {});
 		void evaluate(rdf_tensor::Entry const &entry) override;
-		[[nodiscard]] rdf4cpp::rdf::Node result() const override;
+		[[nodiscard]] std::optional<rdf4cpp::rdf::Node> result() const override;
 		[[nodiscard]] std::unique_ptr<Expression> clone() const override;
 	};
 
@@ -44,7 +44,7 @@ namespace Dice::sparql2tensor::expressions {
 	public:
 		explicit Count(std::unique_ptr<Expression> expr, size_t count = 0);
 		void evaluate(rdf_tensor::Entry const &entry) override;
-		[[nodiscard]] rdf4cpp::rdf::Node result() const override;
+		[[nodiscard]] std::optional<rdf4cpp::rdf::Node> result() const override;
 		[[nodiscard]] std::unique_ptr<Expression> clone() const override;
 	};
 
@@ -54,7 +54,7 @@ namespace Dice::sparql2tensor::expressions {
 	public:
 		explicit CountDistinct(std::unique_ptr<Expression> expr, std::set<rdf4cpp::rdf::Node> rdf_nodes = {});
 		void evaluate(rdf_tensor::Entry const &entry) override;
-		[[nodiscard]] rdf4cpp::rdf::Node result() const override;
+		[[nodiscard]] std::optional<rdf4cpp::rdf::Node> result() const override;
 		[[nodiscard]] std::unique_ptr<Expression> clone() const override;
 	};
 

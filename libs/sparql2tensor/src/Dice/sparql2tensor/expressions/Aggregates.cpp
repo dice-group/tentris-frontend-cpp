@@ -4,11 +4,14 @@
 
 namespace Dice::sparql2tensor::expressions {
 
+	using namespace rdf4cpp::rdf;
+	using namespace rdf4cpp::rdf::query;
+
 	/* Aggregate Exression */
 	Aggregate::Aggregate(std::unique_ptr<Expression> op_expr)
 		: op_expr_(std::move(op_expr)) {}
 
-	[[nodiscard]] std::vector<rdf4cpp::rdf::query::Variable> Aggregate::variables() const {
+	[[nodiscard]] std::vector<Variable> Aggregate::variables() const {
 		return op_expr_->variables();
 	}
 
@@ -20,8 +23,8 @@ namespace Dice::sparql2tensor::expressions {
 		count_++;
 	}
 
-	rdf4cpp::rdf::Node CountStar::result() const {
-		return rdf4cpp::rdf::Literal(std::to_string(count_), rdf4cpp::rdf::IRI("http://www.w3.org/2001/XMLSchema#integer"));
+	std::optional<Node> CountStar::result() const {
+		return Literal(std::to_string(count_), IRI("http://www.w3.org/2001/XMLSchema#integer"));
 	}
 
 	std::unique_ptr<Expression> CountStar::clone() const {
@@ -36,8 +39,8 @@ namespace Dice::sparql2tensor::expressions {
 		entries_.insert(entry);
 	}
 
-	rdf4cpp::rdf::Node CountStarDistinct::result() const {
-		return rdf4cpp::rdf::Literal(std::to_string(entries_.size()), rdf4cpp::rdf::IRI("http://www.w3.org/2001/XMLSchema#integer"));
+	std::optional<Node> CountStarDistinct::result() const {
+		return Literal(std::to_string(entries_.size()), IRI("http://www.w3.org/2001/XMLSchema#integer"));
 	}
 
 	std::unique_ptr<Expression> CountStarDistinct::clone() const {
@@ -48,12 +51,15 @@ namespace Dice::sparql2tensor::expressions {
 	Count::Count(std::unique_ptr<Expression> expr, size_t count)
 		: Aggregate(std::move(expr)), count_(count) {}
 
-	void Count::evaluate([[maybe_unused]] const rdf_tensor::Entry &entry) {
-		count_++;
+	void Count::evaluate(const rdf_tensor::Entry &entry) {
+		op_expr_->evaluate(entry);
+		auto expr_res = op_expr_->result();
+		if (expr_res.has_value())
+			count_++;
 	}
 
-	rdf4cpp::rdf::Node Count::result() const {
-		return rdf4cpp::rdf::Literal(std::to_string(count_), rdf4cpp::rdf::IRI("http://www.w3.org/2001/XMLSchema#integer"));
+	std::optional<Node> Count::result() const {
+		return Literal(std::to_string(count_), IRI("http://www.w3.org/2001/XMLSchema#integer"));
 	}
 
 	std::unique_ptr<Expression> Count::clone() const {
@@ -61,16 +67,18 @@ namespace Dice::sparql2tensor::expressions {
 	}
 
 	/* CountDistinct Expression */
-	CountDistinct::CountDistinct(std::unique_ptr<Expression> expr, std::set<rdf4cpp::rdf::Node> rdf_nodes)
+	CountDistinct::CountDistinct(std::unique_ptr<Expression> expr, std::set<Node> rdf_nodes)
 		: Aggregate(std::move(expr)), rdf_nodes_(std::move(rdf_nodes)) {}
 
 	void CountDistinct::evaluate([[maybe_unused]] const rdf_tensor::Entry &entry) {
 		op_expr_->evaluate(entry);
-		rdf_nodes_.insert(op_expr_->result());
+		auto expr_res = op_expr_->result();
+		if (expr_res.has_value())
+			rdf_nodes_.insert(expr_res.value());
 	}
 
-	rdf4cpp::rdf::Node CountDistinct::result() const {
-		return rdf4cpp::rdf::Literal(std::to_string(rdf_nodes_.size()), rdf4cpp::rdf::IRI("http://www.w3.org/2001/XMLSchema#integer"));
+	std::optional<Node> CountDistinct::result() const {
+		return Literal(std::to_string(rdf_nodes_.size()), IRI("http://www.w3.org/2001/XMLSchema#integer"));
 	}
 
 	std::unique_ptr<Expression> CountDistinct::clone() const {

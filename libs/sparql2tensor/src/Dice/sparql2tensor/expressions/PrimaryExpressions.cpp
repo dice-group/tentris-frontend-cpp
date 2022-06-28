@@ -6,14 +6,14 @@ namespace Dice::sparql2tensor::expressions {
 	using namespace rdf4cpp::rdf::query;
 
 	/* Variable Expression */
-	PrimaryVarExpression::PrimaryVarExpression(rdf4cpp::rdf::query::Variable variable, size_t var_pos_in_entry)
+	PrimaryVarExpression::PrimaryVarExpression(Variable variable, size_t var_pos_in_entry)
 		: var_pos_in_entry_(var_pos_in_entry), rdf_node_(), variable_(variable) {}
 
 	void PrimaryVarExpression::evaluate(rdf_tensor::Entry const &entry) {
 		rdf_node_ = entry[var_pos_in_entry_];
 	}
 
-	Node PrimaryVarExpression::result() const {
+	std::optional<Node> PrimaryVarExpression::result() const {
 		return rdf_node_;
 	}
 
@@ -21,7 +21,7 @@ namespace Dice::sparql2tensor::expressions {
 		return std::make_unique<PrimaryVarExpression>(*this);
 	}
 
-	std::vector<rdf4cpp::rdf::query::Variable> PrimaryVarExpression::variables() const {
+	std::vector<Variable> PrimaryVarExpression::variables() const {
 		return {variable_};
 	}
 
@@ -31,7 +31,7 @@ namespace Dice::sparql2tensor::expressions {
 
 	void PrimaryLiteralExpression::evaluate([[maybe_unused]] rdf_tensor::Entry const &entry) {}
 
-	Node PrimaryLiteralExpression::result() const {
+	std::optional<Node> PrimaryLiteralExpression::result() const {
 		return literal_;
 	}
 
@@ -39,7 +39,7 @@ namespace Dice::sparql2tensor::expressions {
 		return std::make_unique<PrimaryLiteralExpression>(*this);
 	}
 
-	std::vector<rdf4cpp::rdf::query::Variable> PrimaryLiteralExpression::variables() const {
+	std::vector<Variable> PrimaryLiteralExpression::variables() const {
 		return {};
 	}
 
@@ -51,7 +51,7 @@ namespace Dice::sparql2tensor::expressions {
 		return built_in_call_->evaluate(entry);
 	}
 
-	Node PrimaryBuiltInCallExpression::result() const {
+	std::optional<Node> PrimaryBuiltInCallExpression::result() const {
 		return built_in_call_->result();
 	}
 
@@ -59,7 +59,7 @@ namespace Dice::sparql2tensor::expressions {
 		return std::make_unique<PrimaryBuiltInCallExpression>(built_in_call_->clone());
 	}
 
-	std::vector<rdf4cpp::rdf::query::Variable> PrimaryBuiltInCallExpression::variables() const {
+	std::vector<Variable> PrimaryBuiltInCallExpression::variables() const {
 		return built_in_call_->variables();
 	}
 

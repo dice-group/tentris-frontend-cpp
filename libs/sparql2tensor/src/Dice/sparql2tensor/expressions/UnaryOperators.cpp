@@ -3,6 +3,7 @@
 namespace Dice::sparql2tensor::expressions {
 
 	using namespace rdf4cpp::rdf;
+	using namespace rdf4cpp::rdf::query;
 
 	/* NotExpression Operator */
 	NotExpression::NotExpression(std::unique_ptr<Expression> primary_expr)
@@ -12,7 +13,7 @@ namespace Dice::sparql2tensor::expressions {
 		primary_expr_->evaluate(entry);
 	}
 
-	Node NotExpression::result() const {
+	std::optional<Node> NotExpression::result() const {
 		return primary_expr_->result(); // todo: coerce to boolean and apply not
 	}
 
@@ -20,7 +21,7 @@ namespace Dice::sparql2tensor::expressions {
 		return std::make_unique<NotExpression>(primary_expr_->clone());
 	}
 
-	[[nodiscard]] std::vector<rdf4cpp::rdf::query::Variable> NotExpression::variables() const {
+	[[nodiscard]] std::vector<Variable> NotExpression::variables() const {
 		return primary_expr_->variables();
 	}
 
@@ -33,7 +34,7 @@ namespace Dice::sparql2tensor::expressions {
 		return primary_expr_->evaluate(entry);
 	}
 
-	Node UnaryPlusExpression::result() const {
+	std::optional<Node> UnaryPlusExpression::result() const {
 		return primary_expr_->result();
 	}
 
@@ -41,7 +42,7 @@ namespace Dice::sparql2tensor::expressions {
 		return std::make_unique<UnaryPlusExpression>(primary_expr_->clone());
 	}
 
-	[[nodiscard]] std::vector<rdf4cpp::rdf::query::Variable> UnaryPlusExpression::variables() const {
+	[[nodiscard]] std::vector<Variable> UnaryPlusExpression::variables() const {
 		return primary_expr_->variables();
 	}
 
@@ -53,7 +54,7 @@ namespace Dice::sparql2tensor::expressions {
 		primary_expr_->evaluate(entry);
 	}
 
-	Node UnaryMinusExpression::result() const {
+	std::optional<Node> UnaryMinusExpression::result() const {
 		return primary_expr_->result(); // todo: get numerical and multiply by -1
 	}
 
@@ -61,7 +62,7 @@ namespace Dice::sparql2tensor::expressions {
 		return std::make_unique<UnaryMinusExpression>(primary_expr_->clone());
 	}
 
-	[[nodiscard]] std::vector<rdf4cpp::rdf::query::Variable> UnaryMinusExpression::variables() const {
+	[[nodiscard]] std::vector<Variable> UnaryMinusExpression::variables() const {
 		return primary_expr_->variables();
 	}
 
