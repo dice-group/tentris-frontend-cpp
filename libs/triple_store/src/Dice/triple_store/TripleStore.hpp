@@ -79,7 +79,7 @@ namespace Dice::triple_store {
 
 		bool eval_ask(const sparql2tensor::SPARQLQuery &query,
 					  std::chrono::steady_clock::time_point endtime = std::chrono::steady_clock::time_point::max()) {
-			auto operands = extract_operands(query.get_slice_keys());
+			auto operands = generate_operands(query.get_slice_keys());
 			rdf_tensor::Query q{query.odg_, operands, {}, endtime};
 			return Dice::query::Evaluation::evaluate_ask<htt_t, allocator_type>(q);
 		}
@@ -93,31 +93,15 @@ namespace Dice::triple_store {
 		}
 
 	private:
-		std::vector<const_BoolHypertrie> extract_operands(std::vector<rdf_tensor::SliceKey> const &slice_keys) {
-			std::vector<const_BoolHypertrie> operands{};
-			for (auto const &slice_key : slice_keys) {
-				auto slice_result = hypertrie_[slice_key];
-				if (slice_key.get_fixed_depth() == 3) {
-					auto entry_exists = std::get<bool>(slice_result);
-					BoolHypertrie ht_0{0, &context_};
-					if (entry_exists)
-						ht_0.set({}, true);
-					operands.push_back(ht_0);
-				} else {
-					auto operand = std::get<const_BoolHypertrie>(slice_result);
-					operands.push_back(std::move(operand));
-				}
-			}
-			return operands;
-		}
-
+		/* evaluation of select queries that do not contain any aggregates */
+		template<bool HavingClause = false>
 		std::generator<rdf_tensor::Entry const &>
 		eval_select_without_aggr(const sparql2tensor::SPARQLQuery &query,
 								 std::chrono::steady_clock::time_point endtime = std::chrono::steady_clock::time_point::max()) {
 			auto &solution_expressions =  query.solution_.expressions();
 			rdf_tensor::Entry solution_mapping;
 			solution_mapping.key().resize(solution_expressions.size());
-			auto operands = extract_operands(query.get_slice_keys());
+			auto operands = generate_operands(query.get_slice_keys());
 			std::vector<char> tracked_vars_id{};
 			tracked_vars_id.resize(query.tracked_variables_.size());
 			for (auto const &tracked_var : query.tracked_variables_) {
@@ -147,6 +131,7 @@ namespace Dice::triple_store {
 			}
 		}
 
+		/* evaluation of select queries containing at least one aggregate */
 		std::generator<rdf_tensor::Entry const &>
 		eval_select_aggr(const sparql2tensor::SPARQLQuery &query,
 						 std::chrono::steady_clock::time_point endtime = std::chrono::steady_clock::time_point::max()) {
@@ -155,7 +140,7 @@ namespace Dice::triple_store {
 			group_key.key().resize(query.grouping_keys_.size());
 			rdf_tensor::Entry solution_mapping;
 			solution_mapping.key().resize(query.solution_.expressions().size());
-			auto operands = extract_operands(query.get_slice_keys());
+			auto operands = generate_operands(query.get_slice_keys());
 			std::vector<char> tracked_vars_id{};
 			tracked_vars_id.resize(query.tracked_variables_.size());
 			for (auto const &tracked_var : query.tracked_variables_) {
@@ -181,12 +166,31 @@ namespace Dice::triple_store {
 					card--;
 				}
 			}
-			for (auto const &[key, solution] : grouped_solutions) {
-				auto const &solution_expressions = solution.expressions();
-				for (size_t i = 0; i < solution_expressions.size(); i++) {
-					solution_mapping[i] = solution_expressions[i]->result();
+			/* non-distinct queries */
+			if (not query.distinct_) {
+				for (auto const &[key, solution] : grouped_solutions) {
+					auto const &solution_expressions = solution.expressions();
+					for (size_t i = 0; i < solution_expressions.size(); i++) {
+						solution_mapping[i] = solution_expressions[i]->result();
+					}
+					co_yield solution_mapping;
 				}
-				co_yield solution_mapping;
+			}
+			/* distinct queries -- for queries that do not project all grouping keys */
+			else {
+				boost::container::flat_set<Entry> seen_entries{};
+				rdf_tensor::Entry entry;
+				entry.resize(solution_mapping.size());
+				for (auto const &[key, solution] : grouped_solutions) {
+					auto const &solution_expressions = solution.expressions();
+					for (size_t i = 0; i < solution_expressions.size(); i++) {
+						solution_mapping[i] = solution_expressions[i]->result();
+					}
+					if (seen_entries.contains(solution_mapping))
+						continue;
+					seen_entries.insert(solution_mapping);
+					co_yield solution_mapping;
+				}
 			}
 		}
 
