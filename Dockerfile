@@ -1,36 +1,36 @@
-FROM ubuntu:22.04 AS builder
+FROM alpine:3.16 AS builder
 ARG DEBIAN_FRONTEND=noninteractive
 ARG TENTRIS_MARCH="x86-64-v3"
 ARG CONAN_USER="none"
 ARG CONAN_PW="none"
 
 
-RUN apt-get -qq update && \
-    apt-get -qq install -y make cmake uuid-dev git openjdk-11-jdk-headless python-is-python3 python3-pip python3-setuptools python3-wheel libstdc++-11-dev clang-14 g++-11 pkg-config lld-14 autoconf libtool
-RUN rm /usr/bin/ld && ln -s /usr/bin/lld-14 /usr/bin/ld
-ARG CXX="clang++-14"
-ARG CC="clang-14"
+RUN apk update && \
+    apk add git make cmake boost-build pythonispython3 py3-pip autoconf automake gcc g++ clang \
+    clang-dev clang-libs clang-extra-tools clang-static llvm13 llvm13-dev lld pkgconfig libuuid \
+    libtool util-linux-dev linux-headers openjdk11-jdk && \
+    apk add mold --repository=https://mirrors.edge.kernel.org/alpine/edge/testing
+
+ARG CC="clang"
+ARG CXX="clang++"
 ENV CXXFLAGS="${CXXFLAGS} -march=${TENTRIS_MARCH}"
-ENV CMAKE_EXE_LINKER_FLAGS="-L/usr/local/lib/x86_64-linux-gnu -L/lib/x86_64-linux-gnu -L/usr/lib/x86_64-linux-gnu -L/usr/local/lib"
 
 # Compile more recent tcmalloc-minimal with clang-14 + -march
 RUN git clone --quiet --branch gperftools-2.9.1 --depth 1 https://github.com/gperftools/gperftools
 WORKDIR /gperftools
 RUN ./autogen.sh
-RUN export LDFLAGS="${CMAKE_EXE_LINKER_FLAGS}" && ./configure \
+RUN ./configure \
     --enable-minimal \
     --disable-debugalloc \
     --enable-sized-delete \
     --enable-dynamic-sized-delete-support && \
-    make -j $(nproc) && \
+    make -j$(nproc) && \
     make install
 WORKDIR /
 
 # we need serd as static library. Not available from ubuntu repos
-RUN git clone --quiet https://gitlab.com/drobilla/serd.git
-WORKDIR /serd
-RUN git checkout f6437f606bd85dbc6d7581146955f85902230ca0 --recurse-submodules
-RUN git submodule update --init --recursive
+RUN git clone --quiet --branch v0.30.10 --depth 1 --recurse-submodules https://gitlab.com/drobilla/serd.git
+WORKDIR serd
 RUN ./waf configure --static && \
     ./waf install
 WORKDIR /
@@ -39,9 +39,9 @@ WORKDIR /
 RUN pip3 install conan && \
     conan user && \
     conan profile new --detect default && \
+    conan profile update settings.compiler=clang default && \
     conan profile update settings.compiler.libcxx=libstdc++11 default && \
     conan profile update env.CXXFLAGS="${CXXFLAGS}" default && \
-    conan profile update env.CMAKE_EXE_LINKER_FLAGS="${CMAKE_EXE_LINKER_FLAGS}" default && \
     conan profile update env.CXX="${CXX}" default && \
     conan profile update env.CC="${CC}" default && \
     conan profile update options.boost:extra_b2_flags="cxxflags=\\\"${CXXFLAGS}\\\"" default
@@ -64,12 +64,12 @@ COPY execs execs
 COPY cmake cmake
 COPY CMakeLists.txt CMakeLists.txt
 COPY conanfile.txt conanfile.txt
+RUN sed -i 's/lld/mold/g' CMakeLists.txt
 
 ##build
 WORKDIR /tentris/build
 # todo: should be replaced with toolchain file like https://github.com/ruslo/polly/blob/master/clang-libcxx17-static.cmake
 RUN cmake \
-    -DCMAKE_EXE_LINKER_FLAGS="${CMAKE_EXE_LINKER_FLAGS}" \
     -DCMAKE_BUILD_TYPE=Release \
     -DTENTRIS_BUILD_WITH_TCMALLOC=true \
     -DTENTRIS_STATIC=true \
