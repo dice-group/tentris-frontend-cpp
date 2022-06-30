@@ -7,15 +7,13 @@ add_executable(deduplicated_nt
         src/Dice/tools/deduplicated_nt/DeduplicatedNT.cpp
         )
 
-find_library(serd
-        NAMES serd-0
-        NO_CACHE)
-
 find_package(tsl-sparse-map REQUIRED)
 find_package(robin_hood REQUIRED)
 find_package(dice-hash REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(cxxopts REQUIRED)
+find_package(rdf4cpp REQUIRED)
+find_package(serd REQUIRED)
 
 target_link_libraries(deduplicated_nt PRIVATE
         ${TENTRIS_STATIC_DEF}
@@ -26,7 +24,7 @@ target_link_libraries(deduplicated_nt PRIVATE
         dice-hash::dice-hash
         spdlog::spdlog
         cxxopts::cxxopts
-        ${serd-0}
+        serd::serd
         )
 
 target_include_directories(deduplicated_nt PUBLIC

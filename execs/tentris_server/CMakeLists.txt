@@ -11,18 +11,19 @@ find_package(Taskflow REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(cxxopts REQUIRED)
 find_package(restinio REQUIRED)
+find_package(Metall REQUIRED)
 
 target_link_libraries(tentris_server PRIVATE
         ${TENTRIS_STATIC_DEF}
         ${TENTRIS_PTHREAD_DEF}
-        Dice::triple_store
-        Dice::node_store
-        Dice::endpoint
+        tentris::triple_store
+        tentris::node_store
+        tentris::endpoint
         restinio::restinio
         Taskflow::Taskflow
         spdlog::spdlog
         cxxopts::cxxopts
-        Metall
+        Metall::Metall
         )
 
 target_include_directories(tentris_server PUBLIC

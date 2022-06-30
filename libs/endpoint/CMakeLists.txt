@@ -2,8 +2,6 @@ find_package(Taskflow REQUIRED)
 find_package(restinio REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(cppitertools REQUIRED)
-
-# TODO: replace with conan package
 find_package(RapidJSON REQUIRED)
 
 add_library(endpoint

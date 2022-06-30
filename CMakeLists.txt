@@ -14,7 +14,7 @@ boilerplate_init()
 option(CONAN_CMAKE "If this should use conan cmake to fetch dependencies" On)
 if (IS_TOP_LEVEL AND CONAN_CMAKE)
     include(cmake/conan_cmake.cmake)
-    install_packages_via_conan(${CMAKE_CURRENT_SOURCE_DIR}/conanfile.py)
+    install_packages_via_conan("${CMAKE_CURRENT_SOURCE_DIR}/conanfile.py" "")
 endif ()
 
 if (NOT EXISTS ${CMAKE_CURRENT_BINARY_DIR}/CMakeCache.txt)

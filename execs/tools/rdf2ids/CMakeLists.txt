@@ -7,16 +7,16 @@ add_executable(rdf2ids
         src/Dice/tools/rdf2ids/RDF2IDs.cpp
         )
 
-find_library(serd
-        NAMES serd-0
-        NO_CACHE)
-
 find_package(tsl-sparse-map REQUIRED)
 find_package(robin_hood REQUIRED)
 find_package(dice-hash REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(cxxopts REQUIRED)
-find_package(vincentlaucsb-csv-parser)
+find_package(vincentlaucsb-csv-parser REQUIRED)
+find_package(rdf4cpp REQUIRED)
+find_package(serd REQUIRED)
+
+
 
 target_link_libraries(rdf2ids PRIVATE
         ${TENTRIS_STATIC_DEF}
@@ -28,7 +28,7 @@ target_link_libraries(rdf2ids PRIVATE
         spdlog::spdlog
         cxxopts::cxxopts
         vincentlaucsb-csv-parser::vincentlaucsb-csv-parser
-        ${serd-0}
+        serd::serd
         )
 
 target_include_directories(rdf2ids PUBLIC

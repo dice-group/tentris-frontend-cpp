@@ -18,12 +18,12 @@ class Recipe(ConanFile):
     options = {
         "shared": [True, False],
         "fPIC": [True, False],
-        "with_test_deps": [True, False],
+        "with_exec_deps": [True, False],
     }
     default_options = {
         "shared": False,
         "fPIC": True,
-        "with_test_deps": False,
+        "with_exec_deps": False,
         "restinio:asio": "boost",
         "restinio:with_zlib": True,
         "boost:header_only": False,  # override hypertrie settings
@@ -47,36 +47,47 @@ class Recipe(ConanFile):
         "boost:without_timer": True,
         "boost:without_type_erasure": True,
         "boost:without_wave": True}
-    requires = (
-        "boost/1.79.0",
-        "fmt/8.1.1",
-        "restinio/0.6.15",
-        "expected-lite/0.6.0",  # overrides restinio dependency
-        "hypertrie/0.9.0@dice-group/rc1",
-        "metall/0.20@dice-group/stable",
-        "serd/0.30.13-f6437f", # private dependency
-        "rdf4cpp/0.0.4@dice-group/experimental",
-        "sparql-parser-base/0.2.2@dice-group/stable",
-        "dice-hash/0.3.0@dice-group/stable",
-        "cxxopts/2.2.1",
-        # override for conflict between sparql-parser and rdf-parser
-        "robin-hood-hashing/3.11.5",
-        "taskflow/3.3.0",
-        "cppitertools/2.1",
-        "rapidjson/cci.20211112",
-        # "nlohmann_json/3.10.5",
-        "spdlog/1.10.0",
-        # "vincentlaucsb-csv-parser/2.1.3",
-    )
+
+    def requirements(self):
+        public_reqs = [
+            "boost/1.79.0",
+            "fmt/8.1.1",
+            "restinio/0.6.15",
+            "expected-lite/0.6.0",  # overrides restinio dependency
+            "hypertrie/0.9.0@dice-group/rc1",
+            "metall/0.20@dice-group/stable",
+            "rdf4cpp/0.0.4@dice-group/experimental",
+            "dice-hash/0.3.0@dice-group/stable",
+            "robin-hood-hashing/3.11.5",
+            "cxxopts/2.2.1",
+            "serd/0.30.13-f6437f",
+            "sparql-parser-base/0.2.2@dice-group/stable",
+            "taskflow/3.3.0",
+            "cppitertools/2.1",
+            "spdlog/1.10.0",
+            "rapidjson/cci.20211112",
+        ]
+
+        private_reqs = [
+        ]
+
+        exec_reqs = [
+            "nlohmann_json/3.10.5",
+            "vincentlaucsb-csv-parser/2.1.3",
+        ]
+        for req in public_reqs:
+            self.requires(req)
+        for req in private_reqs:
+            self.requires(req, private=True)
+
+        if self.options.get_safe("with_exec_deps"):
+            for req in exec_reqs:
+                self.requires(req)
 
     generators = ("cmake_find_package",)
 
     # Sources are located in the same place as this recipe, copy them to the recipe
     exports_sources = "libs/*", "CMakeLists.txt", "cmake/*", "lib_conanfile.txt"
-
-    def build_requirements(self):
-        # useful for example for conditional build_requires
-        pass  # todo: use for e.g. sparql-parser-base?
 
     def config_options(self):
         if self.settings.os == "Windows":
@@ -95,25 +106,32 @@ class Recipe(ConanFile):
             cmake_file = load(os.path.join(self.recipe_folder, "CMakeLists.txt"))
             self.description = re.search(r"project\([^)]*DESCRIPTION\s+\"([^\"]+)\"[^)]*\)", cmake_file).group(1)
 
+    def _configure_cmake(self):
+        if self._cmake:
+            return self._cmake
+        self._cmake = CMake(self)
+        self._cmake.definitions['CONAN_CMAKE'] = False
+        print("with_exec_deps: {}".format(self.options.get_safe("with_exec_deps")))
+        if self.options.get_safe("with_exec_deps"):
+            self._cmake.definitions['TENTRIS_BINARY_BUILD'] = True
+        self._cmake.configure()
+
     def build(self):
-        cmake = CMake(self)
-        cmake.definitions['CONAN_CMAKE'] = False
-        cmake.configure()
+        cmake = self._configure_cmake()
         cmake.build()
 
     def package(self):
-        cmake = CMake(self)
+        cmake = self._configure_cmake()
         cmake.install()
         for dir in ("res", "share"):
             rmdir(os.path.join(self.package_folder, dir))
 
     def package_info(self):  #
-        # self.cpp_info.set_property("cmake_target_name", "tentris")
         self.cpp_info.components["global"].set_property("cmake_target_name", "tentris::tentris")
         self.cpp_info.components["global"].names["cmake_find_package_multi"] = "tentris"
         self.cpp_info.components["global"].names["cmake_find_package"] = "tentris"
         self.cpp_info.set_property("cmake_file_name", "tentris")
-        self.cpp_info.components["global"].includedirs = ["include/tentris/tentris/"]
+        self.cpp_info.components["global"].includedirs = []
         self.cpp_info.components["global"].requires = [
             "boost::boost",
             "fmt::fmt",
@@ -126,24 +144,17 @@ class Recipe(ConanFile):
             # "dice-sparse-map::dice-sparse-map",
             "cxxopts::cxxopts",
             "robin-hood-hashing::robin-hood-hashing",
+            "expected-lite::expected-lite"
         ]
-        # "robin-hood-hashing/3.11.5",
-        # "taskflow/3.3.0",
-        # "nlohmann_json/3.10.5",
-        # "spdlog/1.10.0",
-        # "vincentlaucsb-csv-parser/2.1.3",
-        if self.options.with_test_deps:
-            pass
 
-        for component in ["node_store", "rdf_tensor", "sparql2tensor", "triple_store"]: # "endpoint"
+        for component in ["node_store", "rdf_tensor", "sparql2tensor", "triple_store"]:  # "endpoint"
             self.cpp_info.components[f"{component}"].names["cmake_find_package_multi"] = f"{component}"
             self.cpp_info.components[f"{component}"].names["cmake_find_package"] = f"{component}"
             self.cpp_info.components[f"{component}"].includedirs = [f"include/tentris/{component}"]
 
-        for component in ["node_store", "sparql2tensor", "triple_store"]: # "endpoint"
+        for component in ["node_store", "sparql2tensor", "triple_store"]:  # "endpoint"
             self.cpp_info.components[f"{component}"].libdirs = [f"lib/tentris/{component}"]
             self.cpp_info.components[f"{component}"].libs = [f"{component}"]
-
 
         self.cpp_info.components["rdf_tensor"].requires = [
             "rdf4cpp::rdf4cpp",
@@ -168,11 +179,18 @@ class Recipe(ConanFile):
             "serd::serd"
         ]
 
-        # self.cpp_info.components["endpoint"].requires = [
-        #     "rdf_tensor",
-        #     "restinio::restinio",
-        #     "taskflow::taskflow",
-        #     "cppitertools::cppitertools", # private
-        #     "spdlog::spdlog", # public
-        #     "rapidjson::rapidjson", #private
-        # ]
+        if self.options.get_safe("with_exec_deps"):
+            self.cpp_info.components["endpoint"].requires = [
+                "rdf_tensor",
+                "restinio::restinio",
+                "taskflow::taskflow",
+                "cppitertools::cppitertools",
+                "spdlog::spdlog",
+                "rapidjson::rapidjson",
+            ]
+            self.cpp_info.components["global"].requires += [
+                "restinio::restinio",
+                "taskflow::taskflow",
+                "cppitertools::cppitertools",
+                "spdlog::spdlog",
+                "rapidjson::rapidjson", ]

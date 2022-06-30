@@ -9,15 +9,16 @@ add_executable(tentris_loader
 
 find_package(spdlog REQUIRED)
 find_package(cxxopts REQUIRED)
+find_package(Metall REQUIRED)
 
 target_link_libraries(tentris_loader PRIVATE
         ${TENTRIS_STATIC_DEF}
         ${TENTRIS_PTHREAD_DEF}
-        Dice::triple_store
-        Dice::node_store
+        tentris::triple_store
+        tentris::node_store
         spdlog::spdlog
         cxxopts::cxxopts
-        Metall
+        Metall::Metall
         )
 
 target_include_directories(tentris_loader PUBLIC

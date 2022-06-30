@@ -1,4 +1,4 @@
-macro(install_packages_via_conan conanfile )
+macro(install_packages_via_conan conanfile conan_options)
 
     list(APPEND CMAKE_MODULE_PATH ${CMAKE_BINARY_DIR})
     list(APPEND CMAKE_PREFIX_PATH ${CMAKE_BINARY_DIR})
@@ -9,7 +9,6 @@ macro(install_packages_via_conan conanfile )
                 "${CMAKE_BINARY_DIR}/conan.cmake"
                 TLS_VERIFY ON)
     endif ()
-
     include(${CMAKE_BINARY_DIR}/conan.cmake)
 
     conan_cmake_autodetect(settings)
@@ -22,6 +21,6 @@ macro(install_packages_via_conan conanfile )
     conan_cmake_install(PATH_OR_REFERENCE ${conanfile}
             BUILD missing
             SETTINGS ${settings}
-            OPTIONS "with_test_deps=${CONAN_HYPERTRIE_WITH_TEST_DEPS}"
+            OPTIONS "${conan_options}"
             GENERATOR "CMakeDeps")
 endmacro()
