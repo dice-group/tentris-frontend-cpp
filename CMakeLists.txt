@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.18)
 project(tentris
-        LANGUAGES CXX
+        LANGUAGES C CXX
         VERSION 1.3.0)
 
 set(CMAKE_CXX_STANDARD 20)
@@ -101,16 +101,10 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(RDF4CPP)
 
 
-
-# for rt and pthread linkage see:
-# * https://stackoverflow.com/questions/58848694/gcc-whole-archive-recipe-for-static-linking-to-pthread-stopped-working-in-rec
-# * https://stackoverflow.com/questions/35116327/when-g-static-link-pthread-cause-segmentation-fault-why
 if (TENTRIS_STATIC)
     set(TENTRIS_STATIC_DEF -static)
-    set(TENTRIS_PTHREAD_DEF -Wl,--whole-archive -lrt -lpthread -Wl,--no-whole-archive)
-else ()
-    set(TENTRIS_PTHREAD_DEF -lpthread)
 endif ()
+set(TENTRIS_PTHREAD_DEF -lpthread)
 
 
 add_subdirectory(libs)
