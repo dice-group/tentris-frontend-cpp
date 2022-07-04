@@ -26,15 +26,6 @@ RUN export LDFLAGS="${CMAKE_EXE_LINKER_FLAGS}" && ./configure \
     make install
 WORKDIR /
 
-# we need serd as static library. Not available from ubuntu repos
-RUN git clone --quiet https://gitlab.com/drobilla/serd.git
-WORKDIR /serd
-RUN git checkout f6437f606bd85dbc6d7581146955f85902230ca0 --recurse-submodules
-RUN git submodule update --init --recursive
-RUN ./waf configure --static && \
-    ./waf install
-WORKDIR /
-
 # install and configure conan
 RUN pip3 install conan && \
     conan user && \

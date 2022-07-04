@@ -1,7 +1,7 @@
 #include "SerdLoad.hpp"
 
 #include <robin_hood.h>
-#include <serd-0/serd/serd.h>
+#include <serd/serd.h>
 
 #include <utility>
 

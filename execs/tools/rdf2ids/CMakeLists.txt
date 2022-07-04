@@ -1,12 +1,10 @@
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED True)
-set(CMAKE_CXX_EXTENSIONS OFF)
 include(GNUInstallDirs)
 
 add_executable(rdf2ids
         src/Dice/tools/rdf2ids/RDF2IDs.cpp
         )
 
+find_package(Threads REQUIRED)
 find_package(tsl-sparse-map REQUIRED)
 find_package(robin_hood REQUIRED)
 find_package(dice-hash REQUIRED)
@@ -20,7 +18,7 @@ find_package(serd REQUIRED)
 
 target_link_libraries(rdf2ids PRIVATE
         ${TENTRIS_STATIC_DEF}
-        ${TENTRIS_PTHREAD_DEF}
+        Threads::Threads
         dice-hash::dice-hash
         rdf4cpp::rdf4cpp
         tsl::sparse_map
@@ -31,6 +29,7 @@ target_link_libraries(rdf2ids PRIVATE
         serd::serd
         )
 
+configure_file(${CMAKE_SOURCE_DIR}/../cmake/version.hpp.in ${CMAKE_CURRENT_SOURCE_DIR}/src/Dice/rdf2ids/tentris_version.hpp)
 target_include_directories(rdf2ids PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/src>
         )

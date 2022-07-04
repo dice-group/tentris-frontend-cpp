@@ -3,7 +3,7 @@
 
 #include <rdf4cpp/rdf.hpp>
 #include <robin_hood.h>
-#include <serd-0/serd/serd.h>
+#include <serd/serd.h>
 
 #include <utility>
 namespace Dice::tools::rdf2ids::serd_parser {

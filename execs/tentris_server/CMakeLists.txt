@@ -1,12 +1,8 @@
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED True)
-set(CMAKE_CXX_EXTENSIONS OFF)
-include(GNUInstallDirs)
-
 add_executable(tentris_server
         src/Dice/tentris_server/TentrisServer.cpp
         )
 
+find_package(Threads REQUIRED)
 find_package(Taskflow REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(cxxopts REQUIRED)
@@ -15,7 +11,7 @@ find_package(Metall REQUIRED)
 
 target_link_libraries(tentris_server PRIVATE
         ${TENTRIS_STATIC_DEF}
-        ${TENTRIS_PTHREAD_DEF}
+        Threads::Threads
         tentris::triple_store
         tentris::node_store
         tentris::endpoint
@@ -26,6 +22,7 @@ target_link_libraries(tentris_server PRIVATE
         Metall::Metall
         )
 
+configure_file(${CMAKE_SOURCE_DIR}/../cmake/version.hpp.in ${CMAKE_CURRENT_SOURCE_DIR}/src/Dice/tentris_server/tentris_version.hpp)
 target_include_directories(tentris_server PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/src>
         )

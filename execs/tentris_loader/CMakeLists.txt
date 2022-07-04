@@ -7,13 +7,14 @@ add_executable(tentris_loader
         src/Dice/tentris_loader/TentrisLoader.cpp
         )
 
+find_package(Threads REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(cxxopts REQUIRED)
 find_package(Metall REQUIRED)
 
 target_link_libraries(tentris_loader PRIVATE
         ${TENTRIS_STATIC_DEF}
-        ${TENTRIS_PTHREAD_DEF}
+        Threads::Threads
         tentris::triple_store
         tentris::node_store
         spdlog::spdlog
@@ -21,6 +22,7 @@ target_link_libraries(tentris_loader PRIVATE
         Metall::Metall
         )
 
+configure_file(${CMAKE_SOURCE_DIR}/../cmake/version.hpp.in ${CMAKE_CURRENT_SOURCE_DIR}/src/Dice/tentris_loader/tentris_version.hpp)
 target_include_directories(tentris_loader PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/src>
         )

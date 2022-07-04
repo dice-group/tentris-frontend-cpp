@@ -1,12 +1,8 @@
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED True)
-set(CMAKE_CXX_EXTENSIONS OFF)
-include(GNUInstallDirs)
-
 add_executable(deduplicated_nt
         src/Dice/tools/deduplicated_nt/DeduplicatedNT.cpp
         )
 
+find_package(Threads REQUIRED)
 find_package(tsl-sparse-map REQUIRED)
 find_package(robin_hood REQUIRED)
 find_package(dice-hash REQUIRED)
@@ -17,7 +13,7 @@ find_package(serd REQUIRED)
 
 target_link_libraries(deduplicated_nt PRIVATE
         ${TENTRIS_STATIC_DEF}
-        ${TENTRIS_PTHREAD_DEF}
+        Threads::Threads
         rdf4cpp::rdf4cpp
         tsl::sparse_map
         robin_hood::robin_hood
@@ -27,6 +23,7 @@ target_link_libraries(deduplicated_nt PRIVATE
         serd::serd
         )
 
+configure_file(${CMAKE_SOURCE_DIR}/../cmake/version.hpp.in ${CMAKE_CURRENT_SOURCE_DIR}/src/Dice/deduplicated_nt/tentris_version.hpp)
 target_include_directories(deduplicated_nt PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/src>
         )
