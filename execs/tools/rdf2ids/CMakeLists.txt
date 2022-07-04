@@ -29,7 +29,7 @@ target_link_libraries(rdf2ids PRIVATE
         serd::serd
         )
 
-configure_file(${CMAKE_SOURCE_DIR}/../cmake/version.hpp.in ${CMAKE_CURRENT_SOURCE_DIR}/src/Dice/rdf2ids/tentris_version.hpp)
+configure_file(${CMAKE_SOURCE_DIR}/../cmake/version.hpp.in ${CMAKE_CURRENT_SOURCE_DIR}/src/Dice/tools/rdf2ids/tentris_version.hpp)
 target_include_directories(rdf2ids PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/src>
         )

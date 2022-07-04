@@ -23,7 +23,7 @@ target_link_libraries(deduplicated_nt PRIVATE
         serd::serd
         )
 
-configure_file(${CMAKE_SOURCE_DIR}/../cmake/version.hpp.in ${CMAKE_CURRENT_SOURCE_DIR}/src/Dice/deduplicated_nt/tentris_version.hpp)
+configure_file(${CMAKE_SOURCE_DIR}/../cmake/version.hpp.in ${CMAKE_CURRENT_SOURCE_DIR}/src/Dice/tools/deduplicated_nt/tentris_version.hpp)
 target_include_directories(deduplicated_nt PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/src>
         )
