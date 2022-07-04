@@ -1,5 +1,8 @@
+
 ## project specific
-/src/lib/tentris/tentris_version.hpp
+**/tentris_version.hpp
+**/build*/**
+**/cmake-*/**
 tests
 # log files
 tentris.log

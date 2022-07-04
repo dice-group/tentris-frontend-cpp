@@ -60,19 +60,19 @@ COPY conanfile.py conanfile.py
 RUN sed -i 's/lld/mold/g' CMakeLists.txt
 
 ##build
-WORKDIR /tentris/build
+WORKDIR /tentris/execs/build
 # todo: should be replaced with toolchain file like https://github.com/ruslo/polly/blob/master/clang-libcxx17-static.cmake
 RUN cmake \
     -DCMAKE_BUILD_TYPE=Release \
-    -DTENTRIS_BUILD_WITH_TCMALLOC=true \
-    -DTENTRIS_STATIC=true \
-    -DTENTRIS_MARCH=${TENTRIS_MARCH} \
+    -DWITH_TCMALLOC=true \
+    -DSTATIC=true \
+    -DMARCH=${TENTRIS_MARCH} \
     ..
 RUN make -j $(nproc)
 FROM scratch
-COPY --from=builder /tentris/build/bin/tentris_server /tentris_server
-COPY --from=builder /tentris/build/bin/tentris_loader /tentris_loader
-COPY --from=builder /tentris/build/bin/deduplicated_nt /deduplicated_nt
-COPY --from=builder /tentris/build/bin/rdf2ids /rdf2ids
+COPY --from=builder /tentris/execs/build/bin/tentris_server /tentris_server
+COPY --from=builder /tentris/execs/build/bin/tentris_loader /tentris_loader
+COPY --from=builder /tentris/execs/build/bin/deduplicated_nt /deduplicated_nt
+COPY --from=builder /tentris/execs/build/bin/rdf2ids /rdf2ids
 COPY README.MD README.MD
 ENTRYPOINT ["/tentris_server"]
