@@ -1,6 +1,5 @@
 FROM alpine:3.16 AS builder
-ARG DEBIAN_FRONTEND=noninteractive
-ARG TENTRIS_MARCH="x86-64-v3"
+ARG MARCH="x86-64-v3"
 ARG CONAN_USER="none"
 ARG CONAN_PW="none"
 
@@ -13,7 +12,9 @@ RUN apk update && \
 
 ARG CC="clang"
 ARG CXX="clang++"
-ENV CXXFLAGS="${CXXFLAGS} -march=${TENTRIS_MARCH}"
+ENV CXXFLAGS="${CXXFLAGS} -march=${MARCH}"
+RUN rm /usr/bin/ld && ln -s /usr/bin/mold /usr/bin/ld # use mold as default linker
+
 
 # Compile more recent tcmalloc-minimal with clang-14 + -march
 RUN git clone --quiet --branch gperftools-2.9.1 --depth 1 https://github.com/gperftools/gperftools
@@ -46,18 +47,16 @@ RUN conan user ${CONAN_USER} -p ${CONAN_PW} -r tentris-private
 
 # build and cache dependencies via conan
 WORKDIR /conan_cache
-COPY lib_conanfile.txt conanfile.txt
+COPY conanfile.py .
+COPY CMakeLists.txt .
 RUN conan install . --build=missing --profile default
-
 # import project files
 WORKDIR /tentris
-COPY thirdparty thirdparty
 COPY libs libs
 COPY execs execs
 COPY cmake cmake
-COPY CMakeLists.txt CMakeLists.txt
-COPY conanfile.py conanfile.py
-RUN sed -i 's/lld/mold/g' CMakeLists.txt
+COPY CMakeLists.txt .
+COPY conanfile.py .
 
 ##build
 WORKDIR /tentris/execs/build
@@ -66,7 +65,7 @@ RUN cmake \
     -DCMAKE_BUILD_TYPE=Release \
     -DWITH_TCMALLOC=true \
     -DSTATIC=true \
-    -DMARCH=${TENTRIS_MARCH} \
+    -DMARCH=${MARCH} \
     ..
 RUN make -j $(nproc)
 RUN ls -lah tools/deduplicated_nt

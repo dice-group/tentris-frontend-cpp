@@ -7,13 +7,8 @@ from conans.util.files import rmdir
 
 
 class Recipe(ConanFile):
-    # Optional metadata
-    author = "<Put your name here> <And your email here>"
-    url = "<Package recipe repository url here, for issues about the package>"
-    description = "<Description of Tentris here>"
-    topics = ("<Put some tag here>", "<here>", "<and here>")
-
-    # Binary configuration
+    url = "https://tentris.dice-research.org"
+    topics = ("triplestore", "sparql", "rdf", "sematic-web", "tensor")
     settings = "os", "compiler", "build_type", "arch"
     options = {
         "shared": [True, False],
@@ -24,29 +19,9 @@ class Recipe(ConanFile):
         "shared": False,
         "fPIC": True,
         "with_exec_deps": False,
+        "boost:header_only": True,  # override hypertrie settings # TODO: remove in hypertrie and here
         "restinio:asio": "boost",
-        "restinio:with_zlib": True,
-        "boost:header_only": False,  # override hypertrie settings
-        "boost:without_context": True,
-        "boost:without_contract": True,
-        "boost:without_coroutine": True,
-        "boost:without_fiber": True,
-        "boost:without_graph": True,
-        "boost:without_graph_parallel": True,
-        "boost:without_iostreams": True,
-        "boost:without_json": True,
-        "boost:without_locale": True,
-        "boost:without_math": True,
-        "boost:without_mpi": True,
-        "boost:without_nowide": True,
-        "boost:without_program_options": True,
-        "boost:without_python": True,
-        "boost:without_serialization": True,
-        "boost:without_stacktrace": True,
-        "boost:without_test": True,
-        "boost:without_timer": True,
-        "boost:without_type_erasure": True,
-        "boost:without_wave": True}
+    }
 
     def requirements(self):
         public_reqs = [
@@ -87,7 +62,7 @@ class Recipe(ConanFile):
     generators = ("cmake_find_package",)
 
     # Sources are located in the same place as this recipe, copy them to the recipe
-    exports_sources = "libs/*", "CMakeLists.txt", "cmake/*", "lib_conanfile.txt"
+    exports_sources = "libs/*", "CMakeLists.txt", "cmake/*"
 
     def config_options(self):
         if self.settings.os == "Windows":
@@ -106,15 +81,15 @@ class Recipe(ConanFile):
             cmake_file = load(os.path.join(self.recipe_folder, "CMakeLists.txt"))
             self.description = re.search(r"project\([^)]*DESCRIPTION\s+\"([^\"]+)\"[^)]*\)", cmake_file).group(1)
 
+    _cmake = None
+
     def _configure_cmake(self):
         if self._cmake:
             return self._cmake
         self._cmake = CMake(self)
         self._cmake.definitions['CONAN_CMAKE'] = False
-        print("with_exec_deps: {}".format(self.options.get_safe("with_exec_deps")))
-        if self.options.get_safe("with_exec_deps"):
-            self._cmake.definitions['TENTRIS_BINARY_BUILD'] = True
         self._cmake.configure()
+        return self._cmake
 
     def build(self):
         cmake = self._configure_cmake()
@@ -126,7 +101,7 @@ class Recipe(ConanFile):
         for dir in ("res", "share"):
             rmdir(os.path.join(self.package_folder, dir))
 
-    def package_info(self):  #
+    def package_info(self):
         self.cpp_info.components["global"].set_property("cmake_target_name", "tentris::tentris")
         self.cpp_info.components["global"].names["cmake_find_package_multi"] = "tentris"
         self.cpp_info.components["global"].names["cmake_find_package"] = "tentris"
@@ -144,7 +119,11 @@ class Recipe(ConanFile):
             # "dice-sparse-map::dice-sparse-map",
             "cxxopts::cxxopts",
             "robin-hood-hashing::robin-hood-hashing",
-            "expected-lite::expected-lite"
+            "expected-lite::expected-lite",
+            "restinio::restinio",
+            "taskflow::taskflow",
+            "cppitertools::cppitertools",
+            "spdlog::spdlog",
         ]
 
         for component in ["node_store", "rdf_tensor", "sparql2tensor", "triple_store"]:  # "endpoint"
@@ -178,19 +157,15 @@ class Recipe(ConanFile):
             "rdf_tensor",
             "serd::serd"
         ]
-
+        self.cpp_info.components["endpoint"].requires = [
+            "rdf_tensor",
+            "restinio::restinio",
+            "taskflow::taskflow",
+            "cppitertools::cppitertools",
+            "spdlog::spdlog",
+            "rapidjson::rapidjson",
+        ]
         if self.options.get_safe("with_exec_deps"):
-            self.cpp_info.components["endpoint"].requires = [
-                "rdf_tensor",
-                "restinio::restinio",
-                "taskflow::taskflow",
-                "cppitertools::cppitertools",
-                "spdlog::spdlog",
-                "rapidjson::rapidjson",
-            ]
             self.cpp_info.components["global"].requires += [
-                "restinio::restinio",
-                "taskflow::taskflow",
-                "cppitertools::cppitertools",
-                "spdlog::spdlog",
-                "rapidjson::rapidjson", ]
+                "vincentlaucsb-csv-parser",
+                "nlohmann_json::nlohmann_json"]

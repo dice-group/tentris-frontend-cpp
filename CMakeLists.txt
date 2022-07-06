@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.18)
 project(tentris
         VERSION 1.3.0
-        DESCRIPTION "TODO")
+        DESCRIPTION "tensor-based triplestore")
 
 SET("tentris_lib_VERSION" "${tentris_VERSION}" CACHE STRING "" FORCE)
 SET("tentris_lib_VERSION_MAJOR" "${tentris_VERSION_MAJOR}" CACHE STRING "" FORCE)
