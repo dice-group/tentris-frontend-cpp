@@ -1,4 +1,5 @@
-FROM alpine:3.16 AS builder
+FROM alpine:edge AS builder
+# todo: fix version as soon as clang-14 is available outside of edge
 ARG MARCH="x86-64-v3"
 ARG CONAN_USER="none"
 ARG CONAN_PW="none"
@@ -6,7 +7,7 @@ ARG CONAN_PW="none"
 
 RUN apk update && \
     apk add git make cmake boost-build pythonispython3 py3-pip autoconf automake gcc g++ clang \
-    clang-dev clang-libs clang-extra-tools clang-static llvm13 llvm13-dev lld pkgconfig libuuid \
+    clang-dev clang-libs clang-extra-tools clang-static llvm14 llvm14-dev lld pkgconfig libuuid \
     libtool util-linux-dev linux-headers openjdk11-jdk && \
     apk add mold --repository=https://mirrors.edge.kernel.org/alpine/edge/testing
 
