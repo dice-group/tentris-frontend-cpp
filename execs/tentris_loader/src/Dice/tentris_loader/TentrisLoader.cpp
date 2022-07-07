@@ -12,7 +12,7 @@
 #include <Dice/node_store/PersistentNodeStorageBackend.hpp>
 #include <Dice/triple_store/TripleStore.hpp>
 
-#include "tentris_version.hpp"
+#include <Dice/tentris/tentris_version.hpp>
 
 int main(int argc, char *argv[]) {
 	using namespace Dice;

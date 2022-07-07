@@ -22,7 +22,6 @@ target_link_libraries(tentris_loader PRIVATE
         Metall::Metall
         )
 
-configure_file(${CMAKE_SOURCE_DIR}/../cmake/version.hpp.in ${CMAKE_CURRENT_SOURCE_DIR}/src/Dice/tentris_loader/tentris_version.hpp)
 target_include_directories(tentris_loader PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/src>
         )

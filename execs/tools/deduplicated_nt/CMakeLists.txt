@@ -21,9 +21,9 @@ target_link_libraries(deduplicated_nt PRIVATE
         spdlog::spdlog
         cxxopts::cxxopts
         serd::serd
+        tentris::rdf_tensor
         )
 
-configure_file(${CMAKE_SOURCE_DIR}/../cmake/version.hpp.in ${CMAKE_CURRENT_SOURCE_DIR}/src/Dice/tools/deduplicated_nt/tentris_version.hpp)
 target_include_directories(deduplicated_nt PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/src>
         )

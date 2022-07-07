@@ -27,9 +27,9 @@ target_link_libraries(rdf2ids PRIVATE
         cxxopts::cxxopts
         vincentlaucsb-csv-parser::vincentlaucsb-csv-parser
         serd::serd
+        tentris::rdf_tensor
         )
 
-configure_file(${CMAKE_SOURCE_DIR}/../cmake/version.hpp.in ${CMAKE_CURRENT_SOURCE_DIR}/src/Dice/tools/rdf2ids/tentris_version.hpp)
 target_include_directories(rdf2ids PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/src>
         )

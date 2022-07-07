@@ -10,7 +10,7 @@
 #include <spdlog/spdlog.h>
 #include <tsl/sparse_set.h>
 
-#include "tentris_version.hpp"
+#include <Dice/tentris/tentris_version.hpp>
 
 #include "SerdParser.hpp"
 

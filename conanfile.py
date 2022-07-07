@@ -105,9 +105,11 @@ class Recipe(ConanFile):
         self.cpp_info.components["global"].set_property("cmake_target_name", "tentris::tentris")
         self.cpp_info.components["global"].names["cmake_find_package_multi"] = "tentris"
         self.cpp_info.components["global"].names["cmake_find_package"] = "tentris"
+        self.cpp_info.components["global"].includedirs = [f"include/tentris/tentris"]
+        self.cpp_info.components["global"].libdirs = []
         self.cpp_info.set_property("cmake_file_name", "tentris")
-        self.cpp_info.components["global"].includedirs = []
         self.cpp_info.components["global"].requires = [
+            "node_store", "rdf_tensor", "sparql2tensor", "triple_store",
             "boost::boost",
             "fmt::fmt",
             "restinio::restinio",
@@ -126,12 +128,12 @@ class Recipe(ConanFile):
             "spdlog::spdlog",
         ]
 
-        for component in ["node_store", "rdf_tensor", "sparql2tensor", "triple_store"]:  # "endpoint"
+        for component in ["node_store", "rdf_tensor", "sparql2tensor", "triple_store", "endpoint"]:
             self.cpp_info.components[f"{component}"].names["cmake_find_package_multi"] = f"{component}"
             self.cpp_info.components[f"{component}"].names["cmake_find_package"] = f"{component}"
             self.cpp_info.components[f"{component}"].includedirs = [f"include/tentris/{component}"]
 
-        for component in ["node_store", "sparql2tensor", "triple_store"]:  # "endpoint"
+        for component in ["node_store", "sparql2tensor", "triple_store", "endpoint"]:
             self.cpp_info.components[f"{component}"].libdirs = [f"lib/tentris/{component}"]
             self.cpp_info.components[f"{component}"].libs = [f"{component}"]
 
