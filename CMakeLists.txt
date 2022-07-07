@@ -3,11 +3,6 @@ project(tentris
         VERSION 1.3.0
         DESCRIPTION "tensor-based triplestore")
 
-SET("tentris_lib_VERSION" "${tentris_VERSION}" CACHE STRING "" FORCE)
-SET("tentris_lib_VERSION_MAJOR" "${tentris_VERSION_MAJOR}" CACHE STRING "" FORCE)
-SET("tentris_lib_VERSION_MINOR" "${tentris_VERSION_MINOR}" CACHE STRING "" FORCE)
-SET("tentris_lib_VERSION_PATCH" "${tentris_VERSION_PATCH}" CACHE STRING "" FORCE)
-
 include(cmake/boilerplate_init.cmake)
 boilerplate_init()
 
