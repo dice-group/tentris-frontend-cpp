@@ -1,12 +1,12 @@
 cmake_minimum_required(VERSION 3.15)
 project(PackageTest CXX)
 
-find_package(tentris REQUIRED node_store)
+find_package(tentris REQUIRED node-store)
 
 add_executable(example example.cpp)
 
-target_link_libraries(example PUBLIC
-        tentris::node_store
+target_link_libraries(example PRIVATE
+        tentris::node-store
         )
 
 set_target_properties(

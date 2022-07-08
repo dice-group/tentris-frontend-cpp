@@ -5,11 +5,11 @@ find_package(cppitertools REQUIRED)
 find_package(RapidJSON REQUIRED)
 
 add_library(endpoint
-        src/Dice/endpoint/HTTPServer.cpp
-        src/Dice/endpoint/SparqlEndpoint.cpp
-        src/Dice/endpoint/CountEndpoint.cpp
-        src/Dice/endpoint/SparqlStreamingEndpoint.cpp
-        src/Dice/endpoint/SparqlQueryCache.cpp
+        src/dice/endpoint/HTTPServer.cpp
+        src/dice/endpoint/SparqlEndpoint.cpp
+        src/dice/endpoint/CountEndpoint.cpp
+        src/dice/endpoint/SparqlStreamingEndpoint.cpp
+        src/dice/endpoint/SparqlQueryCache.cpp
         )
 add_library(tentris::endpoint ALIAS endpoint)
 
@@ -28,8 +28,8 @@ set_target_properties(endpoint PROPERTIES
         )
 
 target_link_libraries(endpoint PUBLIC
-        tentris::triple_store
-        tentris::node_store
+        tentris::triple-store
+        tentris::node-store
         restinio::restinio
         Taskflow::Taskflow
         PRIVATE
