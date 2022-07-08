@@ -28,8 +28,8 @@ set_target_properties(endpoint PROPERTIES
         )
 
 target_link_libraries(endpoint PUBLIC
-        tentris::triple_store
-        tentris::node_store
+        tentris::triple-store
+        tentris::node-store
         restinio::restinio
         Taskflow::Taskflow
         PRIVATE

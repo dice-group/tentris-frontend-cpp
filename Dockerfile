@@ -69,12 +69,11 @@ RUN cmake \
     -DMARCH=${MARCH} \
     ..
 RUN make -j $(nproc)
-RUN ls -lah tools/deduplicated_nt
 
 FROM scratch
-COPY --from=builder /tentris/execs/build/tentris_server/tentris_server /tentris_server
-COPY --from=builder /tentris/execs/build/tentris_loader/tentris_loader /tentris_loader
-COPY --from=builder /tentris/execs/build/tools/deduplicated_nt/deduplicated_nt /deduplicated_nt
+COPY --from=builder /tentris/execs/build/tentris-server/tentris_server /tentris_server
+COPY --from=builder /tentris/execs/build/tentris-loader/tentris_loader /tentris_loader
+COPY --from=builder /tentris/execs/build/tools/deduplicated-nt/deduplicated_nt /deduplicated_nt
 COPY --from=builder /tentris/execs/build/tools/rdf2ids/rdf2ids /rdf2ids
 COPY README.MD README.MD
 ENTRYPOINT ["/tentris_server"]

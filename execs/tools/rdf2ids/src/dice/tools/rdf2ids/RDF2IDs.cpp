@@ -1,15 +1,15 @@
 #include <chrono>
 #include <filesystem>
 
-#include <dice/hash/DiceHash.hpp>
 #include <csv.hpp>
 #include <cxxopts.hpp>
 #include <fmt/format.h>
 #include <spdlog/logger.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
-#include <dice/sparse-map/sparse_set.hpp>
 
+#include <dice/hash/DiceHash.hpp>
+#include <dice/sparse-map/sparse_set.hpp>
 #include <dice/tentris/tentris_version.hpp>
 
 #include "SerdParser.hpp"

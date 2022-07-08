@@ -19,7 +19,7 @@ target_include_directories(sparql2tensor PUBLIC
         )
 
 target_link_libraries(sparql2tensor PUBLIC
-        tentris::rdf_tensor
+        tentris::rdf-tensor
         robin_hood::robin_hood
         PRIVATE
         sparql-parser-base::sparql-parser-base

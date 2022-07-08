@@ -55,6 +55,6 @@ install_packages_via_conan("${CMAKE_SOURCE_DIR}/../conanfile.py" "with_exec_deps
 
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/.. ${CMAKE_CURRENT_BINARY_DIR}/libtentris)
 
-add_subdirectory(tentris_server)
-add_subdirectory(tentris_loader)
+add_subdirectory(tentris-server)
+add_subdirectory(tentris-loader)
 add_subdirectory(tools)

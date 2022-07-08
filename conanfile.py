@@ -109,7 +109,7 @@ class Recipe(ConanFile):
         self.cpp_info.components["global"].libdirs = []
         self.cpp_info.set_property("cmake_file_name", "tentris")
         self.cpp_info.components["global"].requires = [
-            "node_store", "rdf_tensor", "sparql2tensor", "triple_store",
+            "node-store", "rdf-tensor", "sparql2tensor", "triple-store", "endpoint",
             "boost::boost",
             "fmt::fmt",
             "restinio::restinio",
@@ -118,7 +118,6 @@ class Recipe(ConanFile):
             "rdf4cpp::rdf4cpp",
             "sparql-parser-base::sparql-parser-base",
             "dice-hash::dice-hash",
-            # "dice-sparse-map::dice-sparse-map",
             "cxxopts::cxxopts",
             "robin-hood-hashing::robin-hood-hashing",
             "expected-lite::expected-lite",
@@ -128,39 +127,39 @@ class Recipe(ConanFile):
             "spdlog::spdlog",
         ]
 
-        for component in ["node_store", "rdf_tensor", "sparql2tensor", "triple_store", "endpoint"]:
+        for component in ["node-store", "rdf-tensor", "sparql2tensor", "triple-store", "endpoint"]:
             self.cpp_info.components[f"{component}"].names["cmake_find_package_multi"] = f"{component}"
             self.cpp_info.components[f"{component}"].names["cmake_find_package"] = f"{component}"
             self.cpp_info.components[f"{component}"].includedirs = [f"include/tentris/{component}"]
 
-        for component in ["node_store", "sparql2tensor", "triple_store", "endpoint"]:
+        for component in ["node-store", "sparql2tensor", "triple-store", "endpoint"]:
             self.cpp_info.components[f"{component}"].libdirs = [f"lib/tentris/{component}"]
             self.cpp_info.components[f"{component}"].libs = [f"{component}"]
 
-        self.cpp_info.components["rdf_tensor"].requires = [
+        self.cpp_info.components["rdf-tensor"].requires = [
             "rdf4cpp::rdf4cpp",
             "hypertrie::hypertrie",
             "boost::boost",
             "metall::metall",
         ]
 
-        self.cpp_info.components["node_store"].requires = [
-            "rdf_tensor",
+        self.cpp_info.components["node-store"].requires = [
+            "rdf-tensor",
         ]
 
         self.cpp_info.components["sparql2tensor"].requires = [
-            "node_store",
+            "node-store",
             "robin-hood-hashing::robin-hood-hashing",
             "sparql-parser-base::sparql-parser-base",
         ]
 
-        self.cpp_info.components["triple_store"].requires = [
+        self.cpp_info.components["triple-store"].requires = [
             "sparql2tensor",
-            "rdf_tensor",
+            "rdf-tensor",
             "serd::serd"
         ]
         self.cpp_info.components["endpoint"].requires = [
-            "rdf_tensor",
+            "rdf-tensor",
             "restinio::restinio",
             "taskflow::taskflow",
             "cppitertools::cppitertools",

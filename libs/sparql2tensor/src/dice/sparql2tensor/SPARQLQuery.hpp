@@ -4,9 +4,9 @@
 #include <rdf4cpp/rdf.hpp>
 
 #include <dice/hypertrie.hpp>
-#include <dice/rdf_tensor/HypertrieTrait.hpp>
-#include <dice/rdf_tensor/RDFNodeHashes.hpp>
-#include <dice/rdf_tensor/Query.hpp>
+#include <dice/rdf-tensor/HypertrieTrait.hpp>
+#include <dice/rdf-tensor/RDFNodeHashes.hpp>
+#include <dice/rdf-tensor/Query.hpp>
 
 #include <robin_hood.h>
 

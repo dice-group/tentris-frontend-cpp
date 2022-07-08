@@ -14,7 +14,7 @@
 #include <cppitertools/itertools.hpp>
 #include <rdf4cpp/rdf.hpp>
 
-#include <dice/rdf_tensor/Query.hpp>
+#include <dice/rdf-tensor/Query.hpp>
 
 namespace dice::endpoint {
 

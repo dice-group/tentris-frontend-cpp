@@ -1,4 +1,4 @@
-#include <dice/node_store/PersistentNodeStorageBackend.hpp>
+#include <dice/node-store/PersistentNodeStorageBackend.hpp>
 
 int main() {
 	dice::rdf_tensor::metall_manager x{metall::create_only, "abc"};
