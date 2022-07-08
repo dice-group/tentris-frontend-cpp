@@ -28,6 +28,10 @@ namespace dice::endpoint {
 	public:
 		HTTPServer(tf::Executor &executor, triple_store::TripleStore &triplestore, EndpointCfg const &cfg);
 
+		restinio::router::express_router_t<> &router(){
+			return *router_;
+		}
+
 		void operator()();
 	};
 }// namespace dice::endpoint
