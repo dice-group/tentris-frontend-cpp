@@ -1,11 +1,11 @@
 include(GNUInstallDirs)
 
 add_executable(rdf2ids
-        src/Dice/tools/rdf2ids/RDF2IDs.cpp
+        src/dice/tools/rdf2ids/RDF2IDs.cpp
         )
 
 find_package(Threads REQUIRED)
-find_package(tsl-sparse-map REQUIRED)
+find_package(dice-sparse-map REQUIRED)
 find_package(robin_hood REQUIRED)
 find_package(dice-hash REQUIRED)
 find_package(spdlog REQUIRED)
@@ -21,7 +21,7 @@ target_link_libraries(rdf2ids PRIVATE
         Threads::Threads
         dice-hash::dice-hash
         rdf4cpp::rdf4cpp
-        tsl::sparse_map
+        dice-sparse-map::dice-sparse-map
         robin_hood::robin_hood
         spdlog::spdlog
         cxxopts::cxxopts

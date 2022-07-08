@@ -4,7 +4,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 include(GNUInstallDirs)
 
 add_executable(tentris_loader
-        src/Dice/tentris_loader/TentrisLoader.cpp
+        src/dice/tentris_loader/TentrisLoader.cpp
         )
 
 find_package(Threads REQUIRED)

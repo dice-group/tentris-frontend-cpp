@@ -1,9 +1,9 @@
 add_executable(deduplicated_nt
-        src/Dice/tools/deduplicated_nt/DeduplicatedNT.cpp
+        src/dice/tools/deduplicated_nt/DeduplicatedNT.cpp
         )
 
 find_package(Threads REQUIRED)
-find_package(tsl-sparse-map REQUIRED)
+find_package(dice-sparse-map REQUIRED)
 find_package(robin_hood REQUIRED)
 find_package(dice-hash REQUIRED)
 find_package(spdlog REQUIRED)
@@ -15,7 +15,7 @@ target_link_libraries(deduplicated_nt PRIVATE
         ${TENTRIS_STATIC_DEF}
         Threads::Threads
         rdf4cpp::rdf4cpp
-        tsl::sparse_map
+        dice-sparse-map::dice-sparse-map
         robin_hood::robin_hood
         dice-hash::dice-hash
         spdlog::spdlog

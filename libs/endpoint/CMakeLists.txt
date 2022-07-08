@@ -5,11 +5,11 @@ find_package(cppitertools REQUIRED)
 find_package(RapidJSON REQUIRED)
 
 add_library(endpoint
-        src/Dice/endpoint/HTTPServer.cpp
-        src/Dice/endpoint/SparqlEndpoint.cpp
-        src/Dice/endpoint/CountEndpoint.cpp
-        src/Dice/endpoint/SparqlStreamingEndpoint.cpp
-        src/Dice/endpoint/SparqlQueryCache.cpp
+        src/dice/endpoint/HTTPServer.cpp
+        src/dice/endpoint/SparqlEndpoint.cpp
+        src/dice/endpoint/CountEndpoint.cpp
+        src/dice/endpoint/SparqlStreamingEndpoint.cpp
+        src/dice/endpoint/SparqlQueryCache.cpp
         )
 add_library(tentris::endpoint ALIAS endpoint)
 

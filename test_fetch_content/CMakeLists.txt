@@ -16,6 +16,6 @@ FetchContent_Declare(
         GIT_SHALLOW TRUE
 )
 FetchContent_MakeAvailable(tentris)
-add_executable(example src/example.cpp)
+add_executable(example example.cpp)
 # With FetchContent_Declare we don't need find_package
-target_link_libraries(example Dice::triple_store Dice::node_store)
+target_link_libraries(example PRIVATE tentris::node_store)

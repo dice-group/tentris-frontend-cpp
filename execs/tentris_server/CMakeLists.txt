@@ -1,5 +1,5 @@
 add_executable(tentris_server
-        src/Dice/tentris_server/TentrisServer.cpp
+        src/dice/tentris_server/TentrisServer.cpp
         )
 
 find_package(Threads REQUIRED)

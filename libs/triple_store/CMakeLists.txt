@@ -6,7 +6,7 @@ find_package(serd REQUIRED VERSION EXACT 0)
 
 # Define the library
 add_library(triple_store
-        src/Dice/triple_store/SerdLoad.cpp
+        src/dice/triple_store/SerdLoad.cpp
         )
 
 add_library(tentris::triple_store ALIAS triple_store)
