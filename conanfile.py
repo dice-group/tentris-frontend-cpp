@@ -168,5 +168,5 @@ class Recipe(ConanFile):
         ]
         if self.options.get_safe("with_exec_deps"):
             self.cpp_info.components["global"].requires += [
-                "vincentlaucsb-csv-parser",
+                "vincentlaucsb-csv-parser::vincentlaucsb-csv-parser",
                 "nlohmann_json::nlohmann_json"]
