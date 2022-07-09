@@ -36,7 +36,7 @@ class Recipe(ConanFile):
             "robin-hood-hashing/3.11.5",
             "cxxopts/2.2.1",
             "serd/0.30.13-f6437f",
-            "sparql-parser-base/0.2.2@dice-group/stable",
+            "sparql-parser-base/0.3.0",
             "taskflow/3.3.0",
             "cppitertools/2.1",
             "spdlog/1.10.0",

@@ -2,7 +2,7 @@
 
 namespace dice::sparql2tensor::parser::visitors {
 
-	antlrcpp::Any PrologueVisitor::visitPrologue(SparqlParser::PrologueContext *ctx) {
+	std::any PrologueVisitor::visitPrologue(SparqlParser::PrologueContext *ctx) {
 		prefixes_.clear();
 		for (auto pref_ctx : ctx->prefixDecl())
 			visitPrefixDecl(pref_ctx);
@@ -11,11 +11,11 @@ namespace dice::sparql2tensor::parser::visitors {
 		return prefixes_;
 	}
 
-	antlrcpp::Any PrologueVisitor::visitBaseDecl([[maybe_unused]] SparqlParser::BaseDeclContext *ctx) {
+	std::any PrologueVisitor::visitBaseDecl([[maybe_unused]] SparqlParser::BaseDeclContext *ctx) {
 		return nullptr;
 	}
 
-	antlrcpp::Any PrologueVisitor::visitPrefixDecl(SparqlParser::PrefixDeclContext *ctx) {
+	std::any PrologueVisitor::visitPrefixDecl(SparqlParser::PrefixDeclContext *ctx) {
 		std::string prefix{};
 		if (ctx->PNAME_NS())
 			prefix = ctx->PNAME_NS()->getText();
