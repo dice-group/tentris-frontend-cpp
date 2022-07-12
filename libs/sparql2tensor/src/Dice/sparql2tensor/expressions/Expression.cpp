@@ -2,6 +2,7 @@
 
 namespace Dice::sparql2tensor::expressions {
 
+	/* ExpressionList */
 	ExpressionList::ExpressionList(std::vector<std::unique_ptr<Expression>> expressions)
 		: expressions_(std::move(expressions)) {}
 

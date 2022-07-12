@@ -19,7 +19,7 @@ namespace Dice::sparql2tensor::expressions {
 	CountStar::CountStar(size_t count)
 		: Aggregate(nullptr), count_(count) {}
 
-	void CountStar::evaluate([[maybe_unused]] const rdf_tensor::Entry &entry) {
+	void CountStar::evaluate([[maybe_unused]] rdf_tensor::Entry const &key) {
 		count_++;
 	}
 
@@ -35,7 +35,7 @@ namespace Dice::sparql2tensor::expressions {
 	CountStarDistinct::CountStarDistinct(std::set<rdf_tensor::Entry> entries)
 		: Aggregate(nullptr), entries_(std::move(entries)) {}
 
-	void CountStarDistinct::evaluate(const rdf_tensor::Entry &entry) {
+	void CountStarDistinct::evaluate(rdf_tensor::Entry const &entry) {
 		entries_.insert(entry);
 	}
 
@@ -51,7 +51,7 @@ namespace Dice::sparql2tensor::expressions {
 	Count::Count(std::unique_ptr<Expression> expr, size_t count)
 		: Aggregate(std::move(expr)), count_(count) {}
 
-	void Count::evaluate(const rdf_tensor::Entry &entry) {
+	void Count::evaluate(rdf_tensor::Entry const &entry) {
 		op_expr_->evaluate(entry);
 		auto expr_res = op_expr_->result();
 		if (expr_res.has_value())
@@ -70,7 +70,7 @@ namespace Dice::sparql2tensor::expressions {
 	CountDistinct::CountDistinct(std::unique_ptr<Expression> expr, std::set<Node> rdf_nodes)
 		: Aggregate(std::move(expr)), rdf_nodes_(std::move(rdf_nodes)) {}
 
-	void CountDistinct::evaluate([[maybe_unused]] const rdf_tensor::Entry &entry) {
+	void CountDistinct::evaluate([[maybe_unused]] rdf_tensor::Entry const &entry) {
 		op_expr_->evaluate(entry);
 		auto expr_res = op_expr_->result();
 		if (expr_res.has_value())

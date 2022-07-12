@@ -1,8 +1,8 @@
 #ifndef DICE_SPARQL_EXPRESSION_HPP
 #define DICE_SPARQL_EXPRESSION_HPP
 
-#include <rdf4cpp/rdf.hpp>
 #include <Dice/rdf_tensor/Query.hpp>
+#include <rdf4cpp/rdf.hpp>
 
 namespace Dice::sparql2tensor::expressions {
 

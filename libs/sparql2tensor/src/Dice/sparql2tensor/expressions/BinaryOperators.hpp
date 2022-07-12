@@ -35,7 +35,7 @@ namespace Dice::sparql2tensor::expressions {
 		std::unique_ptr<Expression> lhs_op_;
 		std::unique_ptr<Expression> rhs_op_;
 	public:
-		explicit EqualsExpression(std::unique_ptr<Expression> e1, std::unique_ptr<Expression> e2);
+		explicit EqualsExpression(std::unique_ptr<Expression> lhs, std::unique_ptr<Expression> rhs);
 		void evaluate(rdf_tensor::Entry const &entry) override;
 		[[nodiscard]] std::optional<rdf4cpp::rdf::Node> result() const override;
 		[[nodiscard]] std::unique_ptr<Expression> clone() const override;
