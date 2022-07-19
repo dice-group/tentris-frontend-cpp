@@ -6,132 +6,132 @@
 namespace Dice::sparql2tensor::expressions {
 
 	/* General n-ary case of the ConditionalOr expression (https://www.w3.org/TR/sparql11-query/#rConditionalOrExpression) */
-	class LogicalOrExpression : public Expression {
+	class LogicalOrExpression : public SPARQLExpression {
 	private:
-		std::vector<std::unique_ptr<Expression>> op_expressions_;
+		std::vector<std::unique_ptr<SPARQLExpression>> op_expressions_;
 	public:
-		explicit LogicalOrExpression(std::vector<std::unique_ptr<Expression>> op_expressions);
-		void evaluate(rdf_tensor::Entry const &entry) override;
-		[[nodiscard]] std::optional<rdf4cpp::rdf::Node> result() const override;
-		[[nodiscard]] std::unique_ptr<Expression> clone() const override;
+		explicit LogicalOrExpression(std::vector<std::unique_ptr<SPARQLExpression>> op_expressions);
+		void update_value(rdf_tensor::Entry const &entry) override;
+		[[nodiscard]] rdf_tensor::NodeWrapper evaluate() const override;
+		[[nodiscard]] std::unique_ptr<SPARQLExpression> clone_sparql() const override;
 		[[nodiscard]] std::vector<rdf4cpp::rdf::query::Variable> variables() const override;
 	};
 
 	/* General n-ary case of the ConditionalAnd expression (https://www.w3.org/TR/sparql11-query/#rConditionalAndExpression) */
-	class LogicalAndExpression : public Expression {
+	class LogicalAndExpression : public SPARQLExpression {
 	private:
-		std::vector<std::unique_ptr<Expression>> op_expressions_;
+		std::vector<std::unique_ptr<SPARQLExpression>> op_expressions_;
 	public:
-		explicit LogicalAndExpression(std::vector<std::unique_ptr<Expression>> op_expressions);
-		void evaluate(rdf_tensor::Entry const &entry) override;
-		[[nodiscard]] std::optional<rdf4cpp::rdf::Node> result() const override;
-		[[nodiscard]] std::unique_ptr<Expression> clone() const override;
+		explicit LogicalAndExpression(std::vector<std::unique_ptr<SPARQLExpression>> op_expressions);
+		void update_value(rdf_tensor::Entry const &entry) override;
+		[[nodiscard]] rdf_tensor::NodeWrapper evaluate() const override;
+		[[nodiscard]] std::unique_ptr<SPARQLExpression> clone_sparql() const override;
 		[[nodiscard]] std::vector<rdf4cpp::rdf::query::Variable> variables() const override;
 	};
 
 	/* Equals RelationalExpression (https://www.w3.org/TR/sparql11-query/#rRelationalExpression) */
-	class EqualsExpression : public Expression {
+	class EqualsExpression : public SPARQLExpression {
 	private:
-		std::unique_ptr<Expression> lhs_op_;
-		std::unique_ptr<Expression> rhs_op_;
+		std::unique_ptr<SPARQLExpression> lhs_op_;
+		std::unique_ptr<SPARQLExpression> rhs_op_;
 	public:
-		explicit EqualsExpression(std::unique_ptr<Expression> lhs, std::unique_ptr<Expression> rhs);
-		void evaluate(rdf_tensor::Entry const &entry) override;
-		[[nodiscard]] std::optional<rdf4cpp::rdf::Node> result() const override;
-		[[nodiscard]] std::unique_ptr<Expression> clone() const override;
+		explicit EqualsExpression(std::unique_ptr<SPARQLExpression> lhs, std::unique_ptr<SPARQLExpression> rhs);
+		void update_value(rdf_tensor::Entry const &entry) override;
+		[[nodiscard]] rdf_tensor::NodeWrapper evaluate() const override;
+		[[nodiscard]] std::unique_ptr<SPARQLExpression> clone_sparql() const override;
 		[[nodiscard]] std::vector<rdf4cpp::rdf::query::Variable> variables() const override;
 	};
 
 	/* NotEquals RelationalExpression (https://www.w3.org/TR/sparql11-query/#rRelationalExpression) */
-	class NotEqualsExpression : public Expression {
+	class NotEqualsExpression : public SPARQLExpression {
 	private:
-		std::unique_ptr<Expression> lhs_op_;
-		std::unique_ptr<Expression> rhs_op_;
+		std::unique_ptr<SPARQLExpression> lhs_op_;
+		std::unique_ptr<SPARQLExpression> rhs_op_;
 	public:
-		explicit NotEqualsExpression(std::unique_ptr<Expression> lhs, std::unique_ptr<Expression> rhs);
-		void evaluate(rdf_tensor::Entry const &entry) override;
-		[[nodiscard]] std::optional<rdf4cpp::rdf::Node> result() const override;
-		[[nodiscard]] std::unique_ptr<Expression> clone() const override;
+		explicit NotEqualsExpression(std::unique_ptr<SPARQLExpression> lhs, std::unique_ptr<SPARQLExpression> rhs);
+		void update_value(rdf_tensor::Entry const &entry) override;
+		[[nodiscard]] rdf_tensor::NodeWrapper evaluate() const override;
+		[[nodiscard]] std::unique_ptr<SPARQLExpression> clone_sparql() const override;
 		[[nodiscard]] std::vector<rdf4cpp::rdf::query::Variable> variables() const override;
 	};
 
 	/* Less RelationalExpression (https://www.w3.org/TR/sparql11-query/#rRelationalExpression) */
-	class LessExpression : public Expression {
+	class LessExpression : public SPARQLExpression {
 	private:
-		std::unique_ptr<Expression> lhs_op_;
-		std::unique_ptr<Expression> rhs_op_;
+		std::unique_ptr<SPARQLExpression> lhs_op_;
+		std::unique_ptr<SPARQLExpression> rhs_op_;
 	public:
-		explicit LessExpression(std::unique_ptr<Expression> lhs, std::unique_ptr<Expression> rhs);
-		void evaluate(rdf_tensor::Entry const &entry) override;
-		[[nodiscard]] std::optional<rdf4cpp::rdf::Node> result() const override;
-		[[nodiscard]] std::unique_ptr<Expression> clone() const override;
+		explicit LessExpression(std::unique_ptr<SPARQLExpression> lhs, std::unique_ptr<SPARQLExpression> rhs);
+		void update_value(rdf_tensor::Entry const &entry) override;
+		[[nodiscard]] rdf_tensor::NodeWrapper evaluate() const override;
+		[[nodiscard]] std::unique_ptr<SPARQLExpression> clone_sparql() const override;
 		[[nodiscard]] std::vector<rdf4cpp::rdf::query::Variable> variables() const override;
 	};
 
 	/* Greater RelationalExpression (https://www.w3.org/TR/sparql11-query/#rRelationalExpression) */
-	class GreaterExpression : public Expression {
+	class GreaterExpression : public SPARQLExpression {
 	private:
-		std::unique_ptr<Expression> lhs_op_;
-		std::unique_ptr<Expression> rhs_op_;
+		std::unique_ptr<SPARQLExpression> lhs_op_;
+		std::unique_ptr<SPARQLExpression> rhs_op_;
 	public:
-		explicit GreaterExpression(std::unique_ptr<Expression> lhs, std::unique_ptr<Expression> rhs);
-		void evaluate(rdf_tensor::Entry const &entry) override;
-		[[nodiscard]] std::optional<rdf4cpp::rdf::Node> result() const override;
-		[[nodiscard]] std::unique_ptr<Expression> clone() const override;
+		explicit GreaterExpression(std::unique_ptr<SPARQLExpression> lhs, std::unique_ptr<SPARQLExpression> rhs);
+		void update_value(rdf_tensor::Entry const &entry) override;
+		[[nodiscard]] rdf_tensor::NodeWrapper evaluate() const override;
+		[[nodiscard]] std::unique_ptr<SPARQLExpression> clone_sparql() const override;
 		[[nodiscard]] std::vector<rdf4cpp::rdf::query::Variable> variables() const override;
 	};
 
 	/* LessEquals RelationalExpression (https://www.w3.org/TR/sparql11-query/#rRelationalExpression) */
-	class LessEqualsExpression : public Expression {
+	class LessEqualsExpression : public SPARQLExpression {
 	private:
-		std::unique_ptr<Expression> lhs_op_;
-		std::unique_ptr<Expression> rhs_op_;
+		std::unique_ptr<SPARQLExpression> lhs_op_;
+		std::unique_ptr<SPARQLExpression> rhs_op_;
 	public:
-		explicit LessEqualsExpression(std::unique_ptr<Expression> lhs, std::unique_ptr<Expression> rhs);
-		void evaluate(rdf_tensor::Entry const &entry) override;
-		[[nodiscard]] std::optional<rdf4cpp::rdf::Node> result() const override;
-		[[nodiscard]] std::unique_ptr<Expression> clone() const override;
+		explicit LessEqualsExpression(std::unique_ptr<SPARQLExpression> lhs, std::unique_ptr<SPARQLExpression> rhs);
+		void update_value(rdf_tensor::Entry const &entry) override;
+		[[nodiscard]] rdf_tensor::NodeWrapper evaluate() const override;
+		[[nodiscard]] std::unique_ptr<SPARQLExpression> clone_sparql() const override;
 		[[nodiscard]] std::vector<rdf4cpp::rdf::query::Variable> variables() const override;
 	};
 
 	/* GreaterEquals RelationalExpression (https://www.w3.org/TR/sparql11-query/#rRelationalExpression) */
-	class GreaterEqualsExpression : public Expression {
+	class GreaterEqualsExpression : public SPARQLExpression {
 	private:
-		std::unique_ptr<Expression> lhs_op_;
-		std::unique_ptr<Expression> rhs_op_;
+		std::unique_ptr<SPARQLExpression> lhs_op_;
+		std::unique_ptr<SPARQLExpression> rhs_op_;
 	public:
-		explicit GreaterEqualsExpression(std::unique_ptr<Expression> lhs, std::unique_ptr<Expression> rhs);
-		void evaluate(rdf_tensor::Entry const &entry) override;
-		[[nodiscard]] std::optional<rdf4cpp::rdf::Node> result() const override;
-		[[nodiscard]] std::unique_ptr<Expression> clone() const override;
+		explicit GreaterEqualsExpression(std::unique_ptr<SPARQLExpression> lhs, std::unique_ptr<SPARQLExpression> rhs);
+		void update_value(rdf_tensor::Entry const &entry) override;
+		[[nodiscard]] rdf_tensor::NodeWrapper evaluate() const override;
+		[[nodiscard]] std::unique_ptr<SPARQLExpression> clone_sparql() const override;
 		[[nodiscard]] std::vector<rdf4cpp::rdf::query::Variable> variables() const override;
 	};
 
-	/* In RelationalExpression (https://www.w3.org/TR/sparql11-query/#rRelationalExpression) */
-	class InExpression : public Expression {
-	private:
-		std::unique_ptr<Expression> lhs_op_;
-		ExpressionList rhs_op_;
-	public:
-		explicit InExpression(std::unique_ptr<Expression> lhs, ExpressionList rhs);
-		void evaluate(rdf_tensor::Entry const &entry) override;
-		[[nodiscard]] std::optional<rdf4cpp::rdf::Node> result() const override;
-		[[nodiscard]] std::unique_ptr<Expression> clone() const override;
-		[[nodiscard]] std::vector<rdf4cpp::rdf::query::Variable> variables() const override;
-	};
-
-	/* NotIn RelationalExpression (https://www.w3.org/TR/sparql11-query/#rRelationalExpression) */
-	class NotInExpression : public Expression {
-	private:
-		std::unique_ptr<Expression> lhs_op_;
-		ExpressionList rhs_op_;
-	public:
-		explicit NotInExpression(std::unique_ptr<Expression> lhs, ExpressionList rhs);
-		void evaluate(rdf_tensor::Entry const &entry) override;
-		[[nodiscard]] std::optional<rdf4cpp::rdf::Node> result() const override;
-		[[nodiscard]] std::unique_ptr<Expression> clone() const override;
-		[[nodiscard]] std::vector<rdf4cpp::rdf::query::Variable> variables() const override;
-	};
+//	/* In RelationalExpression (https://www.w3.org/TR/sparql11-query/#rRelationalExpression) */
+//	class InExpression : public SPARQLExpression {
+//	private:
+//		std::unique_ptr<SPARQLExpression> lhs_op_;
+//		ExpressionList rhs_op_;
+//	public:
+//		explicit InExpression(std::unique_ptr<Expression> lhs, ExpressionList rhs);
+//		void update_value(rdf_tensor::Entry const &entry) override;
+//		[[nodiscard]] rdf_tensor::NodeWrapper result() const override;
+//		[[nodiscard]] std::unique_ptr<SPARQLExpression> clone_sparql() const override;
+//		[[nodiscard]] std::vector<rdf4cpp::rdf::query::Variable> variables() const override;
+//	};
+//
+//	/* NotIn RelationalExpression (https://www.w3.org/TR/sparql11-query/#rRelationalExpression) */
+//	class NotInExpression : public Expression {
+//	private:
+//		std::unique_ptr<Expression> lhs_op_;
+//		ExpressionList rhs_op_;
+//	public:
+//		explicit NotInExpression(std::unique_ptr<Expression> lhs, ExpressionList rhs);
+//		void update_value(rdf_tensor::Entry const &entry) override;
+//		[[nodiscard]] rdf_tensor::NodeWrapper result() const override;
+//		[[nodiscard]] std::unique_ptr<SPARQLExpression> clone_sparql() const override;
+//		[[nodiscard]] std::vector<rdf4cpp::rdf::query::Variable> variables() const override;
+//	};
 
 }//namespace Dice::sparql2tensor::expressions
 

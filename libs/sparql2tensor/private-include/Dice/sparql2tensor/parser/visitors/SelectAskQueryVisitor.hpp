@@ -17,6 +17,8 @@ namespace Dice::sparql2tensor::parser::visitors {
 
 	private:
 		SPARQLQuery *const query;
+		triple_store::TripleStore const &triple_store;
+		// for the construction of the raw query
 		rdf4cpp::rdf::Node active_subject;
 		rdf4cpp::rdf::Node active_predicate;
 		char var_id = 'a';
@@ -28,12 +30,13 @@ namespace Dice::sparql2tensor::parser::visitors {
 		std::vector<std::vector<uint8_t>> union_operands; // used to avoid connecting union patterns of the same optional pattern
 		// for the "rewriting"
 		std::vector<std::vector<SparqlParser::TriplesBlockContext *>> triples_blocks;
+		std::vector<std::vector<SparqlParser::FilterContext *>> filter_blocks;
 		std::vector<std::vector<SparqlParser::OptionalGraphPatternContext *>> optional_blocks;
 
 	public:
 		SelectAskQueryVisitor() = delete;
 
-		explicit SelectAskQueryVisitor(SPARQLQuery *q) : query{q} {}
+		SelectAskQueryVisitor(SPARQLQuery *q, triple_store::TripleStore const& ts);
 
 		antlrcpp::Any visitAskQuery(SparqlParser::AskQueryContext *ctx) override;
 
@@ -46,6 +49,8 @@ namespace Dice::sparql2tensor::parser::visitors {
 		antlrcpp::Any visitGroupGraphPattern(SparqlParser::GroupGraphPatternContext *) override;
 
 		antlrcpp::Any visitGroupGraphPatternSub(SparqlParser::GroupGraphPatternSubContext *) override;
+
+		antlrcpp::Any visitFilter(SparqlParser::FilterContext *ctx) override;
 
 		antlrcpp::Any visitTriplesBlock(SparqlParser::TriplesBlockContext *) override;
 
@@ -98,25 +103,14 @@ namespace Dice::sparql2tensor::parser::visitors {
 		antlrcpp::Any visitString(SparqlParser::StringContext *) override;
 
 	private:
-		void register_var(rdf4cpp::rdf::query::Variable const &var);
-
-		void track_variable(rdf4cpp::rdf::query::Variable const &var);
-
-		void register_alias(rdf4cpp::rdf::query::Variable const &var, std::unique_ptr<expressions::Expression> expression);
 
 		/**
-		 * @brief: Creates a new node in the operand dependency graph.
-		 * Creates dependencies for the new node within the same group graph pattern
-		 */
-		void add_tp(rdf4cpp::rdf::query::TriplePattern const &tp);
-
-		/**
-		 * @brief: Creates dependencies between group graph patterns
+		 * @brief: Creates dependencies between the operands of group graph patterns
 		 */
 		void group_dependencies(std::vector<uint8_t> const &prev_group, std::vector<uint8_t> const &cur_group, bool bidirectional = false);
 
 		/**
-		 * @brief: Creates simple connections between group graph patterns (important to capture optional cartesian products)
+		 * @brief: Creates simple connections between the operands of group graph patterns (captures optional cartesian products)
 		 */
 		void group_connections(std::vector<uint8_t> const &prev_group, std::vector<uint8_t> const &cur_group);
 

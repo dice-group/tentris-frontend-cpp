@@ -32,6 +32,15 @@ namespace Dice::rdf_tensor {
 		operator std::optional<Node>() const noexcept {
 			return (Node) * this;
 		};
+
+		operator bool() const noexcept {
+			assert(handle_.is_literal());
+			auto literal_backend = handle_.literal_backend();
+			if (literal_backend.lexical_form == "0")
+				return false;
+			return true;
+		}
+
 	};
 };// namespace Dice::rdf_tensor
 

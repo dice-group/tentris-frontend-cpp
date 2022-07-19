@@ -2,7 +2,7 @@
 boost/1.78.0
 fmt/8.1.1
 restinio/0.6.14
-hypertrie/0.9.0@dice-group/rc1
+hypertrie/0.9.1@dice-group/rc1
 sparql-parser-base/0.2.2@dice-group/stable
 cxxopts/2.2.1
 # override for conflict between sparql-parser and rdf-parser

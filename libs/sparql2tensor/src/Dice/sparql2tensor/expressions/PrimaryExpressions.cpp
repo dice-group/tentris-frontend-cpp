@@ -9,15 +9,15 @@ namespace Dice::sparql2tensor::expressions {
 	PrimaryVarExpression::PrimaryVarExpression(Variable variable, size_t var_pos_in_entry)
 		: var_pos_in_entry_(var_pos_in_entry), rdf_node_(), variable_(variable) {}
 
-	void PrimaryVarExpression::evaluate(rdf_tensor::Entry const &entry) {
+	void PrimaryVarExpression::update_value(rdf_tensor::Entry const &entry) {
 		rdf_node_ = entry[var_pos_in_entry_];
 	}
 
-	std::optional<Node> PrimaryVarExpression::result() const {
+	rdf_tensor::NodeWrapper PrimaryVarExpression::evaluate() const {
 		return rdf_node_;
 	}
 
-	std::unique_ptr<Expression> PrimaryVarExpression::clone() const {
+	std::unique_ptr<SPARQLExpression> PrimaryVarExpression::clone_sparql() const {
 		return std::make_unique<PrimaryVarExpression>(*this);
 	}
 
@@ -29,13 +29,13 @@ namespace Dice::sparql2tensor::expressions {
 	PrimaryLiteralExpression::PrimaryLiteralExpression(Literal literal)
 		: literal_(literal) {}
 
-	void PrimaryLiteralExpression::evaluate([[maybe_unused]] rdf_tensor::Entry const &entry) {}
+	void PrimaryLiteralExpression::update_value([[maybe_unused]] rdf_tensor::Entry const &entry) {}
 
-	std::optional<Node> PrimaryLiteralExpression::result() const {
+	rdf_tensor::NodeWrapper PrimaryLiteralExpression::evaluate() const {
 		return literal_;
 	}
 
-	std::unique_ptr<Expression> PrimaryLiteralExpression::clone() const {
+	std::unique_ptr<SPARQLExpression> PrimaryLiteralExpression::clone_sparql() const {
 		return std::make_unique<PrimaryLiteralExpression>(*this);
 	}
 
@@ -44,19 +44,19 @@ namespace Dice::sparql2tensor::expressions {
 	}
 
 	/* BuiltInCall Expression */
-	PrimaryBuiltInCallExpression::PrimaryBuiltInCallExpression(std::unique_ptr<Expression> expr)
+	PrimaryBuiltInCallExpression::PrimaryBuiltInCallExpression(std::unique_ptr<SPARQLExpression> expr)
 		: built_in_call_(std::move(expr)) {}
 
-	void PrimaryBuiltInCallExpression::evaluate(rdf_tensor::Entry const &entry) {
-		return built_in_call_->evaluate(entry);
+	void PrimaryBuiltInCallExpression::update_value(rdf_tensor::Entry const &entry) {
+		return built_in_call_->update_value(entry);
 	}
 
-	std::optional<Node> PrimaryBuiltInCallExpression::result() const {
-		return built_in_call_->result();
+	rdf_tensor::NodeWrapper PrimaryBuiltInCallExpression::evaluate() const {
+		return built_in_call_->evaluate();
 	}
 
-	std::unique_ptr<Expression> PrimaryBuiltInCallExpression::clone() const {
-		return std::make_unique<PrimaryBuiltInCallExpression>(built_in_call_->clone());
+	std::unique_ptr<SPARQLExpression> PrimaryBuiltInCallExpression::clone_sparql() const {
+		return std::make_unique<PrimaryBuiltInCallExpression>(built_in_call_->clone_sparql());
 	}
 
 	std::vector<Variable> PrimaryBuiltInCallExpression::variables() const {

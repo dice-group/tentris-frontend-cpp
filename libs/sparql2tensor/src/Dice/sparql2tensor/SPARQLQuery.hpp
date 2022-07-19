@@ -1,5 +1,5 @@
-#ifndef DICE_SPARQL_PARSEDSPARQL_HPP
-#define DICE_SPARQL_PARSEDSPARQL_HPP
+#ifndef DICE_SPARQL_SPARQLQUERY_HPP
+#define DICE_SPARQL_SPARQLQUERY_HPP
 
 #include <rdf4cpp/rdf.hpp>
 
@@ -7,8 +7,8 @@
 #include <Dice/rdf_tensor/HypertrieTrait.hpp>
 #include <Dice/rdf_tensor/Query.hpp>
 #include <Dice/rdf_tensor/RDFNodeHashes.hpp>
-#include <Dice/rdf_tensor/Query.hpp>
 
+#include "Dice/triple_store/TripleStore.hpp"
 #include "expressions/expressions.hpp"
 
 #include <robin_hood.h>
@@ -17,40 +17,75 @@ namespace Dice::sparql2tensor {
 
 	using VariableHash = Dice::hash::DiceHashxxh3<rdf4cpp::rdf::query::Variable>;
 
-	struct SPARQLQuery {
-		// graph representation of the query's graph patterns
-		Dice::query::OperandDependencyGraph odg_;
+	/**
+	 * @brief Represents a SPARQL query. Encapsulates an rdf_tensor::Query object.
+	 */
+	class SPARQLQuery {
+	private:
+		// the raw query object
+		rdf_tensor::Query raw_query_;
 		// a mapping of variables to unique (char) ids
 		robin_hood::unordered_map<rdf4cpp::rdf::query::Variable, char, VariableHash> var_to_id_;
-		// the order of the variables that appear in the select clause or other parts of the query that require their values (e.g., expressions)
-		robin_hood::unordered_map<rdf4cpp::rdf::query::Variable, size_t, VariableHash> tracked_variables_;
 		// the projected variables
 		std::vector<rdf4cpp::rdf::query::Variable> projected_variables_;
-		// the expressions of the select clause
-		expressions::ExpressionList solution_;
-		// maps variables to expressions
-		robin_hood::unordered_map<rdf4cpp::rdf::query::Variable, std::unique_ptr<expressions::Expression>, VariableHash> aliases_;
-		// the grouping keys of the query
-		expressions::ExpressionList grouping_keys_;
 		// the triple patterns of the query
 		std::vector<rdf4cpp::rdf::query::TriplePattern> triple_patterns_;
 		// the prefixes of the query
 		robin_hood::unordered_map<std::string, std::string> prefixes_;
-		// a flag capturing whether the query is distinct
-		bool distinct_ = false;
 		// a flag capturing whether the query is an ask query
 		bool ask_ = false;
-		// a flag capturing whether the query contains aggregate expressions
-		bool contains_aggregates_ = false;
+		// the next available var_id
+		char next_var_id = 'a';
+
+	public:
 		SPARQLQuery() = default;
-		// creates a SPARQL query object by parsing the provided query string
-		explicit SPARQLQuery(std::string const &sparql_query_str) : SPARQLQuery(SPARQLQuery::parse(sparql_query_str)) {}
-		// parses a select or ask query string
-		static SPARQLQuery parse(std::string const &sparql_query_str);
-		// generates the slice keys from the triple patterns
-		[[nodiscard]] std::vector<rdf_tensor::SliceKey> get_slice_keys() const;
+		// returns a copy of raw_query_. returns a copy to keep a "clean" copy of the current object (*this) in the cache
+		[[nodiscard]] rdf_tensor::Query raw_query() const;
+		// returns a reference to the projected variables of the SPARQL query
+		[[nodiscard]] std::vector<rdf4cpp::rdf::query::Variable> const &projected_variables() const;
+		// returns whether the SPARQL query is an ASK query
+		[[nodiscard]] bool ask() const;
+		// sets the value of ask_ to true; for ASK queries
+		void set_ask();
+		// sets the prefixes used in the query
+		void set_prefixes(robin_hood::unordered_map<std::string, std::string> prefixes);
+		// assigns an id to the provided variable
+		void register_variable(rdf4cpp::rdf::query::Variable var);
+		// appends a variable to projected_variables_
+		void add_projected_variable(rdf4cpp::rdf::query::Variable var);
+		// returns the namespace of the provided prefix
+		std::string const &resolve_prefix(std::string const &prefix);
+
+
+		/* wrappers for rdf_tensor::Query methods */
+
+		[[nodiscard]] rdf_tensor::operand_desc add_triple_pattern(rdf4cpp::rdf::query::TriplePattern const &tp,
+																  triple_store::TripleStore const &triple_store);
+
+		[[nodiscard]] rdf_tensor::operand_desc add_filter_expr(std::unique_ptr<expressions::SPARQLExpression> expression,
+															   triple_store::TripleStore const &triple_store);
+
+		void add_dependency(rdf_tensor::operand_desc operand_1, rdf_tensor::operand_desc operand_2, bool bidirectional = true);
+
+		void add_connection(rdf_tensor::operand_desc operand_1, rdf_tensor::operand_desc operand_2, bool bidirectional = true);
+
+		void track_variable(rdf4cpp::rdf::query::Variable variable);
+
+		size_t tracked_variable_position(rdf4cpp::rdf::query::Variable variable);
+
+		void add_solution_binding(std::unique_ptr<expressions::SPARQLExpression> expression);
+
+		void add_grouping_expression(std::unique_ptr<expressions::SPARQLExpression> expression);
+
+		void set_distinct();
+
+		void set_aggregates();
+
+		[[nodiscard]] bool contains_aggregates() const;
+
+		[[nodiscard]] std::vector<expressions::SPARQLExpression const *> solution_bindings() const;
 	};
 
 }// namespace Dice::sparql2tensor
 
-#endif//DICE_SPARQL_PARSEDSPARQL_HPP
+#endif//DICE_SPARQL_SPARQLQUERY_HPP

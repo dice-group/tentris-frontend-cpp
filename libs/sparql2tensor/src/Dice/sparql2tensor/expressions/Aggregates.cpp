@@ -8,7 +8,7 @@ namespace Dice::sparql2tensor::expressions {
 	using namespace rdf4cpp::rdf::query;
 
 	/* Aggregate Exression */
-	Aggregate::Aggregate(std::unique_ptr<Expression> op_expr)
+	Aggregate::Aggregate(std::unique_ptr<SPARQLExpression> op_expr)
 		: op_expr_(std::move(op_expr)) {}
 
 	[[nodiscard]] std::vector<Variable> Aggregate::variables() const {
@@ -19,15 +19,15 @@ namespace Dice::sparql2tensor::expressions {
 	CountStar::CountStar(size_t count)
 		: Aggregate(nullptr), count_(count) {}
 
-	void CountStar::evaluate([[maybe_unused]] rdf_tensor::Entry const &key) {
+	void CountStar::update_value([[maybe_unused]] rdf_tensor::Entry const &key) {
 		count_++;
 	}
 
-	std::optional<Node> CountStar::result() const {
+	rdf_tensor::NodeWrapper CountStar::evaluate() const {
 		return Literal(std::to_string(count_), IRI("http://www.w3.org/2001/XMLSchema#integer"));
 	}
 
-	std::unique_ptr<Expression> CountStar::clone() const {
+	std::unique_ptr<SPARQLExpression> CountStar::clone_sparql() const {
 		return std::make_unique<CountStar>(count_);
 	}
 
@@ -35,54 +35,54 @@ namespace Dice::sparql2tensor::expressions {
 	CountStarDistinct::CountStarDistinct(std::set<rdf_tensor::Entry> entries)
 		: Aggregate(nullptr), entries_(std::move(entries)) {}
 
-	void CountStarDistinct::evaluate(rdf_tensor::Entry const &entry) {
+	void CountStarDistinct::update_value(rdf_tensor::Entry const &entry) {
 		entries_.insert(entry);
 	}
 
-	std::optional<Node> CountStarDistinct::result() const {
+	rdf_tensor::NodeWrapper CountStarDistinct::evaluate() const {
 		return Literal(std::to_string(entries_.size()), IRI("http://www.w3.org/2001/XMLSchema#integer"));
 	}
 
-	std::unique_ptr<Expression> CountStarDistinct::clone() const {
+	std::unique_ptr<SPARQLExpression> CountStarDistinct::clone_sparql() const {
 		return std::make_unique<CountStarDistinct>(entries_);
 	}
 
 	/* Count Expression */
-	Count::Count(std::unique_ptr<Expression> expr, size_t count)
+	Count::Count(std::unique_ptr<SPARQLExpression> expr, size_t count)
 		: Aggregate(std::move(expr)), count_(count) {}
 
-	void Count::evaluate(rdf_tensor::Entry const &entry) {
-		op_expr_->evaluate(entry);
-		auto expr_res = op_expr_->result();
-		if (expr_res.has_value())
-			count_++;
+	void Count::update_value(rdf_tensor::Entry const &entry) {
+		op_expr_->update_value(entry);
+		auto expr_res = op_expr_->evaluate();
+//		if (expr_res.has_value())
+		count_++;
 	}
 
-	std::optional<Node> Count::result() const {
+	rdf_tensor::NodeWrapper Count::evaluate() const {
 		return Literal(std::to_string(count_), IRI("http://www.w3.org/2001/XMLSchema#integer"));
 	}
 
-	std::unique_ptr<Expression> Count::clone() const {
-		return std::make_unique<Count>(op_expr_->clone(), count_);
+	std::unique_ptr<SPARQLExpression> Count::clone_sparql() const {
+		return std::make_unique<Count>(op_expr_->clone_sparql(), count_);
 	}
 
 	/* CountDistinct Expression */
-	CountDistinct::CountDistinct(std::unique_ptr<Expression> expr, std::set<Node> rdf_nodes)
+	CountDistinct::CountDistinct(std::unique_ptr<SPARQLExpression> expr, std::set<Node> rdf_nodes)
 		: Aggregate(std::move(expr)), rdf_nodes_(std::move(rdf_nodes)) {}
 
-	void CountDistinct::evaluate([[maybe_unused]] rdf_tensor::Entry const &entry) {
-		op_expr_->evaluate(entry);
-		auto expr_res = op_expr_->result();
-		if (expr_res.has_value())
-			rdf_nodes_.insert(expr_res.value());
+	void CountDistinct::update_value([[maybe_unused]] rdf_tensor::Entry const &entry) {
+		op_expr_->update_value(entry);
+		auto expr_res = op_expr_->evaluate();
+//		if (expr_res.has_value())
+		rdf_nodes_.insert(expr_res);
 	}
 
-	std::optional<Node> CountDistinct::result() const {
+	rdf_tensor::NodeWrapper CountDistinct::evaluate() const {
 		return Literal(std::to_string(rdf_nodes_.size()), IRI("http://www.w3.org/2001/XMLSchema#integer"));
 	}
 
-	std::unique_ptr<Expression> CountDistinct::clone() const {
-		return std::make_unique<CountDistinct>(op_expr_->clone(), rdf_nodes_);
+	std::unique_ptr<SPARQLExpression> CountDistinct::clone_sparql() const {
+		return std::make_unique<CountDistinct>(op_expr_->clone_sparql(), rdf_nodes_);
 	}
 
 

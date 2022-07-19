@@ -14,7 +14,6 @@ add_library(triple_store
 add_library(Dice::triple_store ALIAS triple_store)
 
 target_link_libraries(triple_store PUBLIC
-        Dice::sparql2tensor
         Dice::rdf_tensor
         ${serd}
         )

@@ -5,27 +5,28 @@ namespace Dice::sparql2tensor::expressions {
 	using namespace rdf4cpp::rdf;
 
 	/* LogicalOr Operator */
-	LogicalOrExpression::LogicalOrExpression(std::vector<std::unique_ptr<Expression>> op_expressions)
+	LogicalOrExpression::LogicalOrExpression(std::vector<std::unique_ptr<SPARQLExpression>> op_expressions)
 		: op_expressions_(std::move(op_expressions)) {}
 
-	void LogicalOrExpression::evaluate(rdf_tensor::Entry const &entry) {
+	void LogicalOrExpression::update_value(rdf_tensor::Entry const &entry) {
 		for (auto const &expr : op_expressions_) {
-			expr->evaluate(entry);
+			expr->update_value(entry);
 		}
 	}
 
-	std::optional<Node> LogicalOrExpression::result() const {
-		auto result = std::any_of(op_expressions_.begin(), op_expressions_.end(),
-								  [](std::unique_ptr<Expression> const &Expr) {
-									  return true;
-								  });
+	rdf_tensor::NodeWrapper LogicalOrExpression::evaluate() const {
+//		auto result = std::any_of(op_expressions_.begin(), op_expressions_.end(),
+//								  [](std::unique_ptr<Expression> const &Expr) {
+//									  return true;
+//								  });
+		auto result = true;
 		return Literal{std::to_string(result), rdf4cpp::rdf::IRI("http://www.w3.org/2001/XMLSchema#boolean")};
 	}
 
-	std::unique_ptr<Expression> LogicalOrExpression::clone() const {
-		std::vector<std::unique_ptr<Expression>> clones{};
+	std::unique_ptr<SPARQLExpression> LogicalOrExpression::clone_sparql() const {
+		std::vector<std::unique_ptr<SPARQLExpression>> clones{};
 		for (auto const &expr : op_expressions_) {
-			clones.push_back(expr->clone());
+			clones.push_back(expr->clone_sparql());
 		}
 		return std::make_unique<LogicalOrExpression>(std::move(clones));
 	}
@@ -40,27 +41,28 @@ namespace Dice::sparql2tensor::expressions {
 	}
 
 	/* LogicalAnd Operator */
-	LogicalAndExpression::LogicalAndExpression(std::vector<std::unique_ptr<Expression>> expressions)
+	LogicalAndExpression::LogicalAndExpression(std::vector<std::unique_ptr<SPARQLExpression>> expressions)
 		: op_expressions_(std::move(expressions)) {}
 
-	void LogicalAndExpression::evaluate(rdf_tensor::Entry const &entry) {
+	void LogicalAndExpression::update_value(rdf_tensor::Entry const &entry) {
 		for (auto const &expr : op_expressions_) {
-			expr->evaluate(entry);
+			expr->update_value(entry);
 		}
 	}
 
-	std::optional<Node> LogicalAndExpression::result() const {
-		auto result = std::all_of(op_expressions_.begin(), op_expressions_.end(),
-								  [](std::unique_ptr<Expression> const &Expr) {
-									  return true;
-								  });
+	rdf_tensor::NodeWrapper LogicalAndExpression::evaluate() const {
+//		auto result = std::all_of(op_expressions_.begin(), op_expressions_.end(),
+//								  [](std::unique_ptr<Expression> const &Expr) {
+//									  return true;
+//								  });
+        auto result = true;
 		return Literal{std::to_string(result), rdf4cpp::rdf::IRI("http://www.w3.org/2001/XMLSchema#boolean")};
 	}
 
-	std::unique_ptr<Expression> LogicalAndExpression::clone() const {
-		std::vector<std::unique_ptr<Expression>> clones{};
+	std::unique_ptr<SPARQLExpression> LogicalAndExpression::clone_sparql() const {
+		std::vector<std::unique_ptr<SPARQLExpression>> clones{};
 		for (auto const &expr : op_expressions_) {
-			clones.push_back(expr->clone());
+			clones.push_back(expr->clone_sparql());
 		}
 		return std::make_unique<LogicalAndExpression>(std::move(clones));
 	}
@@ -75,25 +77,23 @@ namespace Dice::sparql2tensor::expressions {
 	}
 
 	/* Equals Operator */
-	EqualsExpression::EqualsExpression(std::unique_ptr<Expression> lhs, std::unique_ptr<Expression> rhs)
+	EqualsExpression::EqualsExpression(std::unique_ptr<SPARQLExpression> lhs, std::unique_ptr<SPARQLExpression> rhs)
 		: lhs_op_(std::move(lhs)), rhs_op_(std::move(rhs)) {}
 
-	void EqualsExpression::evaluate(rdf_tensor::Entry const &entry) {
-		lhs_op_->evaluate(entry);
-		rhs_op_->evaluate(entry);
+	void EqualsExpression::update_value(rdf_tensor::Entry const &entry) {
+		lhs_op_->update_value(entry);
+		rhs_op_->update_value(entry);
 	}
 
-	std::optional<Node> EqualsExpression::result() const {
-		auto lhs_res = lhs_op_->result();
-		auto rhs_res = rhs_op_->result();
-		if (not lhs_res.has_value() or not rhs_res.has_value())
-			return std::nullopt;
-		auto result = (lhs_res.value() == lhs_res.value());
+	rdf_tensor::NodeWrapper EqualsExpression::evaluate() const {
+		auto lhs_res = lhs_op_->evaluate();
+		auto rhs_res = rhs_op_->evaluate();
+		auto result = (lhs_res == rhs_res);
 		return Literal{std::to_string(result), rdf4cpp::rdf::IRI("http://www.w3.org/2001/XMLSchema#boolean")};
 	}
 
-	std::unique_ptr<Expression> EqualsExpression::clone() const {
-		return std::make_unique<EqualsExpression>(lhs_op_->clone(), rhs_op_->clone());
+	std::unique_ptr<SPARQLExpression> EqualsExpression::clone_sparql() const {
+		return std::make_unique<EqualsExpression>(lhs_op_->clone_sparql(), rhs_op_->clone_sparql());
 	}
 
 	[[nodiscard]] std::vector<rdf4cpp::rdf::query::Variable> EqualsExpression::variables() const {
@@ -104,25 +104,23 @@ namespace Dice::sparql2tensor::expressions {
 	}
 
 	/* NotEquals Operator */
-	NotEqualsExpression::NotEqualsExpression(std::unique_ptr<Expression> lhs, std::unique_ptr<Expression> rhs)
+	NotEqualsExpression::NotEqualsExpression(std::unique_ptr<SPARQLExpression> lhs, std::unique_ptr<SPARQLExpression> rhs)
 		: lhs_op_(std::move(lhs)), rhs_op_(std::move(rhs)) {}
 
-	void NotEqualsExpression::evaluate(rdf_tensor::Entry const &entry) {
-		lhs_op_->evaluate(entry);
-		rhs_op_->evaluate(entry);
+	void NotEqualsExpression::update_value(rdf_tensor::Entry const &entry) {
+		lhs_op_->update_value(entry);
+		rhs_op_->update_value(entry);
 	}
 
-	std::optional<Node> NotEqualsExpression::result() const {
-		auto lhs_res = lhs_op_->result();
-		auto rhs_res = rhs_op_->result();
-		if (not lhs_res.has_value() or not rhs_res.has_value())
-			return std::nullopt;
-		auto result = (lhs_res.value() != lhs_res.value());
+	rdf_tensor::NodeWrapper NotEqualsExpression::evaluate() const {
+		auto lhs_res = lhs_op_->evaluate();
+		auto rhs_res = rhs_op_->evaluate();
+		auto result = (lhs_res != rhs_res);
 		return Literal{std::to_string(result), rdf4cpp::rdf::IRI("http://www.w3.org/2001/XMLSchema#boolean")};
 	}
 
-	std::unique_ptr<Expression> NotEqualsExpression::clone() const {
-		return std::make_unique<NotEqualsExpression>(lhs_op_->clone(), rhs_op_->clone());
+	std::unique_ptr<SPARQLExpression> NotEqualsExpression::clone_sparql() const {
+		return std::make_unique<NotEqualsExpression>(lhs_op_->clone_sparql(), rhs_op_->clone_sparql());
 	}
 
 	[[nodiscard]] std::vector<rdf4cpp::rdf::query::Variable> NotEqualsExpression::variables() const {
@@ -133,25 +131,23 @@ namespace Dice::sparql2tensor::expressions {
 	}
 
 	/* Less Operator */
-	LessExpression::LessExpression(std::unique_ptr<Expression> lhs, std::unique_ptr<Expression> rhs)
+	LessExpression::LessExpression(std::unique_ptr<SPARQLExpression> lhs, std::unique_ptr<SPARQLExpression> rhs)
 		: lhs_op_(std::move(lhs)), rhs_op_(std::move(rhs)) {}
 
-	void LessExpression::evaluate(rdf_tensor::Entry const &entry) {
-		lhs_op_->evaluate(entry);
-		rhs_op_->evaluate(entry);
+	void LessExpression::update_value(rdf_tensor::Entry const &entry) {
+		lhs_op_->update_value(entry);
+		rhs_op_->update_value(entry);
 	}
 
-	std::optional<Node> LessExpression::result() const {
-		auto lhs_res = lhs_op_->result();
-		auto rhs_res = rhs_op_->result();
-		if (not lhs_res.has_value() or not rhs_res.has_value())
-			return std::nullopt;
-		auto result = (lhs_res.value() < lhs_res.value());
+	rdf_tensor::NodeWrapper LessExpression::evaluate() const {
+		auto lhs_res = lhs_op_->evaluate();
+		auto rhs_res = rhs_op_->evaluate();
+		auto result = (lhs_res < rhs_res);
 		return Literal{std::to_string(result), rdf4cpp::rdf::IRI("http://www.w3.org/2001/XMLSchema#boolean")};
 	}
 
-	std::unique_ptr<Expression> LessExpression::clone() const {
-		return std::make_unique<LessExpression>(lhs_op_->clone(), rhs_op_->clone());
+	std::unique_ptr<SPARQLExpression> LessExpression::clone_sparql() const {
+		return std::make_unique<LessExpression>(lhs_op_->clone_sparql(), rhs_op_->clone_sparql());
 	}
 
 	[[nodiscard]] std::vector<rdf4cpp::rdf::query::Variable> LessExpression::variables() const {
@@ -162,25 +158,23 @@ namespace Dice::sparql2tensor::expressions {
 	}
 
 	/* Greater Operator */
-	GreaterExpression::GreaterExpression(std::unique_ptr<Expression> lhs, std::unique_ptr<Expression> rhs)
+	GreaterExpression::GreaterExpression(std::unique_ptr<SPARQLExpression> lhs, std::unique_ptr<SPARQLExpression> rhs)
 		: lhs_op_(std::move(lhs)), rhs_op_(std::move(rhs)) {}
 
-	void GreaterExpression::evaluate(rdf_tensor::Entry const &entry) {
-		lhs_op_->evaluate(entry);
-		rhs_op_->evaluate(entry);
+	void GreaterExpression::update_value(rdf_tensor::Entry const &entry) {
+		lhs_op_->update_value(entry);
+		rhs_op_->update_value(entry);
 	}
 
-	std::optional<Node> GreaterExpression::result() const {
-		auto lhs_res = lhs_op_->result();
-		auto rhs_res = rhs_op_->result();
-		if (not lhs_res.has_value() or not rhs_res.has_value())
-			return std::nullopt;
-		auto result = (lhs_res.value() > lhs_res.value());
+	rdf_tensor::NodeWrapper GreaterExpression::evaluate() const {
+		auto lhs_res = lhs_op_->evaluate();
+		auto rhs_res = rhs_op_->evaluate();
+		auto result = (lhs_res > rhs_res);
 		return Literal{std::to_string(result), rdf4cpp::rdf::IRI("http://www.w3.org/2001/XMLSchema#boolean")};
 	}
 
-	std::unique_ptr<Expression> GreaterExpression::clone() const {
-		return std::make_unique<GreaterExpression>(lhs_op_->clone(), rhs_op_->clone());
+	std::unique_ptr<SPARQLExpression> GreaterExpression::clone_sparql() const {
+		return std::make_unique<GreaterExpression>(lhs_op_->clone_sparql(), rhs_op_->clone_sparql());
 	}
 
 	[[nodiscard]] std::vector<rdf4cpp::rdf::query::Variable> GreaterExpression::variables() const {
@@ -191,25 +185,23 @@ namespace Dice::sparql2tensor::expressions {
 	}
 
 	/* LessEquals Operator */
-	LessEqualsExpression::LessEqualsExpression(std::unique_ptr<Expression> lhs, std::unique_ptr<Expression> rhs)
+	LessEqualsExpression::LessEqualsExpression(std::unique_ptr<SPARQLExpression> lhs, std::unique_ptr<SPARQLExpression> rhs)
 		: lhs_op_(std::move(lhs)), rhs_op_(std::move(rhs)) {}
 
-	void LessEqualsExpression::evaluate(rdf_tensor::Entry const &entry) {
-		lhs_op_->evaluate(entry);
-		rhs_op_->evaluate(entry);
+	void LessEqualsExpression::update_value(rdf_tensor::Entry const &entry) {
+		lhs_op_->update_value(entry);
+		rhs_op_->update_value(entry);
 	}
 
-	std::optional<Node> LessEqualsExpression::result() const {
-		auto lhs_res = lhs_op_->result();
-		auto rhs_res = rhs_op_->result();
-		if (not lhs_res.has_value() or not rhs_res.has_value())
-			return std::nullopt;
-		auto result = (lhs_res.value() <= lhs_res.value());
+	rdf_tensor::NodeWrapper LessEqualsExpression::evaluate() const {
+		auto lhs_res = lhs_op_->evaluate();
+		auto rhs_res = rhs_op_->evaluate();
+		auto result = (lhs_res <= rhs_res);
 		return Literal{std::to_string(result), rdf4cpp::rdf::IRI("http://www.w3.org/2001/XMLSchema#boolean")};
 	}
 
-	std::unique_ptr<Expression> LessEqualsExpression::clone() const {
-		return std::make_unique<LessEqualsExpression>(lhs_op_->clone(), rhs_op_->clone());
+	std::unique_ptr<SPARQLExpression> LessEqualsExpression::clone_sparql() const {
+		return std::make_unique<LessEqualsExpression>(lhs_op_->clone_sparql(), rhs_op_->clone_sparql());
 	}
 
 	[[nodiscard]] std::vector<rdf4cpp::rdf::query::Variable> LessEqualsExpression::variables() const {
@@ -220,25 +212,23 @@ namespace Dice::sparql2tensor::expressions {
 	}
 
 	/* GreaterEquals Operator */
-	GreaterEqualsExpression::GreaterEqualsExpression(std::unique_ptr<Expression> lhs, std::unique_ptr<Expression> rhs)
+	GreaterEqualsExpression::GreaterEqualsExpression(std::unique_ptr<SPARQLExpression> lhs, std::unique_ptr<SPARQLExpression> rhs)
 		: lhs_op_(std::move(lhs)), rhs_op_(std::move(rhs)) {}
 
-	void GreaterEqualsExpression::evaluate(rdf_tensor::Entry const &entry) {
-		lhs_op_->evaluate(entry);
-		rhs_op_->evaluate(entry);
+	void GreaterEqualsExpression::update_value(rdf_tensor::Entry const &entry) {
+		lhs_op_->update_value(entry);
+		rhs_op_->update_value(entry);
 	}
 
-	std::optional<Node> GreaterEqualsExpression::result() const {
-		auto lhs_res = lhs_op_->result();
-		auto rhs_res = rhs_op_->result();
-		if (not lhs_res.has_value() or not rhs_res.has_value())
-			return std::nullopt;
-		auto result = (lhs_res.value() >= lhs_res.value());
+	rdf_tensor::NodeWrapper GreaterEqualsExpression::evaluate() const {
+		auto lhs_res = lhs_op_->evaluate();
+		auto rhs_res = rhs_op_->evaluate();
+		auto result = (lhs_res >= rhs_res);
 		return Literal{std::to_string(result), rdf4cpp::rdf::IRI("http://www.w3.org/2001/XMLSchema#boolean")};
 	}
 
-	std::unique_ptr<Expression> GreaterEqualsExpression::clone() const {
-		return std::make_unique<GreaterEqualsExpression>(lhs_op_->clone(), rhs_op_->clone());
+	std::unique_ptr<SPARQLExpression> GreaterEqualsExpression::clone_sparql() const {
+		return std::make_unique<GreaterEqualsExpression>(lhs_op_->clone_sparql(), rhs_op_->clone_sparql());
 	}
 
 	[[nodiscard]] std::vector<rdf4cpp::rdf::query::Variable> GreaterEqualsExpression::variables() const {
@@ -248,76 +238,76 @@ namespace Dice::sparql2tensor::expressions {
 		return l_vars;
 	}
 
-	/* In Operator */
-	InExpression::InExpression(std::unique_ptr<Expression> lhs, ExpressionList rhs)
-		: lhs_op_(std::move(lhs)), rhs_op_(std::move(rhs)) {}
-
-	void InExpression::evaluate(rdf_tensor::Entry const &entry) {
-		lhs_op_->evaluate(entry);
-		for (auto &expr : rhs_op_.expressions()) {
-			expr->evaluate(entry);
-		}
-	}
-
-	std::optional<Node> InExpression::result() const {
-		bool contains_error = false;
-		auto lhs_result = lhs_op_->result();
-		for (auto const &expr : rhs_op_.expressions()) {
-			auto expr_res = expr->result();
-			if (not expr_res.has_value()) {
-				contains_error = true;
-				continue;
-			}
-			if (lhs_result == expr_res.value())
-				return Literal{"true", rdf4cpp::rdf::IRI("http://www.w3.org/2001/XMLSchema#boolean")};
-		}
-		if (contains_error)
-			return std::nullopt;
-		return Literal{"false", rdf4cpp::rdf::IRI("http://www.w3.org/2001/XMLSchema#boolean")};
-	}
-
-	std::unique_ptr<Expression> InExpression::clone() const {
-		return std::make_unique<InExpression>(lhs_op_->clone(), rhs_op_.clone());
-	}
-
-	[[nodiscard]] std::vector<rdf4cpp::rdf::query::Variable> InExpression::variables() const {
-		return lhs_op_->variables();
-	}
-
-	/* NotIn Operator */
-	NotInExpression::NotInExpression(std::unique_ptr<Expression> lhs, ExpressionList rhs)
-		: lhs_op_(std::move(lhs)), rhs_op_(std::move(rhs)) {}
-
-	void NotInExpression::evaluate(rdf_tensor::Entry const &entry) {
-		lhs_op_->evaluate(entry);
-		for (auto &expr : rhs_op_.expressions()) {
-			expr->evaluate(entry);
-		}
-	}
-
-	std::optional<Node> NotInExpression::result() const {
-		bool contains_error = false;
-		auto lhs_result = lhs_op_->result();
-		for (auto const &expr : rhs_op_.expressions()) {
-			auto expr_res = expr->result();
-			if (not expr_res.has_value()) {
-				contains_error = true;
-				continue;
-			}
-			if (lhs_result == expr_res.value())
-				return Literal{"false", rdf4cpp::rdf::IRI("http://www.w3.org/2001/XMLSchema#boolean")};
-		}
-		if (contains_error)
-			return std::nullopt;
-		return Literal{"true", rdf4cpp::rdf::IRI("http://www.w3.org/2001/XMLSchema#boolean")};
-	}
-
-	std::unique_ptr<Expression> NotInExpression::clone() const {
-		return std::make_unique<NotInExpression>(lhs_op_->clone(), rhs_op_.clone());
-	}
-
-	[[nodiscard]] std::vector<rdf4cpp::rdf::query::Variable> NotInExpression::variables() const {
-		return lhs_op_->variables();
-	}
+//	/* In Operator */
+//	InExpression::InExpression(std::unique_ptr<Expression> lhs, ExpressionList rhs)
+//		: lhs_op_(std::move(lhs)), rhs_op_(std::move(rhs)) {}
+//
+//	void InExpression::update_value(rdf_tensor::Entry const &entry) {
+//		lhs_op_->evaluate(entry);
+//		for (auto &expr : rhs_op_.expressions()) {
+//			expr->update_value(entry);
+//		}
+//	}
+//
+//	rdf_tensor::NodeWrapper InExpression::evaluate() const {
+//		bool contains_error = false;
+//		auto lhs_result = lhs_op_->evaluate();
+//		for (auto const &expr : rhs_op_.expressions()) {
+//			auto expr_res = expr->evaluate();
+//			if (not expr_res.has_value()) {
+//				contains_error = true;
+//				continue;
+//			}
+//			if (lhs_result == expr_res.value())
+//				return Literal{"true", rdf4cpp::rdf::IRI("http://www.w3.org/2001/XMLSchema#boolean")};
+//		}
+//		if (contains_error)
+//			return std::nullopt;
+//		return Literal{"false", rdf4cpp::rdf::IRI("http://www.w3.org/2001/XMLSchema#boolean")};
+//	}
+//
+//	std::unique_ptr<Expression> InExpression::clone_sparql() const {
+//		return std::make_unique<InExpression>(lhs_op_->clone_sparql(), rhs_op_.clone_sparql());
+//	}
+//
+//	[[nodiscard]] std::vector<rdf4cpp::rdf::query::Variable> InExpression::variables() const {
+//		return lhs_op_->variables();
+//	}
+//
+//	/* NotIn Operator */
+//	NotInExpression::NotInExpression(std::unique_ptr<Expression> lhs, ExpressionList rhs)
+//		: lhs_op_(std::move(lhs)), rhs_op_(std::move(rhs)) {}
+//
+//	void NotInExpression::update_value(rdf_tensor::Entry const &entry) {
+//		lhs_op_->evaluate(entry);
+//		for (auto &expr : rhs_op_.expressions()) {
+//			expr->update_value(entry);
+//		}
+//	}
+//
+//	rdf_tensor::NodeWrapper NotInExpression::evaluate() const {
+//		bool contains_error = false;
+//		auto lhs_result = lhs_op_->evaluate();
+//		for (auto const &expr : rhs_op_.expressions()) {
+//			auto expr_res = expr->evaluate();
+//			if (not expr_res.has_value()) {
+//				contains_error = true;
+//				continue;
+//			}
+//			if (lhs_result == expr_res.value())
+//				return Literal{"false", rdf4cpp::rdf::IRI("http://www.w3.org/2001/XMLSchema#boolean")};
+//		}
+//		if (contains_error)
+//			return std::nullopt;
+//		return Literal{"true", rdf4cpp::rdf::IRI("http://www.w3.org/2001/XMLSchema#boolean")};
+//	}
+//
+//	std::unique_ptr<Expression> NotInExpression::clone_sparql() const {
+//		return std::make_unique<NotInExpression>(lhs_op_->clone_sparql(), rhs_op_.clone_sparql());
+//	}
+//
+//	[[nodiscard]] std::vector<rdf4cpp::rdf::query::Variable> NotInExpression::variables() const {
+//		return lhs_op_->variables();
+//	}
 
 }// namespace Dice::sparql2tensor::expressions

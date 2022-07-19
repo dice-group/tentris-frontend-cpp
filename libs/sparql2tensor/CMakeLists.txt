@@ -10,6 +10,7 @@ add_library(sparql2tensor
         src/Dice/sparql2tensor/expressions/PrimaryExpressions.cpp
         src/Dice/sparql2tensor/expressions/Aggregates.cpp
         src/Dice/sparql2tensor/expressions/Expression.cpp
+        src/Dice/sparql2tensor/parser/SPARQLParser.cpp
         src/Dice/sparql2tensor/parser/visitors/PrologueVisitor.cpp
         src/Dice/sparql2tensor/parser/visitors/SelectAskQueryVisitor.cpp
         src/Dice/sparql2tensor/SPARQLQuery.cpp
@@ -22,6 +23,7 @@ find_package(robin_hood REQUIRED)
 
 
 target_link_libraries(sparql2tensor PUBLIC
+        triple_store
         rdf_tensor
         robin_hood::robin_hood
         PRIVATE

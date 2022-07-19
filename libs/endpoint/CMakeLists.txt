@@ -27,6 +27,7 @@ add_library(Dice::endpoint ALIAS endpoint)
 target_link_libraries(endpoint PUBLIC
         Dice::triple_store
         Dice::node_store
+        Dice::sparql2tensor
         restinio::restinio
         Taskflow::Taskflow
         PRIVATE

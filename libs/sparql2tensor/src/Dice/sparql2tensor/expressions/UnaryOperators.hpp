@@ -6,38 +6,38 @@
 namespace Dice::sparql2tensor::expressions {
 
 	/* https://www.w3.org/TR/xpath-functions/#func-not */
-	class NotExpression : public Expression {
+	class NotExpression : public SPARQLExpression {
 	private:
-		std::unique_ptr<Expression> primary_expr_;
+		std::unique_ptr<SPARQLExpression> primary_expr_;
 	public:
-		explicit NotExpression(std::unique_ptr<Expression> primary_expr);
-		void evaluate(rdf_tensor::Entry const &entry) override;
-		[[nodiscard]] std::optional<rdf4cpp::rdf::Node> result() const override;
-		[[nodiscard]] std::unique_ptr<Expression> clone() const override;
+		explicit NotExpression(std::unique_ptr<SPARQLExpression> primary_expr);
+		void update_value(rdf_tensor::Entry const &entry) override;
+		[[nodiscard]] rdf_tensor::NodeWrapper evaluate() const override;
+		[[nodiscard]] std::unique_ptr<SPARQLExpression> clone_sparql() const override;
 		[[nodiscard]] std::vector<rdf4cpp::rdf::query::Variable> variables() const override;
 	};
 
 	/* https://www.w3.org/TR/xpath-functions/#func-numeric-unary-plus */
-	class UnaryPlusExpression : public Expression {
+	class UnaryPlusExpression : public SPARQLExpression {
 	private:
-		std::unique_ptr<Expression> primary_expr_;
+		std::unique_ptr<SPARQLExpression> primary_expr_;
 	public:
-		explicit UnaryPlusExpression(std::unique_ptr<Expression> primary_expr);
-		void evaluate(rdf_tensor::Entry const &entry) override;
-		[[nodiscard]] std::optional<rdf4cpp::rdf::Node> result() const override;
-		[[nodiscard]] std::unique_ptr<Expression> clone() const override;
+		explicit UnaryPlusExpression(std::unique_ptr<SPARQLExpression> primary_expr);
+		void update_value(rdf_tensor::Entry const &entry) override;
+		[[nodiscard]] rdf_tensor::NodeWrapper evaluate() const override;
+		[[nodiscard]] std::unique_ptr<SPARQLExpression> clone_sparql() const override;
 		[[nodiscard]] std::vector<rdf4cpp::rdf::query::Variable> variables() const override;
 	};
 
 	/* https://www.w3.org/TR/xpath-functions/#func-numeric-unary-minus */
-	class UnaryMinusExpression : public Expression {
+	class UnaryMinusExpression : public SPARQLExpression {
 	private:
-		std::unique_ptr<Expression> primary_expr_;
+		std::unique_ptr<SPARQLExpression> primary_expr_;
 	public:
-		explicit UnaryMinusExpression(std::unique_ptr<Expression> primary_expr);
-		void evaluate(rdf_tensor::Entry const &entry) override;
-		[[nodiscard]] std::optional<rdf4cpp::rdf::Node> result() const override;
-		[[nodiscard]] std::unique_ptr<Expression> clone() const override;
+		explicit UnaryMinusExpression(std::unique_ptr<SPARQLExpression> primary_expr);
+		void update_value(rdf_tensor::Entry const &entry) override;
+		[[nodiscard]] rdf_tensor::NodeWrapper evaluate() const override;
+		[[nodiscard]] std::unique_ptr<SPARQLExpression> clone_sparql() const override;
 		[[nodiscard]] std::vector<rdf4cpp::rdf::query::Variable> variables() const override;
 	};
 

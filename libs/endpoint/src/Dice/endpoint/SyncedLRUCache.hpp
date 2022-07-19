@@ -53,7 +53,7 @@ namespace Dice::endpoint {
 			Key key;
 			std::shared_ptr<Value const> value;
 
-			node_type(Key key) : key(std::move(key)), value(std::make_shared<Value>(this->key)) {}
+			node_type(Key key) : key(std::move(key)), value(std::move(value)) {}
 		};
 
 		using list_type = std::list<node_type>;

@@ -12,7 +12,7 @@
 
 namespace Dice::endpoint {
 
-	inline std::shared_ptr<sparql2tensor::SPARQLQuery const> parse_sparql_query_param(restinio::request_handle_t &req, SparqlQueryCache &cache) {
+	inline std::string parse_sparql_query_param(restinio::request_handle_t &req) {
 		using namespace Dice::sparql2tensor;
 		using namespace restinio;
 		const auto qp = parse_query(req->header().query());
@@ -22,16 +22,7 @@ namespace Dice::endpoint {
 			req->create_response(status_bad_request()).set_body(message).done();
 			return {};
 		}
-		std::string sparql_query_str = std::string{qp["query"]};
-		SPARQLQuery sparql_query;
-		try {
-			return cache[sparql_query_str];
-		} catch (std::exception &ex) {
-			static auto const message = "Value of query parameter 'query' is not parsable.";
-			spdlog::warn("HTTP response {}: {} (detail: {})", status_bad_request(), message, ex.what());
-			req->create_response(status_bad_request()).set_body(message).done();
-			return {};
-		}
+		return std::string{qp["query"]};
 	}
 }// namespace Dice::endpoint
 #endif//TENTRIS_PARSESPARQLQUERYPARAM_HPP

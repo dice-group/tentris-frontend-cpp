@@ -8,9 +8,11 @@
 namespace Dice::rdf_tensor {
 	using COUNTED_t = std::size_t;
 	using Entry = Dice::query::Entry<COUNTED_t, htt_t>;
-	using DISTINCT_t = bool;
-	using UncountedEntry = Dice::query::Entry<DISTINCT_t, htt_t>;
 	using Query = Dice::query::Query<htt_t, allocator_type>;
+	using QueryEvaluation = Dice::query::Evaluation;
+	using operand_desc = Dice::query::operand_desc;
+	using Expression = Dice::query::Expression<htt_t>;
+	using FilterExpression = Dice::query::FilterExpression<htt_t>;
 }// namespace Dice::rdf_tensor
 
 #endif//TENTRIS_QUERY_HPP

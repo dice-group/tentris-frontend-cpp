@@ -1,60 +1,111 @@
 #include "SPARQLQuery.hpp"
 
-#include <SparqlLexer/SparqlLexer.h>
-#include <SparqlParser/SparqlParser.h>
-
-#include "Dice/sparql2tensor/SPARQLQuery.hpp"
-#include "Dice/sparql2tensor/parser/visitors/PrologueVisitor.hpp"
-
-#include "Dice/sparql2tensor/parser/visitors/SelectAskQueryVisitor.hpp"
-
 
 namespace Dice::sparql2tensor {
 
-	SPARQLQuery Dice::sparql2tensor::SPARQLQuery::parse(std::string const &sparql_query_str) {
-		antlr4::ANTLRInputStream input(sparql_query_str);
-		Dice::sparql_parser::base::SparqlLexer lexer(&input);
-		antlr4::CommonTokenStream tokens(&lexer);
-		Dice::sparql_parser::base::SparqlParser parser(&tokens);
+	rdf_tensor::Query SPARQLQuery::raw_query() const { return raw_query_; }
 
-		auto q_ctx = parser.query();
+	const std::vector<rdf4cpp::rdf::query::Variable> &SPARQLQuery::projected_variables() const { return projected_variables_; }
 
-		if (not q_ctx->selectQuery() and not q_ctx->askQuery())
-			throw std::runtime_error("Only SELECT & ASK queries are supported currently.");
+	bool SPARQLQuery::ask() const { return ask_; }
 
-		SPARQLQuery p_sparql{};
-		if (q_ctx->prologue()) {
-			parser::visitors::PrologueVisitor p_visitor{};
-			p_sparql.prefixes_ = p_visitor.visitPrologue(q_ctx->prologue()).as<robin_hood::unordered_map<std::string, std::string>>();
-		}
+	void SPARQLQuery::set_ask() { ask_ = true; }
 
-		parser::visitors::SelectAskQueryVisitor visitor{&p_sparql};
-		if (q_ctx->selectQuery())
-			visitor.visitSelectQuery(q_ctx->selectQuery());
-		else if(q_ctx->askQuery())
-			visitor.visitAskQuery(q_ctx->askQuery());
-
-		return p_sparql;
+	void SPARQLQuery::set_prefixes(robin_hood::unordered_map<std::string, std::string> prefixes) {
+		prefixes_ = std::move(prefixes);
 	}
 
-	std::vector<rdf_tensor::SliceKey> SPARQLQuery::get_slice_keys() const {
-		std::vector<rdf_tensor::SliceKey> slice_keys;
-		slice_keys.reserve(triple_patterns_.size());
-		for (auto const &tp : triple_patterns_) {
-			rdf_tensor::SliceKey slice_key;
-			if (std::all_of(tp.begin(), tp.end(), [](auto &node){ return node.null(); })) {
-				slice_keys.push_back(slice_key);
+	void SPARQLQuery::register_variable(rdf4cpp::rdf::query::Variable var) {
+		if (var_to_id_.contains(var))
+			return;
+		var_to_id_[var] = next_var_id++;
+	}
+
+	void SPARQLQuery::add_projected_variable(rdf4cpp::rdf::query::Variable var) {
+		projected_variables_.push_back(var);
+	}
+
+	std::string const &SPARQLQuery::resolve_prefix(std::string const &prefix) {
+		assert(prefixes_.contains(prefix));
+		return prefixes_.at(prefix);
+	}
+
+	rdf_tensor::operand_desc SPARQLQuery::add_triple_pattern(const rdf4cpp::rdf::query::TriplePattern &tp,
+															 const triple_store::TripleStore &triple_store) {
+		std::vector<char> vars_ids{};
+		for (auto const &node : tp) {
+			if (not node.is_variable())
 				continue;
-			}
-			slice_key.reserve(3);
-			for (auto const &node : tp) {
-				if (node.is_variable())
-					slice_key.push_back(std::nullopt);
-				else
-					slice_key.push_back(node);
-			}
-			slice_keys.push_back(std::move(slice_key));
+			vars_ids.push_back(var_to_id_[rdf4cpp::rdf::query::Variable(node)]);
 		}
-		return slice_keys;
+		rdf_tensor::SliceKey slice_key;
+		slice_key.reserve(3);
+		for (auto const &node : tp) {
+			if (node.is_variable())
+				slice_key.push_back(std::nullopt);
+			else
+				slice_key.push_back(node);
+		}
+		auto slice_result = triple_store.get_hypertrie()[slice_key];
+		if (slice_key.get_fixed_depth() == 3) {
+			auto entry_exists = std::get<bool>(slice_result);
+			if (entry_exists)
+				return raw_query_.add_operand(vars_ids, triple_store.get_true_scalar());
+			return raw_query_.add_operand(vars_ids, triple_store.get_false_scalar());
+		}
+		return raw_query_.add_operand(vars_ids, std::get<rdf_tensor::const_BoolHypertrie>(slice_result));
 	}
+
+	rdf_tensor::operand_desc SPARQLQuery::add_filter_expr(std::unique_ptr<expressions::SPARQLExpression> expression,
+														  const triple_store::TripleStore &triple_store) {
+		auto variables = expression->variables();
+		std::vector<char> vars_ids{};
+		for (auto var : variables) {
+			assert(var_to_id_.contains(var));
+			vars_ids.push_back(var_to_id_[var]);
+		}
+		return raw_query_.add_filter(vars_ids, std::move(expression), triple_store.get_true_scalar());
+	}
+
+	void SPARQLQuery::add_dependency(rdf_tensor::operand_desc operand_1, rdf_tensor::operand_desc operand_2, bool bidirectional) {
+		raw_query_.add_dependency(operand_1, operand_2, bidirectional);
+	}
+
+	void SPARQLQuery::add_connection(rdf_tensor::operand_desc operand_1, rdf_tensor::operand_desc operand_2, bool bidirectional) {
+		raw_query_.add_connection(operand_1, operand_2, bidirectional);
+	}
+
+	void SPARQLQuery::track_variable(rdf4cpp::rdf::query::Variable variable) {
+		assert(var_to_id_.contains(variable));
+		raw_query_.track_variable(var_to_id_[variable]);
+	}
+
+	size_t SPARQLQuery::tracked_variable_position(rdf4cpp::rdf::query::Variable variable) {
+		assert(var_to_id_.contains(variable));
+		return raw_query_.tracked_var_position(var_to_id_[variable]);
+	}
+
+	void SPARQLQuery::add_solution_binding(std::unique_ptr<expressions::SPARQLExpression> expression) {
+		raw_query_.add_binding(std::move(expression));
+	}
+
+	void SPARQLQuery::add_grouping_expression(std::unique_ptr<expressions::SPARQLExpression> expression) {
+		raw_query_.add_grouping_expression(std::move(expression));
+	}
+
+	void SPARQLQuery::set_distinct() { raw_query_.set_distinct(); }
+
+	void SPARQLQuery::set_aggregates() { raw_query_.set_aggregates(); }
+
+	bool SPARQLQuery::contains_aggregates() const { return raw_query_.contains_aggregates(); }
+
+	std::vector<expressions::SPARQLExpression const *> SPARQLQuery::solution_bindings() const {
+		std::vector<expressions::SPARQLExpression const *> expression_ptrs{};
+		auto const &solution_mappings = raw_query_.solution_mapping();
+		for (auto const &mapping : solution_mappings) {
+			expression_ptrs.push_back(dynamic_cast<expressions::SPARQLExpression const *>(mapping.expression_ptr()));
+		}
+		return expression_ptrs;
+	}
+
 }// namespace Dice::sparql2tensor

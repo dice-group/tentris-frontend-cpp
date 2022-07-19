@@ -5,47 +5,47 @@
 
 namespace Dice::sparql2tensor::expressions {
 
-	class IsIRI : public Expression {
+	class IsIRI : public SPARQLExpression {
 	private:
-		std::unique_ptr<Expression> op_expr_;
+		std::unique_ptr<SPARQLExpression> op_expr_;
 	public:
-		explicit IsIRI(std::unique_ptr<Expression> op_expr);
-		void evaluate(rdf_tensor::Entry const &entry) override;
-		[[nodiscard]] std::optional<rdf4cpp::rdf::Node> result() const override;
-		[[nodiscard]] std::unique_ptr<Expression> clone() const override;
+		explicit IsIRI(std::unique_ptr<SPARQLExpression> op_expr);
+		void update_value(rdf_tensor::Entry const &entry) override;
+		[[nodiscard]] rdf_tensor::NodeWrapper evaluate() const override;
+		[[nodiscard]] std::unique_ptr<SPARQLExpression> clone_sparql() const override;
 		[[nodiscard]] std::vector<rdf4cpp::rdf::query::Variable> variables() const override;
 	};
 
-	class IsBlank : public Expression {
+	class IsBlank : public SPARQLExpression {
 	private:
-		std::unique_ptr<Expression> op_expr_;
+		std::unique_ptr<SPARQLExpression> op_expr_;
 	public:
-		explicit IsBlank(std::unique_ptr<Expression> op_expr);
-		void evaluate(rdf_tensor::Entry const &entry) override;
-		[[nodiscard]] std::optional<rdf4cpp::rdf::Node> result() const override;
-		[[nodiscard]] std::unique_ptr<Expression> clone() const override;
+		explicit IsBlank(std::unique_ptr<SPARQLExpression> op_expr);
+		void update_value(rdf_tensor::Entry const &entry) override;
+		[[nodiscard]] rdf_tensor::NodeWrapper evaluate() const override;
+		[[nodiscard]] std::unique_ptr<SPARQLExpression> clone_sparql() const override;
 		[[nodiscard]] std::vector<rdf4cpp::rdf::query::Variable> variables() const override;
 	};
 
-	class IsLiteral : public Expression {
+	class IsLiteral : public SPARQLExpression {
 	private:
-		std::unique_ptr<Expression> op_expr_;
+		std::unique_ptr<SPARQLExpression> op_expr_;
 	public:
-		explicit IsLiteral(std::unique_ptr<Expression> op_expr);
-		void evaluate(rdf_tensor::Entry const &entry) override;
-		[[nodiscard]] std::optional<rdf4cpp::rdf::Node> result() const override;
-		[[nodiscard]] std::unique_ptr<Expression> clone() const override;
+		explicit IsLiteral(std::unique_ptr<SPARQLExpression> op_expr);
+		void update_value(rdf_tensor::Entry const &entry) override;
+		[[nodiscard]] rdf_tensor::NodeWrapper evaluate() const override;
+		[[nodiscard]] std::unique_ptr<SPARQLExpression> clone_sparql() const override;
 		[[nodiscard]] std::vector<rdf4cpp::rdf::query::Variable> variables() const override;
 	};
 
-	class Datatype : public Expression {
+	class Datatype : public SPARQLExpression {
 	private:
-		std::unique_ptr<Expression> op_expr_;
+		std::unique_ptr<SPARQLExpression> op_expr_;
 	public:
-		explicit Datatype(std::unique_ptr<Expression> op_expr);
-		void evaluate(rdf_tensor::Entry const &entry) override;
-		[[nodiscard]] std::optional<rdf4cpp::rdf::Node> result() const override;
-		[[nodiscard]] std::unique_ptr<Expression> clone() const override;
+		explicit Datatype(std::unique_ptr<SPARQLExpression> op_expr);
+		void update_value(rdf_tensor::Entry const &entry) override;
+		[[nodiscard]] rdf_tensor::NodeWrapper evaluate() const override;
+		[[nodiscard]] std::unique_ptr<SPARQLExpression> clone_sparql() const override;
 		[[nodiscard]] std::vector<rdf4cpp::rdf::query::Variable> variables() const override;
 	};
 

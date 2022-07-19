@@ -11,7 +11,11 @@ namespace Dice::sparql2tensor::parser::visitors {
 
 	using namespace Dice::sparql2tensor::expressions;
 
+	SelectAskQueryVisitor::SelectAskQueryVisitor(SPARQLQuery *q, triple_store::TripleStore const& ts)
+		: query(q), triple_store(ts) {}
+
 	antlrcpp::Any SelectAskQueryVisitor::visitAskQuery(SparqlParser::AskQueryContext *ctx) {
+		query->set_ask();
 		if (auto where_clause_ctx = ctx->whereClause(); where_clause_ctx)
 			visitWhereClause(where_clause_ctx);
 		else
@@ -31,58 +35,59 @@ namespace Dice::sparql2tensor::parser::visitors {
 	}
 
 	antlrcpp::Any SelectAskQueryVisitor::visitSelectClause(SparqlParser::SelectClauseContext *ctx) {
-		std::vector<std::unique_ptr<Expression>> select_expressions;
 		if (ctx->selectModifier()) {
 			if (ctx->selectModifier()->DISTINCT())
-				query->distinct_ = true;
+				query->set_distinct();
 		}
 		if (ctx->ASTERISK()) {
 			for (auto const &var : vars_in_scope) {
-				query->projected_variables_.push_back(var);
-				track_variable(var);
-				select_expressions.push_back(std::make_unique<PrimaryVarExpression>(var, query->tracked_variables_[var]));
+				query->add_projected_variable(var);
+				query->track_variable(var);
+				query->add_solution_binding(std::make_unique<PrimaryVarExpression>(var, query->tracked_variable_position(var)));
 			}
 		} else {
 			for (auto sel_ctx : ctx->selectVariables()) {
 				auto var = visitVar(sel_ctx->var()).as<rdf4cpp::rdf::query::Variable>();
 				// the same variable should not be projected multiple times
-				if (std::find(query->projected_variables_.begin(), query->projected_variables_.end(), var) !=
-					query->projected_variables_.end()) {
+				if (std::find(query->projected_variables().begin(), query->projected_variables().end(), var) !=
+					query->projected_variables().end()) {
 					throw std::runtime_error("Variable " + var.backend_handle().variable_backend().n_string() + " is already projected.");
 				}
-				query->projected_variables_.push_back(var);
+				query->add_projected_variable(var);
 				// AS expressions should not use variables that are already in scope
 				if (sel_ctx->AS()) {
 					if (vars_in_scope.contains(var)) {
 						throw std::runtime_error("Variable " + var.backend_handle().variable_backend().n_string() + " is already in scope.");
 					}
-					select_expressions.push_back(std::move(visitExpression(sel_ctx->expression()).as<std::unique_ptr<Expression>>()));
+					query->add_solution_binding(std::move(visitExpression(sel_ctx->expression()).as<std::unique_ptr<SPARQLExpression>>()));
 					// in case of aggregates, check if non group key variables are projected
 				}
 				// the ids of projected variables (not of AS expressions) need to be passed to the query library
 				else {
-					track_variable(var);
-					select_expressions.push_back(std::make_unique<PrimaryVarExpression>(var, query->tracked_variables_[var]));
+					query->track_variable(var);
+					query->add_solution_binding(std::make_unique<PrimaryVarExpression>(var, query->tracked_variable_position(var)));
 				}
-				register_var(var);
+				query->register_variable(var);
 				vars_in_scope.insert(var);
 			}
-			if (query->projected_variables_.empty()) {
+			if (query->projected_variables().empty()) {
 				throw std::runtime_error("At least one variable should be projected.");
-			} else if (query->contains_aggregates_) {
-				// check if there are non-aggregated and non group key variables in the select clause
-				for (auto const &select_expr : select_expressions) {
-					if (dynamic_cast<Aggregate *>(select_expr.get()))
-						continue;
-					auto expr_vars = select_expr->variables();
-					for (auto var : expr_vars) {
-						if (std::find(vars_in_group_by.begin(), vars_in_group_by.end(), var) == vars_in_group_by.end())
-							throw std::runtime_error("Variable " + var.backend_handle().variable_backend().n_string() + " is not part of the group key");
-					}
-				}
 			}
+//			} else if (query->contains_aggregates()) {
+//				// check if there are non-aggregated and non group key variables in the select clause
+//				for (auto const &select_expression : query->solution_bindings()) {
+//					if (dynamic_cast<Aggregate const *>(select_expression))
+//						continue;
+//					auto expr_vars = select_expression->variables();
+//					for (auto var : expr_vars) {
+//						if (std::find(vars_in_group_by.begin(), vars_in_group_by.end(), var) == vars_in_group_by.end())
+//							throw std::runtime_error("Variable " +
+//													 var.backend_handle().variable_backend().n_string() +
+//													 " is not part of the group key");
+//					}
+//				}
+//			}
 		}
-		query->solution_ = ExpressionList(std::move(select_expressions));
 		return nullptr;
 	}
 
@@ -91,8 +96,10 @@ namespace Dice::sparql2tensor::parser::visitors {
 		group_patterns.emplace_back();
 		triples_blocks.emplace_back();
 		optional_blocks.emplace_back();
+		filter_blocks.emplace_back();
 		visitGroupGraphPattern(ctx->groupGraphPattern());
 		// pop the top entry of the stacks, as we have finished visiting the graph pattern
+		filter_blocks.pop_back();
 		optional_blocks.pop_back();
 		triples_blocks.pop_back();
 		group_patterns.pop_back();
@@ -128,6 +135,9 @@ namespace Dice::sparql2tensor::parser::visitors {
 				// store all OptionalGraphPatterns that appear in the pattern
 				else if (auto optional_graph_pattern_ctx = sub_ctx->graphPatternNotTriples()->optionalGraphPattern(); optional_graph_pattern_ctx)
 					optional_blocks.back().push_back(optional_graph_pattern_ctx);
+				// store all FilterPatterns that appear in the pattern
+				else if (auto filter_ctx = sub_ctx->graphPatternNotTriples()->filter(); filter_ctx)
+					filter_blocks.back().push_back(filter_ctx);
 			}
 			// store all triples blocks that appear in the pattern
 			if (auto triples_block_ctx = sub_ctx->triplesBlock(); triples_block_ctx)
@@ -139,6 +149,10 @@ namespace Dice::sparql2tensor::parser::visitors {
 			for (auto tb_ctx : triples_blocks.back()) {
 				visitTriplesBlock(tb_ctx);
 			}
+			// visit all filters
+			for (auto f_ctx : filter_blocks.back()) {
+				visitFilter(f_ctx);
+			}
 			// if we are in an optional pattern we need to capture dependencies
 			if (not opt_operands.empty()) {
 				// dependencies with parent group
@@ -148,8 +162,7 @@ namespace Dice::sparql2tensor::parser::visitors {
 					for (auto opt_op : opt_operands.back()) {
 						// do not connect groups of the same union pattern
 						if (std::ranges::find(union_operands.back(), opt_op) == union_operands.back().end()) {
-							query->odg_.add_connection(cur_op, opt_op);
-							query->odg_.add_connection(opt_op, cur_op);
+							query->add_connection(cur_op, opt_op);
 						}
 					}
 				}
@@ -166,12 +179,14 @@ namespace Dice::sparql2tensor::parser::visitors {
 				group_patterns.emplace_back();
 				triples_blocks.emplace_back();
 				optional_blocks.emplace_back();
+				filter_blocks.emplace_back();
 				visitWellDesignedPattern(opt_ctx->groupGraphPattern()->groupGraphPatternSub(), {});
 				union_operands.back().clear();
 				// clear the vector from the operands of the visited graph pattern
 				// the top vector of the stack is shared across all optional subgraph pattern of the current graph pattern
 				union_operands.back().clear();
 				// pop the top vector from the stack, as we have finished processing the graph pattern
+				filter_blocks.pop_back();
 				optional_blocks.pop_back();
 				triples_blocks.pop_back();
 				group_patterns.pop_back();
@@ -188,6 +203,7 @@ namespace Dice::sparql2tensor::parser::visitors {
 			gou_ctxs.pop_back();
 			size_t current_tbs = triples_blocks.back().size();
 			size_t current_opts = optional_blocks.back().size();
+			size_t current_filters = filter_blocks.back().size();
 			// visit each group graph pattern of the GroupOrUnionGraphPattern
 			// while visiting each group graph pattern, the triples and optional blocks stored until this point will also be visited
 			for (auto grp_ctx : cur_gou_ctx->groupGraphPattern()) {
@@ -195,8 +211,25 @@ namespace Dice::sparql2tensor::parser::visitors {
 				// we resize the vectors in order to keep only the blocks that were present before visiting grp_ctx
 				triples_blocks.back().resize(current_tbs);
 				optional_blocks.back().resize(current_opts);
+				filter_blocks.back().resize(current_filters);
 			}
 		}
+	}
+
+	antlrcpp::Any SelectAskQueryVisitor::visitFilter(SparqlParser::FilterContext *ctx) {
+		std::unique_ptr<SPARQLExpression> expression;
+		if (auto expr_ctx = ctx->constraint()->expression(); expr_ctx)
+			expression = std::move(visitExpression(expr_ctx).as<std::unique_ptr<SPARQLExpression>>());
+		else if (auto built_in_call_ctx = ctx->constraint()->builtInCall(); built_in_call_ctx)
+			expression = std::move(visitBuiltInCall(built_in_call_ctx).as<std::unique_ptr<SPARQLExpression>>());
+		else
+			throw std::runtime_error("function calls are not supported");
+		auto operand_desc = query->add_filter_expr(std::move(expression), triple_store);
+		for (auto desc : group_patterns.back()) {
+			query->add_dependency(operand_desc, desc);
+		}
+		group_patterns.back().push_back(operand_desc);
+		return nullptr;
 	}
 
 	antlrcpp::Any SelectAskQueryVisitor::visitTriplesBlock(SparqlParser::TriplesBlockContext *ctx) {
@@ -210,7 +243,7 @@ namespace Dice::sparql2tensor::parser::visitors {
 			active_subject = visitVarOrTerm(ctx->varOrTerm());
 			if (active_subject.is_variable()) {
 				auto var = rdf4cpp::rdf::query::Variable(active_subject);
-				register_var(var);
+				query->register_variable(var);
 				vars_in_scope.insert(var);
 			}
 			visitPropertyListPathNotEmpty(ctx->propertyListPathNotEmpty());
@@ -225,7 +258,7 @@ namespace Dice::sparql2tensor::parser::visitors {
 			active_predicate = visitPath(ctx->verbPath()->path());
 		} else {
 			auto var = visitVar(ctx->verbSimple()->var()).as<rdf4cpp::rdf::query::Variable>();
-			register_var(var);
+			query->register_variable(var);
 			vars_in_scope.insert(var);
 			active_predicate = rdf4cpp::rdf::Node(var);
 		}
@@ -237,7 +270,7 @@ namespace Dice::sparql2tensor::parser::visitors {
 				active_predicate = visitPath(prop_ctx->verbPath()->path()).as<rdf4cpp::rdf::Node>();
 			} else {
 				auto var = visitVar(prop_ctx->verbSimple()->var()).as<rdf4cpp::rdf::query::Variable>();
-				register_var(var);
+				query->register_variable(var);
 				vars_in_scope.insert(var);
 				active_predicate = rdf4cpp::rdf::Node(var);
 			}
@@ -275,7 +308,7 @@ namespace Dice::sparql2tensor::parser::visitors {
 		std::string predicate = ctx->prefixedName()->PNAME_LN()->getText();
 		std::size_t split = predicate.find(':');
 		try {
-			return rdf4cpp::rdf::IRI(query->prefixes_.at(predicate.substr(0, split)) + predicate.substr(split + 1));
+			return rdf4cpp::rdf::IRI(query->resolve_prefix(predicate.substr(0, split)) + predicate.substr(split + 1));
 		} catch (...) {
 			throw std::out_of_range("Prefix " + predicate.substr(0, split) + " not declared.");
 		}
@@ -309,11 +342,16 @@ namespace Dice::sparql2tensor::parser::visitors {
 			rdf4cpp::rdf::Node obj = visitVarOrTerm(var_or_term_ctx);
 			if (obj.is_variable()) {
 				auto var = rdf4cpp::rdf::query::Variable(obj);
-				register_var(var);
+				query->register_variable(var);
 				vars_in_scope.insert(var);
 			}
-			query->triple_patterns_.emplace_back(active_subject, active_predicate, obj);
-			add_tp(query->triple_patterns_.back());
+			rdf4cpp::rdf::query::TriplePattern triple_pattern{active_subject, active_predicate, obj};
+			auto operand_desc = query->add_triple_pattern(triple_pattern, triple_store);
+			// bgp dependencies
+			for (auto desc : group_patterns.back()) {
+				query->add_dependency(operand_desc, desc);
+			}
+			group_patterns.back().push_back(operand_desc);
 		} else {
 			throw std::runtime_error("not supported");
 		}
@@ -325,11 +363,16 @@ namespace Dice::sparql2tensor::parser::visitors {
 			rdf4cpp::rdf::Node obj = visitVarOrTerm(var_or_term_ctx);
 			if (obj.is_variable()) {
 				auto var = rdf4cpp::rdf::query::Variable(obj);
-				register_var(var);
+				query->register_variable(var);
 				vars_in_scope.insert(var);
 			}
-			query->triple_patterns_.emplace_back(active_subject, active_predicate, obj);
-			add_tp(query->triple_patterns_.back());
+			rdf4cpp::rdf::query::TriplePattern triple_pattern{active_subject, active_predicate, obj};
+			auto operand_desc = query->add_triple_pattern(triple_pattern, triple_store);
+			// bgp dependencies
+			for (auto desc : group_patterns.back()) {
+				query->add_dependency(operand_desc, desc);
+			}
+			group_patterns.back().push_back(operand_desc);
 		} else {
 			throw std::runtime_error("not supported");
 		}
@@ -376,7 +419,6 @@ namespace Dice::sparql2tensor::parser::visitors {
 	/* solution modifiers */
 
 	antlrcpp::Any SelectAskQueryVisitor::visitGroupClause(SparqlParser::GroupClauseContext *ctx) {
-		std::vector<std::unique_ptr<Expression>> expressions{};
 		for (auto group_condition : ctx->groupCondition()) {
 			if (group_condition->builtInCall()) {
 				return nullptr;//built in call visitor
@@ -384,8 +426,8 @@ namespace Dice::sparql2tensor::parser::visitors {
 				return nullptr;//function call visitor
 			} else if (group_condition->var()) {
 				auto var = visitVar(group_condition->var()).as<rdf4cpp::rdf::query::Variable>();
-				track_variable(var);
-				expressions.push_back(std::make_unique<PrimaryVarExpression>(var, query->tracked_variables_[var]));
+				query->track_variable(var);
+				query->add_grouping_expression(std::make_unique<PrimaryVarExpression>(var, query->tracked_variable_position(var)));
 				vars_in_group_by.insert(var);
 			} else if (group_condition->AS()) {
 				return nullptr;// need to visit expression and track/assign alias
@@ -393,16 +435,15 @@ namespace Dice::sparql2tensor::parser::visitors {
 				throw std::runtime_error("Unsupported GroupCondition");
 			}
 		}
-		query->grouping_keys_ = ExpressionList(std::move(expressions));
 		return nullptr;
 	}
 
 	/* expressions */
 
 	antlrcpp::Any SelectAskQueryVisitor::visitExpression(SparqlParser::ExpressionContext *ctx) {
-		std::unique_ptr<Expression> expr;
+		std::unique_ptr<SPARQLExpression> expr;
 		if (auto base_ctx = dynamic_cast<SparqlParser::BaseExpressionContext *>(ctx); base_ctx) {
-			expr = std::move(visitPrimaryExpression(base_ctx->primaryExpression()).as<std::unique_ptr<Expression>>());
+			expr = std::move(visitPrimaryExpression(base_ctx->primaryExpression()).as<std::unique_ptr<SPARQLExpression>>());
 		} else {
 			assert(false);
 		}
@@ -410,13 +451,13 @@ namespace Dice::sparql2tensor::parser::visitors {
 	}
 
 	antlrcpp::Any SelectAskQueryVisitor::visitPrimaryExpression(SparqlParser::PrimaryExpressionContext *ctx) {
-		std::unique_ptr<Expression> expr;
+		std::unique_ptr<SPARQLExpression> expr;
 		if (ctx->var()) {
 			auto var = visitVar(ctx->var()).as<rdf4cpp::rdf::query::Variable>();
-			register_var(var);
-			track_variable(var);
+			query->register_variable(var);
+			query->track_variable(var);
 			vars_in_scope.insert(var);// todo: this needs to be changed when filters and minus are introduced
-			expr = std::make_unique<PrimaryVarExpression>(var, query->tracked_variables_[var]);
+			expr = std::make_unique<PrimaryVarExpression>(var, query->tracked_variable_position(var));
 		} else if (ctx->rdfLiteral()) {
 			auto rdf_literal = visitRdfLiteral(ctx->rdfLiteral()).as<rdf4cpp::rdf::Literal>();
 			expr = std::make_unique<PrimaryLiteralExpression>(rdf_literal);
@@ -428,26 +469,26 @@ namespace Dice::sparql2tensor::parser::visitors {
 			expr = std::make_unique<PrimaryLiteralExpression>(numeric_literal);
 		} else if (auto built_in_call_ctx = ctx->builtInCall(); built_in_call_ctx) {
 			if (auto aggregate_ctx = built_in_call_ctx->aggregate(); aggregate_ctx) {
-				expr = std::move(visitAggregate(aggregate_ctx).as<std::unique_ptr<Expression>>());
+				expr = std::move(visitAggregate(aggregate_ctx).as<std::unique_ptr<SPARQLExpression>>());
 			} else {
-				expr = std::move(visitBuiltInCall(built_in_call_ctx).as<std::unique_ptr<Expression>>());
+				expr = std::move(visitBuiltInCall(built_in_call_ctx).as<std::unique_ptr<SPARQLExpression>>());
 			}
 		} else {
-			expr = std::move(visitExpression(ctx->expression()).as<std::unique_ptr<Expression>>());
+			expr = std::move(visitExpression(ctx->expression()).as<std::unique_ptr<SPARQLExpression>>());
 		}
 		return expr;
 	}
 
 	antlrcpp::Any SelectAskQueryVisitor::visitBuiltInCall(SparqlParser::BuiltInCallContext *ctx) {
-		std::unique_ptr<Expression> expr;
+		std::unique_ptr<SPARQLExpression> expr;
 		if (ctx->ISIRI() or ctx->ISURI()) {
-			expr = std::make_unique<IsIRI>(std::move(visitExpression(ctx->expression(0)).as<std::unique_ptr<Expression>>()));
+			expr = std::make_unique<IsIRI>(std::move(visitExpression(ctx->expression(0)).as<std::unique_ptr<SPARQLExpression>>()));
 		} else if (ctx->ISBLANK()) {
-			expr = std::make_unique<IsBlank>(std::move(visitExpression(ctx->expression(0)).as<std::unique_ptr<Expression>>()));
+			expr = std::make_unique<IsBlank>(std::move(visitExpression(ctx->expression(0)).as<std::unique_ptr<SPARQLExpression>>()));
 		} else if (ctx->ISLITERAL()) {
-			expr = std::make_unique<IsLiteral>(std::move(visitExpression(ctx->expression(0)).as<std::unique_ptr<Expression>>()));
+			expr = std::make_unique<IsLiteral>(std::move(visitExpression(ctx->expression(0)).as<std::unique_ptr<SPARQLExpression>>()));
 		} else if (ctx->DATATYPE()) {
-			expr = std::make_unique<Datatype>(std::move(visitExpression(ctx->expression(0)).as<std::unique_ptr<Expression>>()));
+			expr = std::make_unique<Datatype>(std::move(visitExpression(ctx->expression(0)).as<std::unique_ptr<SPARQLExpression>>()));
 		}
 		else {
 			assert(false);
@@ -456,11 +497,11 @@ namespace Dice::sparql2tensor::parser::visitors {
 	}
 
 	antlrcpp::Any SelectAskQueryVisitor::visitAggregate(SparqlParser::AggregateContext *ctx) {
-		query->contains_aggregates_ = true;
-		std::unique_ptr<Expression> expr;
-		std::unique_ptr<Expression> nested_expr;
+		query->set_aggregates();
+		std::unique_ptr<SPARQLExpression> expr;
+		std::unique_ptr<SPARQLExpression> nested_expr;
 		if (ctx->expression()) {
-			nested_expr = std::move(visitExpression(ctx->expression()).as<std::unique_ptr<Expression>>());
+			nested_expr = std::move(visitExpression(ctx->expression()).as<std::unique_ptr<SPARQLExpression>>());
 			if (dynamic_cast<Aggregate *>(nested_expr.get())) {
 				throw std::runtime_error("Nested aggregates are not allowed");
 			}
@@ -469,7 +510,7 @@ namespace Dice::sparql2tensor::parser::visitors {
 			if (ctx->COUNT()) {
 				if (ctx->ASTERISK()) {
 					for (auto const &var : vars_in_scope) {
-						track_variable(var);
+						query->track_variable(var);
 					}
 					expr = std::make_unique<CountStarDistinct>();
 				} else {
@@ -482,7 +523,7 @@ namespace Dice::sparql2tensor::parser::visitors {
 			if (ctx->COUNT()) {
 				if (ctx->ASTERISK()) {
 					for (auto const &var : vars_in_scope) {
-						track_variable(var);
+						query->track_variable(var);
 					}
 					expr = std::make_unique<CountStar>();
 				} else {
@@ -547,89 +588,14 @@ namespace Dice::sparql2tensor::parser::visitors {
 			return value.substr(3, value.size() - 6);
 	}
 
-	void SelectAskQueryVisitor::register_var(rdf4cpp::rdf::query::Variable const &var) {
-		if (query->var_to_id_.contains(var))
-			return;
-		query->var_to_id_[var] = var_id;
-		var_id++;
-	}
-
-	void SelectAskQueryVisitor::track_variable(rdf4cpp::rdf::query::Variable const &var) {
-		if (query->tracked_variables_.contains(var))
-			return;
-		size_t pos = query->tracked_variables_.size();
-		query->tracked_variables_[var] = pos;
-	}
-
-	void SelectAskQueryVisitor::register_alias(rdf4cpp::rdf::query::Variable const &var,
-											   std::unique_ptr<Expression> expression) {
-		query->aliases_[var] = std::move(expression);
-	}
-
-	void SelectAskQueryVisitor::add_tp(rdf4cpp::rdf::query::TriplePattern const &tp) {
-		std::vector<char> var_ids{};
-		for (auto const &node : tp) {
-			if (not node.is_variable())
-				continue;
-			var_ids.push_back(query->var_to_id_[rdf4cpp::rdf::query::Variable(node)]);
-		}
-		// create new node in the operand dependency graph
-		auto v_id = query->odg_.add_operand(var_ids);
-		auto &gp = group_patterns.back();
-		// iterate over the tps of the group and capture dependencies
-		for (auto iter = gp.rbegin(); iter != gp.rend(); iter++) {
-			boost::container::flat_set<char> done{};// only one edge per label between two nodes
-			auto const &tp_vars = query->odg_.operand_var_ids(*iter);
-			bool cart = true;
-			for (auto const &var : var_ids) {
-				for (auto const &tp_var : tp_vars) {
-					if (var == tp_var) {
-						cart = false;
-						if (done.contains(var))
-							continue;
-						done.insert(var);
-						query->odg_.add_dependency(*iter, v_id, var);
-						query->odg_.add_dependency(v_id, *iter, var);
-					}
-				}
-			}
-			// the triple patterns do not share a variable --> cartesian join
-			if (cart) {
-				query->odg_.add_dependency(*iter, v_id);
-				query->odg_.add_dependency(v_id, *iter);
-			}
-		}
-		// add current tp/node to the active group pattern
-		gp.push_back(v_id);
-	}
-
 	void SelectAskQueryVisitor::group_dependencies(std::vector<uint8_t> const &prev_group,
 												   std::vector<uint8_t> const &cur_group,
 												   bool bidirectional) {
-		// iterate of the triple patterns (nodes) of the previous group
+		// iterate over the operands (nodes) of the previous group
 		for (const auto &prev_tp : prev_group) {
-			// get the variable ids of the node
-			auto const &prev_labels = query->odg_.operand_var_ids(prev_tp);
-			// iterate over the triple patterns (nodes) of the current group
+			// iterate over the operands (nodes) of the current group
 			for (const auto &cur_tp : cur_group) {
-				// get the variable ids of the node
-				auto const &cur_labels = query->odg_.operand_var_ids(cur_tp);
-				bool done = false;
-				// create labelled dependencies if the nodes share variable ids
-				for (auto const &prev_label : prev_labels) {
-					if (std::find(cur_labels.begin(), cur_labels.end(), prev_label) != cur_labels.end()) {
-						query->odg_.add_dependency(prev_tp, cur_tp, prev_label);
-						if (bidirectional)
-							query->odg_.add_dependency(cur_tp, prev_tp, prev_label);
-						done = true;
-					}
-				}
-				// if the nodes do not share a label, create an unlabelled dependency
-				if (not done) {
-					query->odg_.add_dependency(prev_tp, cur_tp);
-					if (bidirectional)
-						query->odg_.add_dependency(cur_tp, prev_tp);
-				}
+				query->add_dependency(prev_tp, cur_tp, bidirectional);
 			}
 		}
 	}
@@ -638,8 +604,7 @@ namespace Dice::sparql2tensor::parser::visitors {
 												  std::vector<uint8_t> const &cur_group) {
 		for (const auto &prev_tp : prev_group) {
 			for (const auto &cur_tp : cur_group) {
-				query->odg_.add_connection(prev_tp, cur_tp);
-				query->odg_.add_connection(cur_tp, prev_tp);
+				query->add_connection(prev_tp, cur_tp);
 			}
 		}
 	}
