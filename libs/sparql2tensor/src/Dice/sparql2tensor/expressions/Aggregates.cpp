@@ -31,6 +31,10 @@ namespace Dice::sparql2tensor::expressions {
 		return std::make_unique<CountStar>(count_);
 	}
 
+	[[nodiscard]] std::vector<Variable> CountStar::variables() const {
+		return {};
+	}
+
 	/* CountStarDistinct Expression */
 	CountStarDistinct::CountStarDistinct(std::set<rdf_tensor::Entry> entries)
 		: Aggregate(nullptr), entries_(std::move(entries)) {}
@@ -45,6 +49,10 @@ namespace Dice::sparql2tensor::expressions {
 
 	std::unique_ptr<SPARQLExpression> CountStarDistinct::clone_sparql() const {
 		return std::make_unique<CountStarDistinct>(entries_);
+	}
+
+	[[nodiscard]] std::vector<Variable> CountStarDistinct::variables() const {
+		return {};
 	}
 
 	/* Count Expression */

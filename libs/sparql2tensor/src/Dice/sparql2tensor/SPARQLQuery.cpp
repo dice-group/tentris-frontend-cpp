@@ -99,13 +99,4 @@ namespace Dice::sparql2tensor {
 
 	bool SPARQLQuery::contains_aggregates() const { return raw_query_.contains_aggregates(); }
 
-	std::vector<expressions::SPARQLExpression const *> SPARQLQuery::solution_bindings() const {
-		std::vector<expressions::SPARQLExpression const *> expression_ptrs{};
-		auto const &solution_mappings = raw_query_.solution_mapping();
-		for (auto const &mapping : solution_mappings) {
-			expression_ptrs.push_back(dynamic_cast<expressions::SPARQLExpression const *>(mapping.expression_ptr()));
-		}
-		return expression_ptrs;
-	}
-
 }// namespace Dice::sparql2tensor

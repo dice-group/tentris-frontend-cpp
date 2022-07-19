@@ -26,6 +26,7 @@ namespace Dice::sparql2tensor::expressions {
 		void update_value(rdf_tensor::Entry const &entry) override;
 		[[nodiscard]] rdf_tensor::NodeWrapper evaluate() const override;
 		[[nodiscard]] std::unique_ptr<SPARQLExpression> clone_sparql() const override;
+		[[nodiscard]] std::vector<rdf4cpp::rdf::query::Variable> variables() const override;
 	};
 
 	class CountStarDistinct : public Aggregate {
@@ -36,6 +37,7 @@ namespace Dice::sparql2tensor::expressions {
 		void update_value(rdf_tensor::Entry const &entry) override;
 		[[nodiscard]] rdf_tensor::NodeWrapper evaluate() const override;
 		[[nodiscard]] std::unique_ptr<SPARQLExpression> clone_sparql() const override;
+		[[nodiscard]] std::vector<rdf4cpp::rdf::query::Variable> variables() const override;
 	};
 
 	class Count : public Aggregate {

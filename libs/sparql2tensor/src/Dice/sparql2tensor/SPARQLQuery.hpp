@@ -82,8 +82,6 @@ namespace Dice::sparql2tensor {
 		void set_aggregates();
 
 		[[nodiscard]] bool contains_aggregates() const;
-
-		[[nodiscard]] std::vector<expressions::SPARQLExpression const *> solution_bindings() const;
 	};
 
 }// namespace Dice::sparql2tensor

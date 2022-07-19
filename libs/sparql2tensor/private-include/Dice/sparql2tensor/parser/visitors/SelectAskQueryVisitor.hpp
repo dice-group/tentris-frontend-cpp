@@ -24,6 +24,7 @@ namespace Dice::sparql2tensor::parser::visitors {
 		char var_id = 'a';
 		std::unordered_set<rdf4cpp::rdf::query::Variable> vars_in_scope;
 		std::unordered_set<rdf4cpp::rdf::query::Variable> vars_in_group_by;
+		std::unordered_set<rdf4cpp::rdf::query::Variable> vars_in_select;
 		// for the construction of the operand dependency graph
 		std::vector<std::vector<uint8_t>> group_patterns;
 		std::vector<std::vector<uint8_t>> opt_operands;
@@ -119,6 +120,8 @@ namespace Dice::sparql2tensor::parser::visitors {
 		 */
 		void visitWellDesignedPattern(SparqlParser::GroupGraphPatternSubContext *ctx,
 									  std::vector<SparqlParser::GroupOrUnionGraphPatternContext *> gou_ctxs);
+
+		void check_vars_are_grouped(std::vector<rdf4cpp::rdf::query::Variable> const &vars) const;
 	};
 
 }// namespace Dice::sparql2tensor::parser::visitors

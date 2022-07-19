@@ -11,7 +11,7 @@ namespace Dice::sparql2tensor::parser::visitors {
 
 	using namespace Dice::sparql2tensor::expressions;
 
-	SelectAskQueryVisitor::SelectAskQueryVisitor(SPARQLQuery *q, triple_store::TripleStore const& ts)
+	SelectAskQueryVisitor::SelectAskQueryVisitor(SPARQLQuery *q, triple_store::TripleStore const &ts)
 		: query(q), triple_store(ts) {}
 
 	antlrcpp::Any SelectAskQueryVisitor::visitAskQuery(SparqlParser::AskQueryContext *ctx) {
@@ -54,39 +54,40 @@ namespace Dice::sparql2tensor::parser::visitors {
 					throw std::runtime_error("Variable " + var.backend_handle().variable_backend().n_string() + " is already projected.");
 				}
 				query->add_projected_variable(var);
+				query->register_variable(var);
 				// AS expressions should not use variables that are already in scope
 				if (sel_ctx->AS()) {
 					if (vars_in_scope.contains(var)) {
 						throw std::runtime_error("Variable " + var.backend_handle().variable_backend().n_string() + " is already in scope.");
 					}
-					query->add_solution_binding(std::move(visitExpression(sel_ctx->expression()).as<std::unique_ptr<SPARQLExpression>>()));
-					// in case of aggregates, check if non group key variables are projected
+					auto expression = std::move(visitExpression(sel_ctx->expression()).as<std::unique_ptr<SPARQLExpression>>());
+					// keep track of the variables appearing in the expression (for checking in case of aggregates)
+					if (not dynamic_cast<Aggregate *>(expression.get())) {
+						for (auto expr_var : expression->variables()) {
+							vars_in_select.insert(expr_var);
+						}
+					}
+					query->add_solution_binding(std::move(expression));
 				}
 				// the ids of projected variables (not of AS expressions) need to be passed to the query library
 				else {
+					vars_in_select.insert(var);
 					query->track_variable(var);
 					query->add_solution_binding(std::make_unique<PrimaryVarExpression>(var, query->tracked_variable_position(var)));
 				}
-				query->register_variable(var);
 				vars_in_scope.insert(var);
 			}
 			if (query->projected_variables().empty()) {
 				throw std::runtime_error("At least one variable should be projected.");
 			}
-//			} else if (query->contains_aggregates()) {
-//				// check if there are non-aggregated and non group key variables in the select clause
-//				for (auto const &select_expression : query->solution_bindings()) {
-//					if (dynamic_cast<Aggregate const *>(select_expression))
-//						continue;
-//					auto expr_vars = select_expression->variables();
-//					for (auto var : expr_vars) {
-//						if (std::find(vars_in_group_by.begin(), vars_in_group_by.end(), var) == vars_in_group_by.end())
-//							throw std::runtime_error("Variable " +
-//													 var.backend_handle().variable_backend().n_string() +
-//													 " is not part of the group key");
-//					}
-//				}
-//			}
+			// in case of aggregates, check if the variables used in non-aggregate expressions are grouped
+			else if (query->contains_aggregates() or not vars_in_group_by.empty()) {
+				for (auto var : vars_in_select) {
+					if (not vars_in_group_by.contains(var))
+						throw std::runtime_error("Variable " + var.backend_handle().variable_backend().n_string() +
+												 " is not part of the group key");
+				}
+			}
 		}
 		return nullptr;
 	}
@@ -489,8 +490,7 @@ namespace Dice::sparql2tensor::parser::visitors {
 			expr = std::make_unique<IsLiteral>(std::move(visitExpression(ctx->expression(0)).as<std::unique_ptr<SPARQLExpression>>()));
 		} else if (ctx->DATATYPE()) {
 			expr = std::make_unique<Datatype>(std::move(visitExpression(ctx->expression(0)).as<std::unique_ptr<SPARQLExpression>>()));
-		}
-		else {
+		} else {
 			assert(false);
 		}
 		return expr;

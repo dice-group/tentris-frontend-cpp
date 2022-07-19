@@ -30,11 +30,23 @@ namespace Dice::endpoint {
 				using namespace restinio;
 				// parse request
 				std::string sparql_query_str = parse_sparql_query_param(req);
-				if (sparql_query_str.empty())
+				if (sparql_query_str.empty()) {
+					static auto const message = "Query parameter 'query' is missing.";
+					spdlog::warn("HTTP response {}: {}", status_bad_request(), message);
+					req->create_response(status_bad_request()).set_body(message).done();
 					return;
+				}
 				auto sparql_query = sparql_query_cache_[sparql_query_str];
-				if (not sparql_query)
-					sparql_query = sparql_query_cache_.insert(sparql_query_str, SPARQLParser::parse_query(sparql_query_str, triplestore_));
+				if (not sparql_query) {
+					try {
+						sparql_query = sparql_query_cache_.insert(sparql_query_str, SPARQLParser::parse_query(sparql_query_str, triplestore_));
+					} catch (std::runtime_error &e) {
+						static auto const message = "Value of query parameter 'query' is not parsable.";
+						spdlog::warn("HTTP response {}: {} (detail: {})", status_bad_request(), message, e.what());
+						req->create_response(status_bad_request()).set_body(message).done();
+						return;
+					}
+				}
 				try {
 					if (sparql_query->ask()) {
 						auto generator_iter = rdf_tensor::QueryEvaluation::evaluate(sparql_query->raw_query(), timeout);
