@@ -27,24 +27,25 @@ namespace Dice::endpoint {
 		if (executor_.num_topologies() < executor_.num_workers()) {
 			executor_.silent_async([this, timeout](restinio::request_handle_t req) {
 				using namespace Dice::sparql2tensor;
+				using namespace Dice::sparql2tensor::parser;
 				using namespace restinio;
-
 				// parse request
 				std::string sparql_query_str = parse_sparql_query_param(req);
 				if (sparql_query_str.empty())
 					return;
-				// parse query
-				SPARQLQuery sparql_query = parser::SPARQLParser::parse_query(sparql_query_str, triplestore_);
+				auto sparql_query = sparql_query_cache_[sparql_query_str];
+				if (not sparql_query)
+					sparql_query = sparql_query_cache_.insert(sparql_query_str, SPARQLParser::parse_query(sparql_query_str, triplestore_));
 
 				bool asio_write_failed = false;
 
-				endpoint::SparqlJsonResultSAXWriter json_writer{sparql_query.projected_variables(), 100'000};
+				endpoint::SparqlJsonResultSAXWriter json_writer{sparql_query->projected_variables(), 100'000};
 
 				response_builder_t<chunked_output_t> resp = req->template create_response<chunked_output_t>();
 				resp.append_header(http_field::content_type, "application/sparql-results+json");
 
 				try {
-					for (auto const &entry : rdf_tensor::QueryEvaluation::evaluate(sparql_query.raw_query(), timeout)) {
+					for (auto const &entry : rdf_tensor::QueryEvaluation::evaluate(sparql_query->raw_query(), timeout)) {
 						json_writer.add(entry);
 						if (json_writer.full()) {
 							resp.append_chunk(std::string{json_writer.string_view()});
@@ -61,7 +62,7 @@ namespace Dice::endpoint {
 					resp.done();
 					spdlog::info("HTTP response {}: {} variables, {} solutions, {} bindings",
 								 status_ok(),
-								 sparql_query.projected_variables().size(),
+								 sparql_query->projected_variables().size(),
 								 json_writer.number_of_written_solutions(),
 								 json_writer.number_of_written_bindings());
 				} catch (std::runtime_error const &timeout_exception) {

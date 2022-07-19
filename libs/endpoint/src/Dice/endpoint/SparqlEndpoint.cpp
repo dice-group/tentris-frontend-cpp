@@ -26,16 +26,18 @@ namespace Dice::endpoint {
 		if (executor_.num_topologies() < executor_.num_workers()) {
 			executor_.silent_async([this, timeout](restinio::request_handle_t req) {
 				using namespace Dice::sparql2tensor;
+				using namespace Dice::sparql2tensor::parser;
 				using namespace restinio;
 				// parse request
 				std::string sparql_query_str = parse_sparql_query_param(req);
 				if (sparql_query_str.empty())
 					return;
-				// parse query
-				SPARQLQuery sparql_query = parser::SPARQLParser::parse_query(sparql_query_str, triplestore_);
+				auto sparql_query = sparql_query_cache_[sparql_query_str];
+				if (not sparql_query)
+					sparql_query = sparql_query_cache_.insert(sparql_query_str, SPARQLParser::parse_query(sparql_query_str, triplestore_));
 				try {
-					if (sparql_query.ask()) {
-						auto generator_iter = rdf_tensor::QueryEvaluation::evaluate(sparql_query.raw_query(), timeout);
+					if (sparql_query->ask()) {
+						auto generator_iter = rdf_tensor::QueryEvaluation::evaluate(sparql_query->raw_query(), timeout);
 						bool ask_res = false;
 						if (generator_iter.begin() != generator_iter.end() and (*generator_iter.begin()).value() > 0)
 							ask_res = true;
@@ -45,9 +47,9 @@ namespace Dice::endpoint {
 								.set_body(R"({ "head" : {}, "boolean" : )" + ask_res_str + " }")
 								.done();
 					} else {
-						endpoint::SparqlJsonResultSAXWriter json_writer{sparql_query.projected_variables(), 100'000};
+						endpoint::SparqlJsonResultSAXWriter json_writer{sparql_query->projected_variables(), 100'000};
 
-						for (auto const &entry : rdf_tensor::QueryEvaluation::evaluate(sparql_query.raw_query(), timeout)) {
+						for (auto const &entry : rdf_tensor::QueryEvaluation::evaluate(sparql_query->raw_query(), timeout)) {
 							json_writer.add(entry);
 						}
 						json_writer.close();
@@ -58,7 +60,7 @@ namespace Dice::endpoint {
 								.done();
 						spdlog::info("HTTP response {}: {} variables, {} solutions, {} bindings",
 									 status_ok(),
-									 sparql_query.projected_variables().size(),
+									 sparql_query->projected_variables().size(),
 									 json_writer.number_of_written_solutions(),
 									 json_writer.number_of_written_bindings());
 					}
