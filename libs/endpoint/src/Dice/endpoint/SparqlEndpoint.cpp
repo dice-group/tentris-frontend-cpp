@@ -35,11 +35,14 @@ namespace Dice::endpoint {
 				SPARQLQuery sparql_query = parser::SPARQLParser::parse_query(sparql_query_str, triplestore_);
 				try {
 					if (sparql_query.ask()) {
-						auto ask_res = *(rdf_tensor::QueryEvaluation::evaluate(sparql_query.raw_query(), timeout).begin());
-						std::string res = ask_res.value() > 0 ? "true" : "false";
+						auto generator_iter = rdf_tensor::QueryEvaluation::evaluate(sparql_query.raw_query(), timeout);
+						bool ask_res = false;
+						if (generator_iter.begin() != generator_iter.end() and (*generator_iter.begin()).value() > 0)
+							ask_res = true;
+						std::string ask_res_str = ask_res ? "true" : "false";
 						req->create_response(status_ok())
 								.append_header(http_field::content_type, "application/sparql-results+json")
-								.set_body(R"({ "head" : {}, "boolean" : )" + res + " }")
+								.set_body(R"({ "head" : {}, "boolean" : )" + ask_res_str + " }")
 								.done();
 					} else {
 						endpoint::SparqlJsonResultSAXWriter json_writer{sparql_query.projected_variables(), 100'000};
