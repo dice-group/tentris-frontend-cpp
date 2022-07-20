@@ -30,6 +30,7 @@ namespace dice::triple_store {
 	private:
 		HypertrieContext context_;
 		BoolHypertrie hypertrie_;
+		std::shared_mutex mutex_;
 
 	public:
 		explicit TripleStore(allocator_type const &allocator)
@@ -44,6 +45,7 @@ namespace dice::triple_store {
 				const std::string &file_path,
 				uint32_t bulk_size = 1'000'000,
 				HypertrieBulkInserter::BulkInserted_callback const &call_back = [](size_t, size_t, size_t) -> void {}) {
+			std::unique_lock<std::shared_mutex> writer_lock{mutex_};
 			HypertrieBulkInserter bulk_inserter{hypertrie_, bulk_size, call_back};
 			AddTripleCallback_function add_entry_callback =
 					[&bulk_inserter](rdf4cpp::rdf::Node subj, rdf4cpp::rdf::Node pred, rdf4cpp::rdf::Node obj) noexcept -> void {
@@ -54,8 +56,7 @@ namespace dice::triple_store {
 		}
 
 		void add_statement(const rdf4cpp::rdf::Statement &statement) {
-			static_assert(sizeof(statement.subject()) == sizeof(uint64_t));
-			static_assert(sizeof(Key::value_type) == sizeof(uint64_t));
+			std::unique_lock<std::shared_mutex> writer_lock{mutex_};
 			Key key{statement.subject(), statement.predicate(), statement.object()};
 			hypertrie_.set(key, true);
 		}
@@ -69,6 +70,7 @@ namespace dice::triple_store {
 		std::generator<rdf_tensor::Entry const &>
 		eval_select(const sparql2tensor::SPARQLQuery &query,
 					std::chrono::steady_clock::time_point endtime = std::chrono::steady_clock::time_point::max()) {
+			std::shared_lock<std::shared_mutex> reader_lock{mutex_};
 			auto operands = generate_operands(query.get_slice_keys());
 			std::vector<char> proj_vars_id{};
 			for (auto const &proj_var : query.projected_variables_) {
@@ -97,6 +99,7 @@ namespace dice::triple_store {
 		 */
 		bool eval_ask(const sparql2tensor::SPARQLQuery &query,
 					  std::chrono::steady_clock::time_point endtime = std::chrono::steady_clock::time_point::max()) {
+			std::shared_lock<std::shared_mutex> reader_lock{mutex_};
 			auto operands = generate_operands(query.get_slice_keys());
 			rdf_tensor::Query q{query.odg_, operands, {}, endtime};
 			return dice::query::Evaluation::evaluate_ask<htt_t, allocator_type>(q);
@@ -104,6 +107,7 @@ namespace dice::triple_store {
 
 		size_t count(const sparql2tensor::SPARQLQuery &query,
 					 std::chrono::steady_clock::time_point endtime = std::chrono::steady_clock::time_point::max()) {
+			std::shared_lock<std::shared_mutex> reader_lock{mutex_};
 			using namespace sparql2tensor;
 			if (query.triple_patterns_.size() == 1) {// O(1)
 				auto slice_key = query.get_slice_keys()[0];
@@ -120,6 +124,7 @@ namespace dice::triple_store {
 		}
 
 		bool contains(const rdf4cpp::rdf::Statement &statement) {
+			std::shared_lock<std::shared_mutex> reader_lock{mutex_};
 			return hypertrie_[Key{statement.subject(), statement.predicate(), statement.object()}];
 		}
 
