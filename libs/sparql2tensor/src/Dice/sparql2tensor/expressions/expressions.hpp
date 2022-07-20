@@ -2,7 +2,7 @@
 #define DICE_SPARQL_EXPRESSIONS_HPP
 
 #include "Aggregates.hpp"
-#include "BinaryOperators.hpp"
+#include "LogicalOperators.hpp"
 #include "BuiltInCalls.hpp"
 #include "PrimaryExpressions.hpp"
 #include "UnaryOperators.hpp"

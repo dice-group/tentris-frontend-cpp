@@ -13,8 +13,9 @@ namespace Dice::sparql2tensor::expressions {
 		explicit NotExpression(std::unique_ptr<SPARQLExpression> primary_expr);
 		void update_value(rdf_tensor::Entry const &entry) override;
 		[[nodiscard]] rdf_tensor::NodeWrapper evaluate() const override;
-		[[nodiscard]] std::unique_ptr<SPARQLExpression> clone_sparql() const override;
 		[[nodiscard]] std::vector<rdf4cpp::rdf::query::Variable> variables() const override;
+	protected:
+		[[nodiscard]] NotExpression *clone_impl() const override;
 	};
 
 	/* https://www.w3.org/TR/xpath-functions/#func-numeric-unary-plus */
@@ -25,8 +26,9 @@ namespace Dice::sparql2tensor::expressions {
 		explicit UnaryPlusExpression(std::unique_ptr<SPARQLExpression> primary_expr);
 		void update_value(rdf_tensor::Entry const &entry) override;
 		[[nodiscard]] rdf_tensor::NodeWrapper evaluate() const override;
-		[[nodiscard]] std::unique_ptr<SPARQLExpression> clone_sparql() const override;
 		[[nodiscard]] std::vector<rdf4cpp::rdf::query::Variable> variables() const override;
+	protected:
+		[[nodiscard]] UnaryPlusExpression *clone_impl() const override;
 	};
 
 	/* https://www.w3.org/TR/xpath-functions/#func-numeric-unary-minus */
@@ -37,8 +39,9 @@ namespace Dice::sparql2tensor::expressions {
 		explicit UnaryMinusExpression(std::unique_ptr<SPARQLExpression> primary_expr);
 		void update_value(rdf_tensor::Entry const &entry) override;
 		[[nodiscard]] rdf_tensor::NodeWrapper evaluate() const override;
-		[[nodiscard]] std::unique_ptr<SPARQLExpression> clone_sparql() const override;
 		[[nodiscard]] std::vector<rdf4cpp::rdf::query::Variable> variables() const override;
+	protected:
+		[[nodiscard]] UnaryMinusExpression *clone_impl() const override;
 	};
 
 } //namespace Dice::sparql2tensor::expressions

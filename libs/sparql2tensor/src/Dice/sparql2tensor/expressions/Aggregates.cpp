@@ -27,8 +27,8 @@ namespace Dice::sparql2tensor::expressions {
 		return Literal(std::to_string(count_), IRI("http://www.w3.org/2001/XMLSchema#integer"));
 	}
 
-	std::unique_ptr<SPARQLExpression> CountStar::clone_sparql() const {
-		return std::make_unique<CountStar>(count_);
+	CountStar *CountStar::clone_impl() const {
+		return new CountStar(count_);
 	}
 
 	[[nodiscard]] std::vector<Variable> CountStar::variables() const {
@@ -47,8 +47,8 @@ namespace Dice::sparql2tensor::expressions {
 		return Literal(std::to_string(entries_.size()), IRI("http://www.w3.org/2001/XMLSchema#integer"));
 	}
 
-	std::unique_ptr<SPARQLExpression> CountStarDistinct::clone_sparql() const {
-		return std::make_unique<CountStarDistinct>(entries_);
+	CountStarDistinct *CountStarDistinct::clone_impl() const {
+		return new CountStarDistinct(entries_);
 	}
 
 	[[nodiscard]] std::vector<Variable> CountStarDistinct::variables() const {
@@ -70,8 +70,8 @@ namespace Dice::sparql2tensor::expressions {
 		return Literal(std::to_string(count_), IRI("http://www.w3.org/2001/XMLSchema#integer"));
 	}
 
-	std::unique_ptr<SPARQLExpression> Count::clone_sparql() const {
-		return std::make_unique<Count>(op_expr_->clone_sparql(), count_);
+	Count *Count::clone_impl() const {
+		return new Count(op_expr_->clone(), count_);
 	}
 
 	/* CountDistinct Expression */
@@ -89,8 +89,8 @@ namespace Dice::sparql2tensor::expressions {
 		return Literal(std::to_string(rdf_nodes_.size()), IRI("http://www.w3.org/2001/XMLSchema#integer"));
 	}
 
-	std::unique_ptr<SPARQLExpression> CountDistinct::clone_sparql() const {
-		return std::make_unique<CountDistinct>(op_expr_->clone_sparql(), rdf_nodes_);
+	CountDistinct *CountDistinct::clone_impl() const {
+		return new CountDistinct(op_expr_->clone(), rdf_nodes_);
 	}
 
 

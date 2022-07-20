@@ -17,8 +17,8 @@ namespace Dice::sparql2tensor::expressions {
 		return rdf_node_;
 	}
 
-	std::unique_ptr<SPARQLExpression> PrimaryVarExpression::clone_sparql() const {
-		return std::make_unique<PrimaryVarExpression>(*this);
+	PrimaryVarExpression *PrimaryVarExpression::clone_impl() const {
+		return new PrimaryVarExpression(*this);
 	}
 
 	std::vector<Variable> PrimaryVarExpression::variables() const {
@@ -35,8 +35,8 @@ namespace Dice::sparql2tensor::expressions {
 		return literal_;
 	}
 
-	std::unique_ptr<SPARQLExpression> PrimaryLiteralExpression::clone_sparql() const {
-		return std::make_unique<PrimaryLiteralExpression>(*this);
+	PrimaryLiteralExpression *PrimaryLiteralExpression::clone_impl() const {
+		return new PrimaryLiteralExpression(*this);
 	}
 
 	std::vector<Variable> PrimaryLiteralExpression::variables() const {
@@ -55,8 +55,8 @@ namespace Dice::sparql2tensor::expressions {
 		return built_in_call_->evaluate();
 	}
 
-	std::unique_ptr<SPARQLExpression> PrimaryBuiltInCallExpression::clone_sparql() const {
-		return std::make_unique<PrimaryBuiltInCallExpression>(built_in_call_->clone_sparql());
+	PrimaryBuiltInCallExpression *PrimaryBuiltInCallExpression::clone_impl() const {
+		return new PrimaryBuiltInCallExpression(built_in_call_->clone());
 	}
 
 	std::vector<Variable> PrimaryBuiltInCallExpression::variables() const {

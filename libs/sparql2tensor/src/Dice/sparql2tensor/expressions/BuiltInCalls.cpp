@@ -17,11 +17,11 @@ namespace Dice::sparql2tensor::expressions {
 	rdf_tensor::NodeWrapper IsIRI::evaluate() const {
 		auto expr_res = op_expr_->evaluate();
 		return Literal(std::to_string(expr_res.is_iri()),
-									 IRI(IRI("http://www.w3.org/2001/XMLSchema#boolean")));
+					   IRI(IRI("http://www.w3.org/2001/XMLSchema#boolean")));
 	}
 
-	std::unique_ptr<SPARQLExpression> IsIRI::clone_sparql() const {
-		return std::make_unique<IsIRI>(op_expr_->clone_sparql());
+	IsIRI *IsIRI::clone_impl() const {
+		return new IsIRI(op_expr_->clone());
 	}
 
 	std::vector<Variable> IsIRI::variables() const {
@@ -39,11 +39,11 @@ namespace Dice::sparql2tensor::expressions {
 	rdf_tensor::NodeWrapper IsBlank::evaluate() const {
 		auto expr_res = op_expr_->evaluate();
 		return Literal(std::to_string(expr_res.is_blank_node()),
-									 IRI(IRI("http://www.w3.org/2001/XMLSchema#boolean")));
+					   IRI(IRI("http://www.w3.org/2001/XMLSchema#boolean")));
 	}
 
-	std::unique_ptr<SPARQLExpression> IsBlank::clone_sparql() const {
-		return std::make_unique<IsBlank>(op_expr_->clone_sparql());
+	IsBlank *IsBlank::clone_impl() const {
+		return new IsBlank(op_expr_->clone());
 	}
 
 	std::vector<Variable> IsBlank::variables() const {
@@ -61,11 +61,11 @@ namespace Dice::sparql2tensor::expressions {
 	rdf_tensor::NodeWrapper IsLiteral::evaluate() const {
 		auto expr_res = op_expr_->evaluate();
 		return Literal(std::to_string(expr_res.is_literal()),
-									 IRI(IRI("http://www.w3.org/2001/XMLSchema#boolean")));
+					   IRI(IRI("http://www.w3.org/2001/XMLSchema#boolean")));
 	}
 
-	std::unique_ptr<SPARQLExpression> IsLiteral::clone_sparql() const {
-		return std::make_unique<IsLiteral>(op_expr_->clone_sparql());
+	IsLiteral *IsLiteral::clone_impl() const {
+		return new IsLiteral(op_expr_->clone());
 	}
 
 	std::vector<Variable> IsLiteral::variables() const {
@@ -83,12 +83,12 @@ namespace Dice::sparql2tensor::expressions {
 	rdf_tensor::NodeWrapper Datatype::evaluate() const {
 		auto expr_res = op_expr_->evaluate();
 		if (not expr_res.is_literal())
-			return rdf_tensor::NodeWrapper();
+			return {};
 		return static_cast<Literal>(expr_res).datatype();
 	}
 
-	std::unique_ptr<SPARQLExpression> Datatype::clone_sparql() const {
-		return std::make_unique<Datatype>(op_expr_->clone_sparql());
+	Datatype *Datatype::clone_impl() const {
+		return new Datatype(op_expr_->clone());
 	}
 
 	std::vector<Variable> Datatype::variables() const {

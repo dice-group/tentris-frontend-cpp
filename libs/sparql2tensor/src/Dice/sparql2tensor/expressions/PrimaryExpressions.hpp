@@ -15,8 +15,9 @@ namespace Dice::sparql2tensor::expressions {
 		explicit PrimaryVarExpression(rdf4cpp::rdf::query::Variable variable, size_t var_pos_in_entry);
 		void update_value(rdf_tensor::Entry const &entry) override;
 		[[nodiscard]] rdf_tensor::NodeWrapper evaluate() const override;
-		[[nodiscard]] std::unique_ptr<SPARQLExpression> clone_sparql() const override;
 		[[nodiscard]] std::vector<rdf4cpp::rdf::query::Variable> variables() const override;
+	protected:
+		[[nodiscard]] PrimaryVarExpression *clone_impl() const override;
 	};
 
 	/* PrimaryExpression for RDFLiterals, NumericLiterals and BooleanLiterals (https://www.w3.org/TR/sparql11-query/#rPrimaryExpression) */
@@ -27,8 +28,9 @@ namespace Dice::sparql2tensor::expressions {
 		explicit PrimaryLiteralExpression(rdf4cpp::rdf::Literal literal);
 		void update_value(rdf_tensor::Entry const &entry) override;
 		[[nodiscard]] rdf_tensor::NodeWrapper evaluate() const override;
-		[[nodiscard]] std::unique_ptr<SPARQLExpression> clone_sparql() const override;
 		[[nodiscard]] std::vector<rdf4cpp::rdf::query::Variable> variables() const override;
+	protected:
+		[[nodiscard]] PrimaryLiteralExpression *clone_impl() const override;
 	};
 
 	/* PrimaryExpression for BuiltInCalls (https://www.w3.org/TR/sparql11-query/#rPrimaryExpression) */
@@ -39,8 +41,9 @@ namespace Dice::sparql2tensor::expressions {
 		explicit PrimaryBuiltInCallExpression(std::unique_ptr<SPARQLExpression> built_in_call);
 		void update_value(rdf_tensor::Entry const &entry) override;
 		[[nodiscard]] rdf_tensor::NodeWrapper evaluate() const override;
-		[[nodiscard]] std::unique_ptr<SPARQLExpression> clone_sparql() const override;
 		[[nodiscard]] std::vector<rdf4cpp::rdf::query::Variable> variables() const override;
+	protected:
+		[[nodiscard]] PrimaryBuiltInCallExpression *clone_impl() const override;
 	};
 
 }//namespace Dice::sparql2tensor::expressions

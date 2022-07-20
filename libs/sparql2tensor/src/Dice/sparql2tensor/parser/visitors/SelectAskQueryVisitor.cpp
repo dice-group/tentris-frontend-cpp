@@ -225,11 +225,24 @@ namespace Dice::sparql2tensor::parser::visitors {
 			expression = std::move(visitBuiltInCall(built_in_call_ctx).as<std::unique_ptr<SPARQLExpression>>());
 		else
 			throw std::runtime_error("function calls are not supported");
-		auto operand_desc = query->add_filter_expr(std::move(expression), triple_store);
-		for (auto desc : group_patterns.back()) {
-			query->add_dependency(operand_desc, desc);
+		std::vector<std::unique_ptr<SPARQLExpression>> expressions;
+		if (auto and_ctx = dynamic_cast<LogicalAndExpression *>(expression.get()); and_ctx == nullptr) {
+			auto operand_desc = query->add_filter_expr(std::move(expression), triple_store);
+			for (auto desc : group_patterns.back()) {
+				query->add_dependency(operand_desc, desc);
+			}
+			group_patterns.back().push_back(operand_desc);
+		} else {
+			// in case of ConditionalAndExpressions, create a unique vertex for each operand
+			// this allows for returning false as soon as an operand evaluates to false
+			for (auto &expr : and_ctx->expressions()) {
+				auto operand_desc = query->add_filter_expr(std::move(expr), triple_store);
+				for (auto desc : group_patterns.back()) {
+					query->add_dependency(operand_desc, desc);
+				}
+				group_patterns.back().push_back(operand_desc);
+			}
 		}
-		group_patterns.back().push_back(operand_desc);
 		return nullptr;
 	}
 
@@ -445,10 +458,57 @@ namespace Dice::sparql2tensor::parser::visitors {
 		std::unique_ptr<SPARQLExpression> expr;
 		if (auto base_ctx = dynamic_cast<SparqlParser::BaseExpressionContext *>(ctx); base_ctx) {
 			expr = std::move(visitPrimaryExpression(base_ctx->primaryExpression()).as<std::unique_ptr<SPARQLExpression>>());
+		} else if (auto and_ctx = dynamic_cast<SparqlParser::ConditionalAndExpressionContext *>(ctx); and_ctx) {
+			expr = std::move(visitConditionalAndExpression(and_ctx).as<std::unique_ptr<SPARQLExpression>>());
+		} else if (auto or_ctx = dynamic_cast<SparqlParser::ConditionalOrExpressionContext *>(ctx); or_ctx) {
+			expr = std::move(visitConditionalOrExpression(or_ctx).as<std::unique_ptr<SPARQLExpression>>());
+		} else if (auto relational_ctx = dynamic_cast<SparqlParser::RelationalExpressionContext *>(ctx); relational_ctx) {
+			expr = std::move(visitRelationalExpression(relational_ctx).as<std::unique_ptr<SPARQLExpression>>());
 		} else {
 			assert(false);
 		}
 		return expr;
+	}
+
+	antlrcpp::Any SelectAskQueryVisitor::visitConditionalAndExpression(SparqlParser::ConditionalAndExpressionContext *ctx) {
+		std::unique_ptr<SPARQLExpression> logical_and_expr;
+		std::vector<std::unique_ptr<SPARQLExpression>> expressions;
+		for (auto expr_ctx : ctx->expression()) {
+			expressions.push_back(std::move(visitExpression(expr_ctx).as<std::unique_ptr<SPARQLExpression>>()));
+		}
+		logical_and_expr = std::make_unique<LogicalAndExpression>(std::move(expressions));
+		return logical_and_expr;
+	}
+
+	antlrcpp::Any SelectAskQueryVisitor::visitConditionalOrExpression(SparqlParser::ConditionalOrExpressionContext *ctx) {
+		std::unique_ptr<SPARQLExpression> logical_or_expr;
+		std::vector<std::unique_ptr<SPARQLExpression>> expressions;
+		for (auto expr_ctx : ctx->expression()) {
+			expressions.push_back(std::move(visitExpression(expr_ctx).as<std::unique_ptr<SPARQLExpression>>()));
+		}
+		logical_or_expr = std::make_unique<LogicalOrExpression>(std::move(expressions));
+		return logical_or_expr;
+	}
+
+	antlrcpp::Any SelectAskQueryVisitor::visitRelationalExpression(SparqlParser::RelationalExpressionContext *ctx) {
+		std::unique_ptr<SPARQLExpression> expression;
+		std::unique_ptr<SPARQLExpression> lhs_op = std::move(visitExpression(ctx->expression(0)).as<std::unique_ptr<SPARQLExpression>>());
+		std::unique_ptr<SPARQLExpression> rhs_op = std::move(visitExpression(ctx->expression(1)).as<std::unique_ptr<SPARQLExpression>>());
+		if (ctx->EQUAL())
+			expression = std::make_unique<EqualsExpression>(std::move(lhs_op), std::move(rhs_op));
+		else if (ctx->NOT_EQUAL())
+			expression = std::make_unique<NotEqualsExpression>(std::move(lhs_op), std::move(rhs_op));
+		else if (ctx->GREATER())
+			expression = std::make_unique<GreaterExpression>(std::move(lhs_op), std::move(rhs_op));
+		else if (ctx->GREATER_EQUAL())
+			expression = std::make_unique<GreaterEqualsExpression>(std::move(lhs_op), std::move(rhs_op));
+		else if (ctx->LESS())
+			expression = std::make_unique<LessExpression>(std::move(lhs_op), std::move(rhs_op));
+		else if (ctx->LESS_EQUAL())
+			expression = std::make_unique<LessEqualsExpression>(std::move(lhs_op), std::move(rhs_op));
+		else
+			assert(false);
+		return expression;
 	}
 
 	antlrcpp::Any SelectAskQueryVisitor::visitPrimaryExpression(SparqlParser::PrimaryExpressionContext *ctx) {
@@ -457,7 +517,7 @@ namespace Dice::sparql2tensor::parser::visitors {
 			auto var = visitVar(ctx->var()).as<rdf4cpp::rdf::query::Variable>();
 			query->register_variable(var);
 			query->track_variable(var);
-			vars_in_scope.insert(var);// todo: this needs to be changed when filters and minus are introduced
+			vars_in_scope.insert(var);// todo: this needs to be changed when minus is introduced
 			expr = std::make_unique<PrimaryVarExpression>(var, query->tracked_variable_position(var));
 		} else if (ctx->rdfLiteral()) {
 			auto rdf_literal = visitRdfLiteral(ctx->rdfLiteral()).as<rdf4cpp::rdf::Literal>();
@@ -596,15 +656,6 @@ namespace Dice::sparql2tensor::parser::visitors {
 			// iterate over the operands (nodes) of the current group
 			for (const auto &cur_tp : cur_group) {
 				query->add_dependency(prev_tp, cur_tp, bidirectional);
-			}
-		}
-	}
-
-	void SelectAskQueryVisitor::group_connections(std::vector<uint8_t> const &prev_group,
-												  std::vector<uint8_t> const &cur_group) {
-		for (const auto &prev_tp : prev_group) {
-			for (const auto &cur_tp : cur_group) {
-				query->add_connection(prev_tp, cur_tp);
 			}
 		}
 	}

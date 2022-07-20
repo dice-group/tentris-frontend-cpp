@@ -91,6 +91,12 @@ namespace Dice::sparql2tensor::parser::visitors {
 
 		antlrcpp::Any visitPrimaryExpression(SparqlParser::PrimaryExpressionContext *ctx) override;
 
+		antlrcpp::Any visitConditionalAndExpression(SparqlParser::ConditionalAndExpressionContext *ctx) override;
+
+		antlrcpp::Any visitConditionalOrExpression(SparqlParser::ConditionalOrExpressionContext *ctx) override;
+
+		antlrcpp::Any visitRelationalExpression(SparqlParser::RelationalExpressionContext *ctx) override;
+
 		antlrcpp::Any visitBuiltInCall(SparqlParser::BuiltInCallContext *ctx) override;
 
 		antlrcpp::Any visitAggregate(SparqlParser::AggregateContext *ctx) override;
@@ -111,17 +117,11 @@ namespace Dice::sparql2tensor::parser::visitors {
 		void group_dependencies(std::vector<uint8_t> const &prev_group, std::vector<uint8_t> const &cur_group, bool bidirectional = false);
 
 		/**
-		 * @brief: Creates simple connections between the operands of group graph patterns (captures optional cartesian products)
-		 */
-		void group_connections(std::vector<uint8_t> const &prev_group, std::vector<uint8_t> const &cur_group);
-
-		/**
 		 * @brief: Visitor for well-designed SPARQL patterns
 		 */
 		void visitWellDesignedPattern(SparqlParser::GroupGraphPatternSubContext *ctx,
 									  std::vector<SparqlParser::GroupOrUnionGraphPatternContext *> gou_ctxs);
 
-		void check_vars_are_grouped(std::vector<rdf4cpp::rdf::query::Variable> const &vars) const;
 	};
 
 }// namespace Dice::sparql2tensor::parser::visitors

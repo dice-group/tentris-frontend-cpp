@@ -17,8 +17,8 @@ namespace Dice::sparql2tensor::expressions {
 		return primary_expr_->evaluate(); // todo: coerce to boolean and apply not
 	}
 
-	std::unique_ptr<SPARQLExpression> NotExpression::clone_sparql() const {
-		return std::make_unique<NotExpression>(primary_expr_->clone_sparql());
+	NotExpression *NotExpression::clone_impl() const {
+		return new NotExpression(primary_expr_->clone());
 	}
 
 	[[nodiscard]] std::vector<Variable> NotExpression::variables() const {
@@ -38,8 +38,8 @@ namespace Dice::sparql2tensor::expressions {
 		return primary_expr_->evaluate();
 	}
 
-	std::unique_ptr<SPARQLExpression> UnaryPlusExpression::clone_sparql() const {
-		return std::make_unique<UnaryPlusExpression>(primary_expr_->clone_sparql());
+	UnaryPlusExpression *UnaryPlusExpression::clone_impl() const {
+		return new UnaryPlusExpression(primary_expr_->clone());
 	}
 
 	[[nodiscard]] std::vector<Variable> UnaryPlusExpression::variables() const {
@@ -58,8 +58,8 @@ namespace Dice::sparql2tensor::expressions {
 		return primary_expr_->evaluate(); // todo: get numerical and multiply by -1
 	}
 
-	std::unique_ptr<SPARQLExpression> UnaryMinusExpression::clone_sparql() const {
-		return std::make_unique<UnaryMinusExpression>(primary_expr_->clone_sparql());
+	UnaryMinusExpression *UnaryMinusExpression::clone_impl() const {
+		return new UnaryMinusExpression(primary_expr_->clone());
 	}
 
 	[[nodiscard]] std::vector<Variable> UnaryMinusExpression::variables() const {

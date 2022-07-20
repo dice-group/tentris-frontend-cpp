@@ -11,10 +11,6 @@ namespace Dice::sparql2tensor::expressions {
 		std::unique_ptr<SPARQLExpression> op_expr_;
 	public:
 		explicit Aggregate(std::unique_ptr<SPARQLExpression> op_expr);
-		~Aggregate() override = default;
-		void update_value(rdf_tensor::Entry const &entry) override = 0;
-		[[nodiscard]] rdf_tensor::NodeWrapper evaluate() const override = 0;
-		[[nodiscard]] std::unique_ptr<SPARQLExpression> clone_sparql() const override = 0;
 		[[nodiscard]] std::vector<rdf4cpp::rdf::query::Variable> variables() const override;
 	};
 
@@ -25,8 +21,9 @@ namespace Dice::sparql2tensor::expressions {
 		explicit CountStar(size_t count = 0);
 		void update_value(rdf_tensor::Entry const &entry) override;
 		[[nodiscard]] rdf_tensor::NodeWrapper evaluate() const override;
-		[[nodiscard]] std::unique_ptr<SPARQLExpression> clone_sparql() const override;
 		[[nodiscard]] std::vector<rdf4cpp::rdf::query::Variable> variables() const override;
+	protected:
+		[[nodiscard]] CountStar *clone_impl() const override;
 	};
 
 	class CountStarDistinct : public Aggregate {
@@ -36,8 +33,9 @@ namespace Dice::sparql2tensor::expressions {
 		explicit CountStarDistinct(std::set<rdf_tensor::Entry> entries = {});
 		void update_value(rdf_tensor::Entry const &entry) override;
 		[[nodiscard]] rdf_tensor::NodeWrapper evaluate() const override;
-		[[nodiscard]] std::unique_ptr<SPARQLExpression> clone_sparql() const override;
 		[[nodiscard]] std::vector<rdf4cpp::rdf::query::Variable> variables() const override;
+	protected:
+		[[nodiscard]] CountStarDistinct *clone_impl() const override;
 	};
 
 	class Count : public Aggregate {
@@ -47,7 +45,8 @@ namespace Dice::sparql2tensor::expressions {
 		explicit Count(std::unique_ptr<SPARQLExpression> expr, size_t count = 0);
 		void update_value(rdf_tensor::Entry const &entry) override;
 		[[nodiscard]] rdf_tensor::NodeWrapper evaluate() const override;
-		[[nodiscard]] std::unique_ptr<SPARQLExpression> clone_sparql() const override;
+	protected:
+		[[nodiscard]] Count *clone_impl() const override;
 	};
 
 	class CountDistinct : public Aggregate {
@@ -57,7 +56,8 @@ namespace Dice::sparql2tensor::expressions {
 		explicit CountDistinct(std::unique_ptr<SPARQLExpression> expr, std::set<rdf4cpp::rdf::Node> rdf_nodes = {});
 		void update_value(rdf_tensor::Entry const &entry) override;
 		[[nodiscard]] rdf_tensor::NodeWrapper evaluate() const override;
-		[[nodiscard]] std::unique_ptr<SPARQLExpression> clone_sparql() const override;
+	protected:
+		[[nodiscard]] CountDistinct *clone_impl() const override;
 	};
 
 }// namespace Dice::sparql2tensor::expressions
