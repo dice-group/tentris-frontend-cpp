@@ -19,6 +19,62 @@ namespace dice::triple_store {
 		hypertrie_.set(key, true);
 	}
 
+	bool TripleStore::is_rdf_list(rdf4cpp::rdf::Node list) const noexcept {
+		std::shared_lock<std::shared_mutex> reader_lock{mutex_};
+
+		using IRI = rdf4cpp::rdf::IRI;
+		IRI rdf_nil("http://www.w3.org/1999/02/22-rdf-syntax-ns#nil");
+
+		if (list == rdf_nil) return true;// empty collection
+
+		auto prop_obj = std::get<0>(hypertrie_[rdf_tensor::SliceKey{list, std::nullopt, std::nullopt}]);
+		if (prop_obj.empty()) return false;
+
+		{
+			IRI rdf_first("http://www.w3.org/1999/02/22-rdf-syntax-ns#first");
+			auto has_first = std::get<0>(prop_obj[rdf_tensor::SliceKey{rdf_first, std::nullopt}]);
+			if (has_first.size() != 1) return false;
+		}
+
+		{
+			IRI rdf_rest("http://www.w3.org/1999/02/22-rdf-syntax-ns#rest");
+			auto has_rest = std::get<0>(prop_obj[rdf_tensor::SliceKey{rdf_rest, std::nullopt}]);
+			if (has_rest.size() != 1) return false;
+		}
+
+		return true;
+	}
+	std::vector<rdf4cpp::rdf::Node> TripleStore::get_rdf_list(rdf4cpp::rdf::Node list) {
+		using IRI = rdf4cpp::rdf::IRI;
+		using Node = rdf4cpp::rdf::Node;
+
+		IRI rdf_first("http://www.w3.org/1999/02/22-rdf-syntax-ns#first");
+		IRI rdf_rest("http://www.w3.org/1999/02/22-rdf-syntax-ns#rest");
+		IRI rdf_nil("http://www.w3.org/1999/02/22-rdf-syntax-ns#nil");
+
+		std::vector<Node> node_vector;
+		auto head = list;
+		while (head != rdf_nil) {
+			auto element = std::get<0>(hypertrie_[rdf_tensor::SliceKey{list, rdf_first, std::nullopt}]);
+			if (element.size() > 1)
+				throw std::runtime_error("Invalid RDF seq. Multiple first elements for list node {}" + std::string(head));
+			if (element.empty())
+				throw std::runtime_error("Invalid RDF seq. No first elements for list node {}" + std::string(head));
+
+			node_vector.push_back((*element.begin())[0]);
+			auto rest = std::get<0>(hypertrie_[rdf_tensor::SliceKey{list, rdf_rest, std::nullopt}]);
+			if (rest.size() > 1) {
+				throw std::runtime_error("Invalid RDF seq. Multiple rest elements for list node {}" + std::string(head));
+			} else if (rest.size() == 1) {
+				head = (*element.begin())[0];
+			} else /* rest.size() == 0 */ {
+
+				head = rdf_nil;// this is not canonical but seems better than throwing an error
+			}
+		}
+		return node_vector;
+	}
+
 	/**
 	 * @brief Generates the tensor operands of a query
 	 * @param slice_keys The slice keys corresponding to the query being evaluated

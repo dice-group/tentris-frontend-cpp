@@ -11,6 +11,8 @@
 #endif
 #include <metall/metall.hpp>
 
+#include <shared_mutex>
+
 namespace dice::triple_store {
 	class TripleStore {
 
@@ -28,7 +30,7 @@ namespace dice::triple_store {
 	private:
 		HypertrieContext context_;
 		BoolHypertrie hypertrie_;
-		std::shared_mutex mutex_;
+		mutable std::shared_mutex mutex_;
 
 	public:
 		explicit TripleStore(allocator_type const &allocator)
@@ -38,6 +40,25 @@ namespace dice::triple_store {
 		[[nodiscard]] BoolHypertrie const &get_hypertrie() const {
 			return hypertrie_;
 		}
+
+		/**
+		 * This function enforces stricter requirements upon rdf:Lists than described in <a href="https://www.w3.org/TR/2014/REC-rdf11-mt-20140225/#rdf-containers">D.3 RDF collections</a>.
+		 * An rdf:List must either be the IRI rdf:nil or must have the properties rdf:first and rdf:rest, both with cardinality 1.
+		 * @param list the node to be checked if it is a list
+		 * @return if list is an rdf:List
+		 */
+		[[nodiscard]] bool is_rdf_list(rdf4cpp::rdf::Node list) const noexcept;
+
+		/**
+		 * Returns the items of an rdf:List as vector.
+		 *
+		 * Restrictions from is_rdf_list(rdf4cpp::rdf::Node) const noexcept apply.
+		 *
+		 * @param list the start node of the list
+		 * @return the elements of the list as vector
+		 * @throws std::runtime_error If the list is malformed.
+		 */
+		std::vector<rdf4cpp::rdf::Node> get_rdf_list(rdf4cpp::rdf::Node list);
 
 		void load_ttl(
 				const std::string &file_path,
