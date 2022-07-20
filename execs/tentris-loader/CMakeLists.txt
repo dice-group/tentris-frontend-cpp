@@ -8,7 +8,6 @@ find_package(cxxopts REQUIRED)
 find_package(Metall REQUIRED)
 
 target_link_libraries(tentris_loader PRIVATE
-        ${TENTRIS_STATIC_DEF}
         Threads::Threads
         tentris::triple-store
         tentris::node-store
