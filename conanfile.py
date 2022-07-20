@@ -29,7 +29,7 @@ class Recipe(ConanFile):
             "fmt/8.1.1",
             "restinio/0.6.15",
             "expected-lite/0.6.0",  # overrides restinio dependency
-            "hypertrie/0.9.0@dice-group/rc3",
+            "hypertrie/0.9.1",
             "metall/0.21",
             "rdf4cpp/0.0.4",
             "dice-hash/0.4.0",

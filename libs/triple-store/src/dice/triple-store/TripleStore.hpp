@@ -19,6 +19,7 @@ namespace dice::triple_store {
 		using HypertrieContext = rdf_tensor::HypertrieContext;
 		using HypertrieContext_ptr = rdf_tensor::HypertrieContext_ptr;
 		using HypertrieBulkInserter = rdf_tensor::HypertrieBulkInserter;
+		using HypertrieSyncBulkInserter = rdf_tensor::HypertrieSyncBulkInserter;
 		using BoolHypertrie = rdf_tensor::BoolHypertrie;
 		using const_BoolHypertrie = rdf_tensor::const_BoolHypertrie;
 		using Key = rdf_tensor::Key;
@@ -31,11 +32,14 @@ namespace dice::triple_store {
 		HypertrieContext context_;
 		BoolHypertrie hypertrie_;
 		mutable std::shared_mutex mutex_;
+		mutable HypertrieSyncBulkInserter inserter_;// todo: this one must use offset_ptr
+
 
 	public:
 		explicit TripleStore(allocator_type const &allocator)
 			: context_(allocator),
-			  hypertrie_(3, HypertrieContext_ptr(&context_)) {}
+			  hypertrie_(3, HypertrieContext_ptr(&context_)),
+			  inserter_{hypertrie_} {}
 
 		[[nodiscard]] BoolHypertrie const &get_hypertrie() const {
 			return hypertrie_;
@@ -58,7 +62,7 @@ namespace dice::triple_store {
 		 * @return the elements of the list as vector
 		 * @throws std::runtime_error If the list is malformed.
 		 */
-		std::vector<rdf4cpp::rdf::Node> get_rdf_list(rdf4cpp::rdf::Node list);
+		std::vector<rdf4cpp::rdf::Node> get_rdf_list(rdf4cpp::rdf::Node list) const;
 
 		void load_ttl(
 				const std::string &file_path,
@@ -75,7 +79,7 @@ namespace dice::triple_store {
 		 */
 		std::generator<rdf_tensor::Entry const &>
 		eval_select(const sparql2tensor::SPARQLQuery &query,
-					std::chrono::steady_clock::time_point endtime = std::chrono::steady_clock::time_point::max());
+					std::chrono::steady_clock::time_point endtime = std::chrono::steady_clock::time_point::max()) const;
 
 		/**
 		 * @brief Evaluation of SPARQL ASK queries.
@@ -84,19 +88,18 @@ namespace dice::triple_store {
 		 * @return The result of the ask query (true or false).
 		 */
 		bool eval_ask(const sparql2tensor::SPARQLQuery &query,
-					  std::chrono::steady_clock::time_point endtime = std::chrono::steady_clock::time_point::max());
+					  std::chrono::steady_clock::time_point endtime = std::chrono::steady_clock::time_point::max()) const;
 
 		size_t count(const sparql2tensor::SPARQLQuery &query,
-					 std::chrono::steady_clock::time_point endtime = std::chrono::steady_clock::time_point::max());
+					 std::chrono::steady_clock::time_point endtime = std::chrono::steady_clock::time_point::max()) const;
 
-		bool contains(const rdf4cpp::rdf::Statement &statement) {
-			std::shared_lock<std::shared_mutex> reader_lock{mutex_};
-			return hypertrie_[Key{statement.subject(), statement.predicate(), statement.object()}];
-		}
+		bool contains(const rdf4cpp::rdf::Statement &statement) const;
 
-		[[nodiscard]] size_t size() const {
-			return hypertrie_.size();
-		}
+		// todo: add match
+
+		[[nodiscard]] size_t size() const;
+
+		void flush() const;
 	};
 };    // namespace dice::triple_store
 #endif//TENTRIS_STORE_TRIPLESTORE
