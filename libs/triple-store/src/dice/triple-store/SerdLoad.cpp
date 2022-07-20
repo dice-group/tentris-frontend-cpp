@@ -1,4 +1,4 @@
-#include "SerdLoad.hpp"
+#include "dice/triple-store/SerdLoad.hpp"
 
 #include <robin_hood.h>
 #include <serd/serd.h>
