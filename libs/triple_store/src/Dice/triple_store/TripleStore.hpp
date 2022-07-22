@@ -38,7 +38,7 @@ namespace Dice::triple_store {
 		explicit TripleStore(allocator_type const &allocator)
 			: context_(allocator),
 			  hypertrie_(3, HypertrieContext_ptr(&context_)),
-		      true_scalar_(0, HypertrieContext_ptr(&context_)),
+			  true_scalar_(0, HypertrieContext_ptr(&context_)),
 			  false_scalar_(0, HypertrieContext_ptr(&context_)) { true_scalar_.set({}, true); }
 
 		[[nodiscard]] BoolHypertrie const &get_hypertrie() const {
@@ -80,7 +80,6 @@ namespace Dice::triple_store {
 		[[nodiscard]] size_t size() const {
 			return hypertrie_.size();
 		}
-
 	};
 };    // namespace Dice::triple_store
 #endif//TENTRIS_STORE_TRIPLESTORE

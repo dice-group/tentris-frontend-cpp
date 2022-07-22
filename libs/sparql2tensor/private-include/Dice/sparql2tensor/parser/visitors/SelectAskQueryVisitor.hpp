@@ -21,7 +21,6 @@ namespace Dice::sparql2tensor::parser::visitors {
 		// for the construction of the raw query
 		rdf4cpp::rdf::Node active_subject;
 		rdf4cpp::rdf::Node active_predicate;
-		char var_id = 'a';
 		std::unordered_set<rdf4cpp::rdf::query::Variable> vars_in_scope;
 		std::unordered_set<rdf4cpp::rdf::query::Variable> vars_in_group_by;
 		std::unordered_set<rdf4cpp::rdf::query::Variable> vars_in_select;

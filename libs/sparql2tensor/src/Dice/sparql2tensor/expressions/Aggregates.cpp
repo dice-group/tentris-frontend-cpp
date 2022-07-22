@@ -61,9 +61,9 @@ namespace Dice::sparql2tensor::expressions {
 
 	void Count::update_value(rdf_tensor::Entry const &entry) {
 		op_expr_->update_value(entry);
-		auto expr_res = op_expr_->evaluate();
-//		if (expr_res.has_value())
-		count_++;
+		auto expr_result = op_expr_->evaluate();
+		if (not expr_result.null())
+			count_++;
 	}
 
 	rdf_tensor::NodeWrapper Count::evaluate() const {
@@ -80,9 +80,9 @@ namespace Dice::sparql2tensor::expressions {
 
 	void CountDistinct::update_value([[maybe_unused]] rdf_tensor::Entry const &entry) {
 		op_expr_->update_value(entry);
-		auto expr_res = op_expr_->evaluate();
-//		if (expr_res.has_value())
-		rdf_nodes_.insert(expr_res);
+		auto expr_result = op_expr_->evaluate();
+		if (not expr_result.null())
+			rdf_nodes_.insert(expr_result);
 	}
 
 	rdf_tensor::NodeWrapper CountDistinct::evaluate() const {

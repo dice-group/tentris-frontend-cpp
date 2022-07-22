@@ -526,13 +526,20 @@ namespace Dice::sparql2tensor::parser::visitors {
 			auto boolean_literal = visitBooleanLiteral(ctx->booleanLiteral()).as<rdf4cpp::rdf::Literal>();
 			expr = std::make_unique<PrimaryLiteralExpression>(boolean_literal);
 		} else if (ctx->numericLiteral()) {
-			auto numeric_literal = visitBooleanLiteral(ctx->booleanLiteral()).as<rdf4cpp::rdf::Literal>();
+			auto numeric_literal = visitNumericLiteral(ctx->numericLiteral()).as<rdf4cpp::rdf::Literal>();
 			expr = std::make_unique<PrimaryLiteralExpression>(numeric_literal);
 		} else if (auto built_in_call_ctx = ctx->builtInCall(); built_in_call_ctx) {
 			if (auto aggregate_ctx = built_in_call_ctx->aggregate(); aggregate_ctx) {
 				expr = std::move(visitAggregate(aggregate_ctx).as<std::unique_ptr<SPARQLExpression>>());
 			} else {
 				expr = std::move(visitBuiltInCall(built_in_call_ctx).as<std::unique_ptr<SPARQLExpression>>());
+			}
+		} else if (auto iri_or_function_ctx = ctx->iriRefOrFunction(); iri_or_function_ctx) {
+			if (iri_or_function_ctx->argList()) {
+				throw std::runtime_error("Functions are currently not supported");
+			} else {
+				auto iri = visitIri(iri_or_function_ctx->iri()).as<rdf4cpp::rdf::IRI>();
+				expr = std::make_unique<PrimaryIRIExpression>(iri);
 			}
 		} else {
 			expr = std::move(visitExpression(ctx->expression()).as<std::unique_ptr<SPARQLExpression>>());
@@ -550,6 +557,11 @@ namespace Dice::sparql2tensor::parser::visitors {
 			expr = std::make_unique<IsLiteral>(std::move(visitExpression(ctx->expression(0)).as<std::unique_ptr<SPARQLExpression>>()));
 		} else if (ctx->DATATYPE()) {
 			expr = std::make_unique<Datatype>(std::move(visitExpression(ctx->expression(0)).as<std::unique_ptr<SPARQLExpression>>()));
+		} else if (ctx->STR()) {
+			expr = std::make_unique<Str>(std::move(visitExpression(ctx->expression(0)).as<std::unique_ptr<SPARQLExpression>>()));
+		} else if (ctx->CONTAINS()) {
+			expr = std::make_unique<Contains>(std::move(visitExpression(ctx->expression(0)).as<std::unique_ptr<SPARQLExpression>>()),
+											  std::move(visitExpression(ctx->expression(1)).as<std::unique_ptr<SPARQLExpression>>()));
 		} else {
 			assert(false);
 		}

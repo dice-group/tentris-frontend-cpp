@@ -33,6 +33,19 @@ namespace Dice::sparql2tensor::expressions {
 		[[nodiscard]] PrimaryLiteralExpression *clone_impl() const override;
 	};
 
+	/* PrimaryExpression for IRIs (https://www.w3.org/TR/sparql11-query/#rPrimaryExpression) */
+	struct PrimaryIRIExpression : public SPARQLExpression {
+	private:
+		rdf4cpp::rdf::IRI iri_;
+	public:
+		explicit PrimaryIRIExpression(rdf4cpp::rdf::IRI iri);
+		void update_value(rdf_tensor::Entry const &entry) override;
+		[[nodiscard]] rdf_tensor::NodeWrapper evaluate() const override;
+		[[nodiscard]] std::vector<rdf4cpp::rdf::query::Variable> variables() const override;
+	protected:
+		[[nodiscard]] PrimaryIRIExpression *clone_impl() const override;
+	};
+
 	/* PrimaryExpression for BuiltInCalls (https://www.w3.org/TR/sparql11-query/#rPrimaryExpression) */
 	struct PrimaryBuiltInCallExpression : public SPARQLExpression {
 	private:

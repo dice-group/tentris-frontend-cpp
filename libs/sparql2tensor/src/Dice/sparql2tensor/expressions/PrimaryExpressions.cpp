@@ -43,6 +43,24 @@ namespace Dice::sparql2tensor::expressions {
 		return {};
 	}
 
+	/* IRI Expression */
+	PrimaryIRIExpression::PrimaryIRIExpression(IRI iri)
+		: iri_(iri) {}
+
+	void PrimaryIRIExpression::update_value([[maybe_unused]] rdf_tensor::Entry const &entry) {}
+
+	rdf_tensor::NodeWrapper PrimaryIRIExpression::evaluate() const {
+		return iri_;
+	}
+
+	PrimaryIRIExpression *PrimaryIRIExpression::clone_impl() const {
+		return new PrimaryIRIExpression(*this);
+	}
+
+	std::vector<Variable> PrimaryIRIExpression::variables() const {
+		return {};
+	}
+
 	/* BuiltInCall Expression */
 	PrimaryBuiltInCallExpression::PrimaryBuiltInCallExpression(std::unique_ptr<SPARQLExpression> expr)
 		: built_in_call_(std::move(expr)) {}

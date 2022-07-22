@@ -5,6 +5,10 @@
 
 namespace Dice::sparql2tensor::expressions {
 
+	/* https://www.w3.org/TR/sparql11-query/#func-arg-compatibility */
+	bool compatible_str_arguments(rdf4cpp::rdf::Literal str_1, rdf4cpp::rdf::Literal str_2);
+
+	/* https://www.w3.org/TR/sparql11-query/#func-isiri */
 	class IsIRI : public SPARQLExpression {
 	private:
 		std::unique_ptr<SPARQLExpression> op_expr_;
@@ -18,6 +22,7 @@ namespace Dice::sparql2tensor::expressions {
 		[[nodiscard]] IsIRI *clone_impl() const override;
 	};
 
+	/* https://www.w3.org/TR/sparql11-query/#func-isblank */
 	class IsBlank : public SPARQLExpression {
 	private:
 		std::unique_ptr<SPARQLExpression> op_expr_;
@@ -31,6 +36,7 @@ namespace Dice::sparql2tensor::expressions {
 		[[nodiscard]] IsBlank *clone_impl() const override;
 	};
 
+	/* https://www.w3.org/TR/sparql11-query/#func-isliteral */
 	class IsLiteral : public SPARQLExpression {
 	private:
 		std::unique_ptr<SPARQLExpression> op_expr_;
@@ -44,6 +50,7 @@ namespace Dice::sparql2tensor::expressions {
 		[[nodiscard]] IsLiteral *clone_impl() const override;
 	};
 
+	/* https://www.w3.org/TR/sparql11-query/#func-datatype */
 	class Datatype : public SPARQLExpression {
 	private:
 		std::unique_ptr<SPARQLExpression> op_expr_;
@@ -55,6 +62,35 @@ namespace Dice::sparql2tensor::expressions {
 		[[nodiscard]] std::vector<rdf4cpp::rdf::query::Variable> variables() const override;
 	protected:
 		[[nodiscard]] Datatype *clone_impl() const override;
+	};
+
+	/* https://www.w3.org/TR/sparql11-query/#func-str */
+	class Str : public SPARQLExpression {
+	private:
+		std::unique_ptr<SPARQLExpression> op_expr_;
+
+	public:
+		explicit Str(std::unique_ptr<SPARQLExpression> op_expr);
+		void update_value(rdf_tensor::Entry const &entry) override;
+		[[nodiscard]] rdf_tensor::NodeWrapper evaluate() const override;
+		[[nodiscard]] std::vector<rdf4cpp::rdf::query::Variable> variables() const override;
+	protected:
+		[[nodiscard]] Str *clone_impl() const override;
+	};
+
+	/* https://www.w3.org/TR/sparql11-query/#func-contains */
+	class Contains : public SPARQLExpression {
+	private:
+		std::unique_ptr<SPARQLExpression> op_expr_1_;
+		std::unique_ptr<SPARQLExpression> op_expr_2_;
+
+	public:
+		explicit Contains(std::unique_ptr<SPARQLExpression> op_expr_1, std::unique_ptr<SPARQLExpression> op_expr_2);
+		void update_value(rdf_tensor::Entry const &entry) override;
+		[[nodiscard]] rdf_tensor::NodeWrapper evaluate() const override;
+		[[nodiscard]] std::vector<rdf4cpp::rdf::query::Variable> variables() const override;
+	protected:
+		[[nodiscard]] Contains *clone_impl() const override;
 	};
 
 }//namespace Dice::sparql2tensor::expressions

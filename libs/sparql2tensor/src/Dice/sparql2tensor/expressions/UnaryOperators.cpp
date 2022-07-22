@@ -14,7 +14,11 @@ namespace Dice::sparql2tensor::expressions {
 	}
 
 	rdf_tensor::NodeWrapper NotExpression::evaluate() const {
-		return primary_expr_->evaluate(); // todo: coerce to boolean and apply not
+		auto expr_result = rdf_tensor::NodeWrapper(primary_expr_->evaluate());
+		if (expr_result.null())
+			return {};
+		auto bool_result = not bool(expr_result); // boolean coercion
+		return Literal{std::to_string(bool_result), rdf4cpp::rdf::IRI("http://www.w3.org/2001/XMLSchema#boolean")};
 	}
 
 	NotExpression *NotExpression::clone_impl() const {
