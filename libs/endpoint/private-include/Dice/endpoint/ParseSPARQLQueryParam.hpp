@@ -15,7 +15,7 @@ namespace Dice::endpoint {
 	inline std::shared_ptr<sparql2tensor::SPARQLQuery const> parse_sparql_query_param(restinio::request_handle_t &req, SparqlQueryCache &cache) {
 		using namespace Dice::sparql2tensor;
 		using namespace restinio;
-		const auto qp = parse_query(req->header().query());
+		const auto qp = parse_query<restinio::parse_query_traits::javascript_compatible>(req->header().query());
 		if (not qp.has("query")) {
 			static auto const message = "Query parameter 'query' is missing.";
 			spdlog::warn("HTTP response {}: {}", status_bad_request(), message);

@@ -29,30 +29,32 @@ namespace Dice::endpoint {
 		std::size_t number_of_solutions_ = 0;
 		std::size_t number_of_bindings_ = 0;
 
-		std::vector<Variable> variables{};
-
 		size_t buffer_size;
 		rapidjson::StringBuffer buffer;
 		rapidjson::Writer<rapidjson::StringBuffer> writer;
+
+		std::vector<std::string> variables_;
 
 		inline static auto to_rapidjson(std::string_view view) {
 			return rapidjson::GenericStringRef<char>(view.data() ? view.data() : "", view.size());
 		}
 	public:
-		explicit SparqlJsonResultSAXWriter(std::vector<Variable> variables, size_t buffer_size)
-			: variables(std::move(variables)),
-			  buffer_size(buffer_size),
+		explicit SparqlJsonResultSAXWriter(const std::vector<Variable>& variables, size_t buffer_size)
+			: buffer_size(buffer_size),
 			  buffer(nullptr, size_t(buffer_size * 1.3)),
 			  writer(buffer) {
 			writer.StartObject();
 			writer.Key("head");
+			for (auto const &var : variables) {
+				variables_.emplace_back(var.name());
+			}
 			{
 				writer.StartObject();
 				writer.Key("vars");
 				{
 					writer.StartArray();
-					for (const auto &var : this->variables)
-						writer.String(to_rapidjson(var.name()));
+					for (const auto &var : variables_)
+						writer.String(to_rapidjson(var));
 					writer.EndArray();
 				}
 				writer.EndObject();
@@ -73,10 +75,10 @@ namespace Dice::endpoint {
 
 			for (size_t i = 0; i < size_t(entry.value()); ++i) {
 				writer.StartObject();
-				for (const auto &[term, var] : iter::zip(entry.key(), variables)) {
+				for (const auto &[term, var] : iter::zip(entry.key(), variables_)) {
 					if (term.null())
 						continue;
-					writer.Key(to_rapidjson(var.name()));
+					writer.Key(to_rapidjson(var));
 					writer.StartObject();
 					writer.Key("type");
 					if (term.is_iri()) {
