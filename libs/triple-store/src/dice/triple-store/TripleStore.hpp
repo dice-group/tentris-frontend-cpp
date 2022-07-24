@@ -29,17 +29,15 @@ namespace dice::triple_store {
 		using allocator_type = rdf_tensor::allocator_type;
 
 	private:
-		HypertrieContext context_;
-		BoolHypertrie hypertrie_;
+		BoolHypertrie &hypertrie_;
 		mutable std::shared_mutex mutex_;
-		mutable HypertrieSyncBulkInserter inserter_;// todo: this one must use offset_ptr
+		mutable HypertrieSyncBulkInserter inserter_;
 
 
 	public:
-		explicit TripleStore(allocator_type const &allocator)
-			: context_(allocator),
-			  hypertrie_(3, HypertrieContext_ptr(&context_)),
-			  inserter_{hypertrie_} {}
+		explicit TripleStore(BoolHypertrie &hypertrie);
+
+		virtual ~TripleStore();
 
 		[[nodiscard]] BoolHypertrie const &get_hypertrie() const {
 			return hypertrie_;

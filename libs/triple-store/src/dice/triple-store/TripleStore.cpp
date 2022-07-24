@@ -3,6 +3,13 @@
 #include <dice/triple-store/SerdLoad.hpp>
 
 namespace dice::triple_store {
+	TripleStore::TripleStore(TripleStore::BoolHypertrie &hypertrie) : hypertrie_(hypertrie), inserter_(hypertrie_) {}
+
+	TripleStore::~TripleStore() {
+		std::unique_lock<std::shared_mutex> writer_lock{mutex_};
+		inserter_.flush();
+	}
+
 	void TripleStore::load_ttl(const std::string &file_path, uint32_t bulk_size, const rdf_tensor::HypertrieBulkInserter::BulkInserted_callback &call_back) {
 		flush();
 		std::unique_lock<std::shared_mutex> writer_lock{mutex_};
