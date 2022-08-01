@@ -1,2 +1,2 @@
 add_subdirectory(rdf2ids)
-add_subdirectory(deduplicated_nt)
+add_subdirectory(deduplicated-nt)
