@@ -1,0 +1,27 @@
+cmake_minimum_required(VERSION 3.18)
+project(tentris-tests)
+
+include(${CMAKE_SOURCE_DIR}/../cmake/boilerplate_init.cmake)
+
+boilerplate_init()
+if (NOT IS_TOP_LEVEL)
+    message(FATAL_ERROR "Must only be used as CMake top-level project.")
+endif ()
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+include(${CMAKE_SOURCE_DIR}/../cmake/conan_cmake.cmake)
+install_packages_via_conan("${CMAKE_SOURCE_DIR}/../conanfile.py" "with_test_deps=True ")
+
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/.. ${CMAKE_CURRENT_BINARY_DIR}/libtentris)
+
+find_package(doctest REQUIRED)
+
+add_executable(tests_SPARQL_Aggregates sparql/aggregates/tests_Aggregates.cpp)
+target_link_libraries(tests_SPARQL_Aggregates
+        doctest::doctest
+        tentris::tentris
+        )
+add_test(NAME tests_SPARQL_Aggregates COMMAND tests_SPARQL_Aggregates)

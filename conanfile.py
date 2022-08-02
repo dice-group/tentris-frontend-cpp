@@ -14,11 +14,13 @@ class Recipe(ConanFile):
         "shared": [True, False],
         "fPIC": [True, False],
         "with_exec_deps": [True, False],
+        "with_test_deps": [True, False],
     }
     default_options = {
         "shared": False,
         "fPIC": True,
         "with_exec_deps": False,
+        "with_test_deps": False,
         "boost:header_only": True,  # override hypertrie settings # TODO: remove in hypertrie and here
         "restinio:asio": "boost",
     }
@@ -50,6 +52,11 @@ class Recipe(ConanFile):
             "nlohmann_json/3.10.5",
             "vincentlaucsb-csv-parser/2.1.3",
         ]
+
+        test_reqs = [
+            "doctest/2.4.6"
+        ]
+
         for req in public_reqs:
             self.requires(req)
         for req in private_reqs:
@@ -57,6 +64,10 @@ class Recipe(ConanFile):
 
         if self.options.get_safe("with_exec_deps"):
             for req in exec_reqs:
+                self.requires(req)
+
+        if self.options.with_test_deps:
+            for req in test_reqs:
                 self.requires(req)
 
     generators = ("cmake_find_package",)
