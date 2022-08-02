@@ -43,12 +43,14 @@ IRI getPrefixedUri(SerdHandle &handle, const SerdNode *node) {
 	return IRI(full_string);
 }
 
-Literal getLiteral(const SerdNode *literal, const SerdNode *type_node, const SerdNode *lang_node) {
+Literal getLiteral(SerdHandle &handle, const SerdNode *literal, const SerdNode *type_node, const SerdNode *lang_node) {
 	std::string literal_value = std::string{(char *) (literal->buf), size_t(literal->n_bytes)};
-	if (type_node != nullptr)
-		return {literal_value,
-				IRI(std::string{(char *) (type_node->buf), size_t(type_node->n_bytes)})};
-	else if (lang_node != nullptr)
+	if (type_node != nullptr) {
+		if (type_node->type != SERD_CURIE)
+			return {literal_value, IRI(std::string{(char *) (type_node->buf), size_t(type_node->n_bytes)})};
+		else
+			return {literal_value, getPrefixedUri(handle, type_node)};
+	} else if (lang_node != nullptr)
 		return {literal_value, std::string{(char *) (lang_node->buf), size_t(lang_node->n_bytes)}};
 	else
 		return Literal{literal_value};
@@ -98,7 +100,7 @@ SerdStatus on_statement(SerdHandle *handle,
 			rdf_object = getPrefixedUri(*handle, object);
 			break;
 		case SERD_LITERAL:
-			rdf_object = getLiteral(object, object_datatype, object_lang);
+			rdf_object = getLiteral(*handle, object, object_datatype, object_lang);
 			break;
 		case SERD_BLANK:
 			rdf_object = getBNode(object);
@@ -116,7 +118,6 @@ SerdStatus on_statement(SerdHandle *handle,
 SerdStatus on_end([[maybe_unused]] SerdHandle *handle, [[maybe_unused]] const SerdNode *node) {
 	return SERD_SUCCESS;
 }
-
 
 
 void dice::triple_store::serd_load(const std::string &file_path, dice::triple_store::AddTripleCallback_function add_triple_callback) {
