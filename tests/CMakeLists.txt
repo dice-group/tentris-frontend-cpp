@@ -25,3 +25,10 @@ target_link_libraries(tests_SPARQL_Aggregates
         tentris::tentris
         )
 add_test(NAME tests_SPARQL_Aggregates COMMAND tests_SPARQL_Aggregates)
+
+add_executable(tests_SPARQL_Filters sparql/filters/tests_Filters.cpp)
+target_link_libraries(tests_SPARQL_Filters
+        doctest::doctest
+        tentris::tentris
+        )
+add_test(NAME tests_SPARQL_Filters COMMAND tests_SPARQL_Filters)

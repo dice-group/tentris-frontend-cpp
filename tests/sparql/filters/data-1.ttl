@@ -1,0 +1,5 @@
+# https://github.com/w3c/rdf-tests/blob/main/sparql11/data-r2/algebra/data-1.ttl
+@prefix : <http://example/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+:x :p "1"^^xsd:integer .

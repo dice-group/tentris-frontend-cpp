@@ -9,7 +9,7 @@ namespace dice::tests::sparql {
 	/* SPARQL Aggregate Test Queries (https://github.com/w3c/rdf-tests/tree/main/sparql11/data-sparql11/aggregates) */
 	TEST_SUITE("SPARQL Aggregate Queries") {
 
-		std::string db_path = "test_db";
+		const std::string db_path = "test_db";
 
 		TEST_CASE("Query: agg01") {
 			const std::string path_to_data = "../sparql/aggregates/agg01.ttl";
