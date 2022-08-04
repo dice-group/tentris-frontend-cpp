@@ -42,7 +42,9 @@ namespace dice::sparql2tensor::parser::visitors {
 			for (auto const &var : vars_in_scope) {
 				query->add_projected_variable(var);
 				query->track_variable(var);
-				query->add_solution_binding(std::make_unique<PrimaryVarExpression>(var, query->tracked_variable_position(var)));
+				query->add_solution_binding(std::make_unique<PrimaryVarExpression>(var,
+																				   query->tracked_variable_position(var),
+																				   query->variable_id(var)));
 			}
 		} else {
 			for (auto sel_ctx : ctx->selectVariables()) {
@@ -72,7 +74,9 @@ namespace dice::sparql2tensor::parser::visitors {
 				else {
 					vars_in_select.insert(var);
 					query->track_variable(var);
-					query->add_solution_binding(std::make_unique<PrimaryVarExpression>(var, query->tracked_variable_position(var)));
+					query->add_solution_binding(std::make_unique<PrimaryVarExpression>(var,
+																					   query->tracked_variable_position(var),
+																					   query->variable_id(var)));
 				}
 				vars_in_scope.insert(var);
 			}
@@ -92,17 +96,7 @@ namespace dice::sparql2tensor::parser::visitors {
 	}
 
 	antlrcpp::Any SelectAskQueryVisitor::visitWhereClause(SparqlParser::WhereClauseContext *ctx) {
-		// push a new entry into the stacks, as we are about to visit a graph pattern
-		group_patterns.emplace_back();
-		triples_blocks.emplace_back();
-		optional_blocks.emplace_back();
-		filter_blocks.emplace_back();
 		visitGroupGraphPattern(ctx->groupGraphPattern());
-		// pop the top entry of the stacks, as we have finished visiting the graph pattern
-		filter_blocks.pop_back();
-		optional_blocks.pop_back();
-		triples_blocks.pop_back();
-		group_patterns.pop_back();
 		return nullptr;
 	}
 
@@ -117,7 +111,17 @@ namespace dice::sparql2tensor::parser::visitors {
 	}
 
 	antlrcpp::Any SelectAskQueryVisitor::visitGroupGraphPatternSub(SparqlParser::GroupGraphPatternSubContext *ctx) {
+		// push a new entry into the stacks, as we are about to visit a graph pattern
+		group_patterns.emplace_back();
+		triples_blocks.emplace_back();
+		optional_blocks.emplace_back();
+		filter_blocks.emplace_back();
 		visitWellDesignedPattern(ctx, {});
+		// pop the top entry of the stacks, as we have finished visiting the graph pattern
+		filter_blocks.pop_back();
+		optional_blocks.pop_back();
+		triples_blocks.pop_back();
+		group_patterns.pop_back();
 		return nullptr;
 	}
 
@@ -224,7 +228,6 @@ namespace dice::sparql2tensor::parser::visitors {
 			expression = std::move(visitBuiltInCall(built_in_call_ctx).as<std::unique_ptr<SPARQLExpression>>());
 		else
 			throw std::runtime_error("function calls are not supported");
-		std::vector<std::unique_ptr<SPARQLExpression>> expressions;
 		if (auto and_ctx = dynamic_cast<LogicalAndExpression *>(expression.get()); and_ctx == nullptr) {
 			auto operand_desc = query->add_filter_expr(std::move(expression), triple_store);
 			for (auto desc : group_patterns.back()) {
@@ -440,7 +443,9 @@ namespace dice::sparql2tensor::parser::visitors {
 			} else if (group_condition->var()) {
 				auto var = visitVar(group_condition->var()).as<rdf4cpp::rdf::query::Variable>();
 				query->track_variable(var);
-				query->add_grouping_expression(std::make_unique<PrimaryVarExpression>(var, query->tracked_variable_position(var)));
+				query->add_grouping_expression(std::make_unique<PrimaryVarExpression>(var,
+																					  query->tracked_variable_position(var),
+																					  query->variable_id(var)));
 				vars_in_group_by.insert(var);
 			} else if (group_condition->AS()) {
 				return nullptr;// need to visit expression and track/assign alias
@@ -466,6 +471,9 @@ namespace dice::sparql2tensor::parser::visitors {
 		} else {
 			assert(false);
 		}
+		// track the variables of the expression
+		for (auto const &var : expr->variables())
+			query->track_variable(var);
 		return expr;
 	}
 
@@ -515,9 +523,8 @@ namespace dice::sparql2tensor::parser::visitors {
 		if (ctx->var()) {
 			auto var = visitVar(ctx->var()).as<rdf4cpp::rdf::query::Variable>();
 			query->register_variable(var);
-			query->track_variable(var);
 			vars_in_scope.insert(var);// todo: this needs to be changed when minus is introduced
-			expr = std::make_unique<PrimaryVarExpression>(var, query->tracked_variable_position(var));
+			expr = std::make_unique<PrimaryVarExpression>(var, query->tracked_variable_position(var), query->variable_id(var));
 		} else if (ctx->rdfLiteral()) {
 			auto rdf_literal = visitRdfLiteral(ctx->rdfLiteral()).as<rdf4cpp::rdf::Literal>();
 			expr = std::make_unique<PrimaryLiteralExpression>(rdf_literal);
@@ -561,9 +568,40 @@ namespace dice::sparql2tensor::parser::visitors {
 		} else if (ctx->CONTAINS()) {
 			expr = std::make_unique<Contains>(std::move(visitExpression(ctx->expression(0)).as<std::unique_ptr<SPARQLExpression>>()),
 											  std::move(visitExpression(ctx->expression(1)).as<std::unique_ptr<SPARQLExpression>>()));
+		} else if (ctx->existsFunction() or ctx->notExistsFunction()) {
+			SparqlParser::GroupGraphPatternContext *group_graph_pattern_ctx = nullptr;
+			bool not_exists = false;
+			if (ctx->existsFunction()) {
+				group_graph_pattern_ctx = ctx->existsFunction()->groupGraphPattern();
+			} else {
+				group_graph_pattern_ctx = ctx->notExistsFunction()->groupGraphPattern();
+				not_exists = true;
+			}
+			// treat the pattern of the EXIST function as a subquery
+			SPARQLQuery sub_query;
+			sub_query.set_prefixes(query->get_prefixes());
+			SelectAskQueryVisitor sub_query_visitor(&sub_query, triple_store);
+			sub_query_visitor.visitGroupGraphPattern(group_graph_pattern_ctx);
+			// store the variables that appear in the sub query and are already in scope
+			// these will be evaluated before the filter expression
+			std::vector<std::unique_ptr<PrimaryVarExpression>> var_expr{};
+			for (auto const &sub_query_var : sub_query_visitor.vars_in_scope) {
+				if (vars_in_scope.contains(sub_query_var)) {
+					sub_query.track_variable(sub_query_var);
+					// the expression is assigned the corresponding var_id of the subquery
+					// this allows to remove the var_ids of the subquery once the variables are resolved in the parent query
+					var_expr.push_back(std::make_unique<PrimaryVarExpression>(sub_query_var,
+																			  query->tracked_variable_position(sub_query_var),
+																			  sub_query.variable_id(sub_query_var)));
+				}
+			}
+			expr = std::make_unique<Exists>(std::move(var_expr), sub_query.raw_query(), not_exists);
 		} else {
 			assert(false);
 		}
+		// track the variables of the built-in call
+		for (auto const &var : expr->variables())
+			query->track_variable(var);
 		return expr;
 	}
 

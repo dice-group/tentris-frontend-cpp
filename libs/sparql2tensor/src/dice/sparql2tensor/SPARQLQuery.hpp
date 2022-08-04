@@ -55,6 +55,8 @@ namespace dice::sparql2tensor {
 		void add_projected_variable(rdf4cpp::rdf::query::Variable var);
 		// returns the namespace of the provided prefix
 		std::string const &resolve_prefix(std::string const &prefix);
+		// get the prefixes used in the query
+		[[nodiscard]] robin_hood::unordered_map<std::string, std::string> const &get_prefixes() const;
 
 		/* wrappers for rdf_tensor::Query methods */
 
@@ -70,7 +72,9 @@ namespace dice::sparql2tensor {
 
 		void track_variable(rdf4cpp::rdf::query::Variable variable);
 
-		size_t tracked_variable_position(rdf4cpp::rdf::query::Variable variable);
+		[[nodiscard]] size_t tracked_variable_position(rdf4cpp::rdf::query::Variable variable);
+
+		[[nodiscard]] char variable_id(rdf4cpp::rdf::query::Variable variable);
 
 		void add_solution_binding(std::unique_ptr<expressions::SPARQLExpression> expression);
 

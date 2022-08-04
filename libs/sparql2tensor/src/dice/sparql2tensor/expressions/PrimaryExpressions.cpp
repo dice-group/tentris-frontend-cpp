@@ -6,8 +6,8 @@ namespace dice::sparql2tensor::expressions {
 	using namespace rdf4cpp::rdf::query;
 
 	/* Variable Expression */
-	PrimaryVarExpression::PrimaryVarExpression(Variable variable, size_t var_pos_in_entry)
-		: var_pos_in_entry_(var_pos_in_entry), rdf_node_(), variable_(variable) {}
+	PrimaryVarExpression::PrimaryVarExpression(Variable variable, size_t var_pos_in_entry, char var_id)
+		: var_pos_in_entry_(var_pos_in_entry), rdf_node_(), variable_(variable), query_level_var_id_(var_id) {}
 
 	void PrimaryVarExpression::update_value(rdf_tensor::Entry const &entry) {
 		rdf_node_ = entry[var_pos_in_entry_];
@@ -23,6 +23,10 @@ namespace dice::sparql2tensor::expressions {
 
 	std::vector<Variable> PrimaryVarExpression::variables() const {
 		return {variable_};
+	}
+
+	char PrimaryVarExpression::query_level_var_id() const {
+		return query_level_var_id_;
 	}
 
 	/* Literal Expression */

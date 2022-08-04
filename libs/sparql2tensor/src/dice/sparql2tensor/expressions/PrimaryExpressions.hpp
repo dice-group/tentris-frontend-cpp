@@ -11,11 +11,13 @@ namespace dice::sparql2tensor::expressions {
 		size_t var_pos_in_entry_;
 		rdf4cpp::rdf::Node rdf_node_;
 		rdf4cpp::rdf::query::Variable variable_;
+		char query_level_var_id_;
 	public:
-		explicit PrimaryVarExpression(rdf4cpp::rdf::query::Variable variable, size_t var_pos_in_entry);
+		explicit PrimaryVarExpression(rdf4cpp::rdf::query::Variable variable, size_t var_pos_in_entry, char var_id);
 		void update_value(rdf_tensor::Entry const &entry) override;
 		[[nodiscard]] rdf_tensor::NodeWrapper evaluate() const override;
 		[[nodiscard]] std::vector<rdf4cpp::rdf::query::Variable> variables() const override;
+		[[nodiscard]] char query_level_var_id() const;
 	protected:
 		[[nodiscard]] PrimaryVarExpression *clone_impl() const override;
 	};

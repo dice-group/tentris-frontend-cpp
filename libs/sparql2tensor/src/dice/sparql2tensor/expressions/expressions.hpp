@@ -6,5 +6,6 @@
 #include "BuiltInCalls.hpp"
 #include "PrimaryExpressions.hpp"
 #include "UnaryOperators.hpp"
+#include "Exists.hpp"
 
 #endif//DICE_SPARQL_EXPRESSIONS_HPP

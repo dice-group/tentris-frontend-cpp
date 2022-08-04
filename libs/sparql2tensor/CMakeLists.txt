@@ -10,6 +10,7 @@ add_library(sparql2tensor
         src/dice/sparql2tensor/expressions/LogicalOperators.cpp
         src/dice/sparql2tensor/expressions/PrimaryExpressions.cpp
         src/dice/sparql2tensor/expressions/Aggregates.cpp
+        src/dice/sparql2tensor/expressions/Exists.cpp
         src/dice/sparql2tensor/parser/SPARQLParser.cpp
         src/dice/sparql2tensor/parser/visitors/PrologueVisitor.cpp
         src/dice/sparql2tensor/parser/visitors/SelectAskQueryVisitor.cpp
