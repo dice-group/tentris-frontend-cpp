@@ -3,6 +3,7 @@
 #include "dice/endpoint/CountEndpoint.hpp"
 #include "dice/endpoint/SparqlEndpoint.hpp"
 #include "dice/endpoint/SparqlStreamingEndpoint.hpp"
+#include "dice/endpoint/SparqlUpdateEndpoint.hpp"
 
 #include <spdlog/spdlog.h>
 
@@ -36,7 +37,9 @@ namespace dice::endpoint {
 						  CountEndpoint{executor_, triplestore_, sparql_query_cache_, cfg_.timeout_duration});
 		spdlog::info("  GET  /count?query= as a workaround for count");
 
-		spdlog::info("  GET  /ask?query= as a workaround for ask");
+		router_->http_post(R"(/sparql-update/)",
+						   SPARQLUpdateEndpoint{executor_, triplestore_});
+		spdlog::info("  POST  /sparql-update/ for update queries");
 
 
 		router_->non_matched_request_handler(

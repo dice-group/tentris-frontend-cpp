@@ -7,7 +7,9 @@ find_package(dice-hash REQUIRED)
 add_library(sparql2tensor
         src/dice/sparql2tensor/parser/visitors/PrologueVisitor.cpp
         src/dice/sparql2tensor/parser/visitors/SelectAskQueryVisitor.cpp
+        src/dice/sparql2tensor/parser/visitors/UpdateQueryVisitor.cpp
         src/dice/sparql2tensor/SPARQLQuery.cpp
+        src/dice/sparql2tensor/UPDATEQuery.cpp
         )
 
 add_library(tentris::sparql2tensor ALIAS sparql2tensor)
