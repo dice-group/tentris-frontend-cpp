@@ -19,6 +19,7 @@ namespace dice::triple_store {
 		using HypertrieContext = rdf_tensor::HypertrieContext;
 		using HypertrieContext_ptr = rdf_tensor::HypertrieContext_ptr;
 		using HypertrieBulkInserter = rdf_tensor::HypertrieBulkInserter;
+		using HypertrieBulkRemover = rdf_tensor::HypertrieBulkRemover;
 		using BoolHypertrie = rdf_tensor::BoolHypertrie;
 		using const_BoolHypertrie = rdf_tensor::const_BoolHypertrie;
 		using Key = rdf_tensor::Key;
@@ -51,6 +52,16 @@ namespace dice::triple_store {
 						bulk_inserter.add(entry);
 					};
 			serd_load(file_path, add_entry_callback);
+		}
+
+		void remove(std::vector<rdf_tensor::NonZeroEntry> &&entries, uint32_t bulk_size = 1'000'000) {
+			HypertrieBulkRemover bulk_remover{hypertrie_, bulk_size};
+
+			for (auto &&e : std::move(entries)) {
+				bulk_remover.add(std::move(e));
+			}
+
+			bulk_remover.flush();
 		}
 
 		void add_statement(const rdf4cpp::rdf::Statement &statement) {

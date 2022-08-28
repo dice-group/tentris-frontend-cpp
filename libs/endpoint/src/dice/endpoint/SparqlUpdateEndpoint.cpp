@@ -24,9 +24,9 @@ namespace dice::endpoint {
 				for (auto const &entry : update_query.entries_for_removal) {
 					std::cout << entry[0] << " " << entry[1] << " " << entry[2] << std::endl;
 				}
-				// todo: call hypertrie function for removal and construct response
-			},
-								   std::move(req));
+
+				triplestore_.remove(std::move(update_query.entries_for_removal));
+			}, std::move(req));
 			return restinio::request_accepted();
 		} else {
 			spdlog::warn("Handling request was rejected. All workers are busy.");
