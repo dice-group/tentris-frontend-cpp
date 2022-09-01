@@ -60,8 +60,6 @@ namespace dice::triple_store {
 			for (auto &&e : std::move(entries)) {
 				bulk_remover.add(std::move(e));
 			}
-
-			bulk_remover.flush();
 		}
 
 		void add_statement(const rdf4cpp::rdf::Statement &statement) {
