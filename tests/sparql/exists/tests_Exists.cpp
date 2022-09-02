@@ -98,12 +98,11 @@ namespace dice::tests::sparql {
 			rdf_tensor::metall_manager storage_manager{metall::open_only, db_path.c_str()};
 			auto *store = init_stores(storage_manager, path_to_data);
 			std::vector<rdf_tensor::Entry> actual_results = eval_sparql_query(sparql_str, *store);
-			for (auto const &res : actual_results) {
-				std::cout << res[0] << " " << res[1] << std::endl;
-			}
 
-
-			std::vector<rdf_tensor::Entry> expected_results{};
+			std::vector<rdf_tensor::Entry> expected_results{
+					rdf_tensor::Entry({rdf4cpp::rdf::IRI("http://www.example.org/p"),
+									   rdf4cpp::rdf::IRI("http://www.example.org/s")})
+			};
 			CHECK(compare_results(actual_results, expected_results));
 		}
 

@@ -30,8 +30,6 @@ namespace dice::sparql2tensor {
 		std::vector<rdf4cpp::rdf::query::Variable> projected_variables_;
 		// the triple patterns of the query
 		std::vector<rdf4cpp::rdf::query::TriplePattern> triple_patterns_;
-		// the prefixes of the query
-		robin_hood::unordered_map<std::string, std::string> prefixes_;
 		// a flag capturing whether the query is an ask query
 		bool ask_ = false;
 		// the next available var_id
@@ -47,16 +45,10 @@ namespace dice::sparql2tensor {
 		[[nodiscard]] bool ask() const;
 		// sets the value of ask_ to true; for ASK queries
 		void set_ask();
-		// sets the prefixes used in the query
-		void set_prefixes(robin_hood::unordered_map<std::string, std::string> prefixes);
 		// assigns an id to the provided variable
 		void register_variable(rdf4cpp::rdf::query::Variable var);
 		// appends a variable to projected_variables_
 		void add_projected_variable(rdf4cpp::rdf::query::Variable var);
-		// returns the namespace of the provided prefix
-		std::string const &resolve_prefix(std::string const &prefix);
-		// get the prefixes used in the query
-		[[nodiscard]] robin_hood::unordered_map<std::string, std::string> const &get_prefixes() const;
 
 		/* wrappers for rdf_tensor::Query methods */
 

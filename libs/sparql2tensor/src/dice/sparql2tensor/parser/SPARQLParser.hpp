@@ -7,7 +7,9 @@ namespace dice::sparql2tensor::parser {
 
 	class SPARQLParser {
 	public:
-		static SPARQLQuery parse_query(std::string const &sparql_query_str, triple_store::TripleStore const &triple_store);
+		static SPARQLQuery parse_query(std::string const &sparql_query_str,
+									   triple_store::TripleStore const &triple_store,
+									   std::chrono::steady_clock::time_point timeout = std::chrono::steady_clock::time_point::max());
 
 		static void parse_update(std::string const &sparql_query_str, triple_store::TripleStore const &triple_store);
 	};

@@ -18,6 +18,8 @@ namespace dice::sparql2tensor::parser::visitors {
 	private:
 		SPARQLQuery *const query;
 		triple_store::TripleStore const &triple_store;
+		robin_hood::unordered_map<std::string, std::string> prefixes_;
+		std::chrono::steady_clock::time_point timeout_end_time_;
 		// for the construction of the raw query
 		rdf4cpp::rdf::Node active_subject;
 		rdf4cpp::rdf::Node active_predicate;
@@ -27,7 +29,7 @@ namespace dice::sparql2tensor::parser::visitors {
 		// for the construction of the operand dependency graph
 		std::vector<std::vector<uint8_t>> group_patterns;
 		std::vector<std::vector<uint8_t>> opt_operands;
-		std::vector<std::vector<uint8_t>> union_operands; // used to avoid connecting union patterns of the same optional pattern
+		std::vector<std::vector<uint8_t>> union_operands;// used to avoid connecting union patterns of the same optional pattern
 		// for the "rewriting"
 		std::vector<std::vector<SparqlParser::TriplesBlockContext *>> triples_blocks;
 		std::vector<std::vector<SparqlParser::FilterContext *>> filter_blocks;
@@ -36,7 +38,10 @@ namespace dice::sparql2tensor::parser::visitors {
 	public:
 		SelectAskQueryVisitor() = delete;
 
-		SelectAskQueryVisitor(SPARQLQuery *q, triple_store::TripleStore const& ts);
+		SelectAskQueryVisitor(SPARQLQuery *q,
+							  triple_store::TripleStore const &ts,
+							  robin_hood::unordered_map<std::string, std::string> prefixes,
+							  std::chrono::steady_clock::time_point timeout);
 
 		antlrcpp::Any visitAskQuery(SparqlParser::AskQueryContext *ctx) override;
 
@@ -109,18 +114,21 @@ namespace dice::sparql2tensor::parser::visitors {
 		antlrcpp::Any visitString(SparqlParser::StringContext *) override;
 
 	private:
-
 		/**
-		 * @brief: Creates dependencies between the operands of group graph patterns
+		 * @brief Creates dependencies between the operands of group graph patterns
 		 */
 		void group_dependencies(std::vector<uint8_t> const &prev_group, std::vector<uint8_t> const &cur_group, bool bidirectional = false);
 
 		/**
-		 * @brief: Visitor for well-designed SPARQL patterns
+		 * @brief Visitor for well-designed SPARQL patterns
 		 */
 		void visitWellDesignedPattern(SparqlParser::GroupGraphPatternSubContext *ctx,
 									  std::vector<SparqlParser::GroupOrUnionGraphPatternContext *> gou_ctxs);
 
+		/**
+		 * @brief Visitor for SPARQL EXISTS
+		 */
+		std::unique_ptr<expressions::SPARQLExpression> visitExists(SparqlParser::GroupGraphPatternContext *ctx, bool is_not = false);
 	};
 
 }// namespace dice::sparql2tensor::parser::visitors

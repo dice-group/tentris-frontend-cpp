@@ -10,8 +10,11 @@ namespace dice::sparql2tensor::parser::visitors {
 
 	using namespace dice::sparql2tensor::expressions;
 
-	SelectAskQueryVisitor::SelectAskQueryVisitor(SPARQLQuery *q, triple_store::TripleStore const &ts)
-		: query(q), triple_store(ts) {}
+	SelectAskQueryVisitor::SelectAskQueryVisitor(SPARQLQuery *q,
+												 triple_store::TripleStore const &ts,
+												 robin_hood::unordered_map<std::string, std::string> prefixes,
+												 std::chrono::steady_clock::time_point timeout)
+		: query(q), triple_store(ts), prefixes_(std::move(prefixes)), timeout_end_time_(timeout) {}
 
 	antlrcpp::Any SelectAskQueryVisitor::visitAskQuery(SparqlParser::AskQueryContext *ctx) {
 		query->set_ask();
@@ -42,9 +45,7 @@ namespace dice::sparql2tensor::parser::visitors {
 			for (auto const &var : vars_in_scope) {
 				query->add_projected_variable(var);
 				query->track_variable(var);
-				query->add_solution_binding(std::make_unique<PrimaryVarExpression>(var,
-																				   query->tracked_variable_position(var),
-																				   query->variable_id(var)));
+				query->add_solution_binding(std::make_unique<PrimaryVarExpression>(var, query->tracked_variable_position(var)));
 			}
 		} else {
 			for (auto sel_ctx : ctx->selectVariables()) {
@@ -74,9 +75,7 @@ namespace dice::sparql2tensor::parser::visitors {
 				else {
 					vars_in_select.insert(var);
 					query->track_variable(var);
-					query->add_solution_binding(std::make_unique<PrimaryVarExpression>(var,
-																					   query->tracked_variable_position(var),
-																					   query->variable_id(var)));
+					query->add_solution_binding(std::make_unique<PrimaryVarExpression>(var, query->tracked_variable_position(var)));
 				}
 				vars_in_scope.insert(var);
 			}
@@ -324,7 +323,7 @@ namespace dice::sparql2tensor::parser::visitors {
 		std::string predicate = ctx->prefixedName()->PNAME_LN()->getText();
 		std::size_t split = predicate.find(':');
 		try {
-			return rdf4cpp::rdf::IRI(query->resolve_prefix(predicate.substr(0, split)) + predicate.substr(split + 1));
+			return rdf4cpp::rdf::IRI(prefixes_.at(predicate.substr(0, split)) + predicate.substr(split + 1));
 		} catch (...) {
 			throw std::out_of_range("Prefix " + predicate.substr(0, split) + " not declared.");
 		}
@@ -443,9 +442,7 @@ namespace dice::sparql2tensor::parser::visitors {
 			} else if (group_condition->var()) {
 				auto var = visitVar(group_condition->var()).as<rdf4cpp::rdf::query::Variable>();
 				query->track_variable(var);
-				query->add_grouping_expression(std::make_unique<PrimaryVarExpression>(var,
-																					  query->tracked_variable_position(var),
-																					  query->variable_id(var)));
+				query->add_grouping_expression(std::make_unique<PrimaryVarExpression>(var, query->tracked_variable_position(var)));
 				vars_in_group_by.insert(var);
 			} else if (group_condition->AS()) {
 				return nullptr;// need to visit expression and track/assign alias
@@ -471,9 +468,6 @@ namespace dice::sparql2tensor::parser::visitors {
 		} else {
 			assert(false);
 		}
-		// track the variables of the expression
-		for (auto const &var : expr->variables())
-			query->track_variable(var);
 		return expr;
 	}
 
@@ -523,8 +517,9 @@ namespace dice::sparql2tensor::parser::visitors {
 		if (ctx->var()) {
 			auto var = visitVar(ctx->var()).as<rdf4cpp::rdf::query::Variable>();
 			query->register_variable(var);
+			query->track_variable(var);
 			vars_in_scope.insert(var);// todo: this needs to be changed when minus is introduced
-			expr = std::make_unique<PrimaryVarExpression>(var, query->tracked_variable_position(var), query->variable_id(var));
+			expr = std::make_unique<PrimaryVarExpression>(var, query->tracked_variable_position(var));
 		} else if (ctx->rdfLiteral()) {
 			auto rdf_literal = visitRdfLiteral(ctx->rdfLiteral()).as<rdf4cpp::rdf::Literal>();
 			expr = std::make_unique<PrimaryLiteralExpression>(rdf_literal);
@@ -554,6 +549,14 @@ namespace dice::sparql2tensor::parser::visitors {
 	}
 
 	antlrcpp::Any SelectAskQueryVisitor::visitBuiltInCall(SparqlParser::BuiltInCallContext *ctx) {
+		// treat EXISTS differently from the other built-in calls
+		if (auto exists_ctx = ctx->existsFunction(); exists_ctx) {
+			return visitExists(exists_ctx->groupGraphPattern(), false);
+		}
+		if (auto not_exists_ctx = ctx->notExistsFunction(); not_exists_ctx) {
+			return visitExists(not_exists_ctx->groupGraphPattern(), true);
+		}
+		// built-in function calls
 		std::unique_ptr<SPARQLExpression> expr;
 		if (ctx->ISIRI() or ctx->ISURI()) {
 			expr = std::make_unique<IsIRI>(std::move(visitExpression(ctx->expression(0)).as<std::unique_ptr<SPARQLExpression>>()));
@@ -568,41 +571,29 @@ namespace dice::sparql2tensor::parser::visitors {
 		} else if (ctx->CONTAINS()) {
 			expr = std::make_unique<Contains>(std::move(visitExpression(ctx->expression(0)).as<std::unique_ptr<SPARQLExpression>>()),
 											  std::move(visitExpression(ctx->expression(1)).as<std::unique_ptr<SPARQLExpression>>()));
-		} else if (ctx->existsFunction() or ctx->notExistsFunction()) {
-			SparqlParser::GroupGraphPatternContext *group_graph_pattern_ctx = nullptr;
-			bool not_exists = false;
-			if (ctx->existsFunction()) {
-				group_graph_pattern_ctx = ctx->existsFunction()->groupGraphPattern();
-			} else {
-				group_graph_pattern_ctx = ctx->notExistsFunction()->groupGraphPattern();
-				not_exists = true;
-			}
-			// treat the pattern of the EXIST function as a subquery
-			SPARQLQuery sub_query;
-			sub_query.set_prefixes(query->get_prefixes());
-			SelectAskQueryVisitor sub_query_visitor(&sub_query, triple_store);
-			sub_query_visitor.visitGroupGraphPattern(group_graph_pattern_ctx);
-			// store the variables that appear in the sub query and are already in scope
-			// these will be evaluated before the filter expression
-			std::vector<std::unique_ptr<PrimaryVarExpression>> var_expr{};
-			for (auto const &sub_query_var : sub_query_visitor.vars_in_scope) {
-				if (vars_in_scope.contains(sub_query_var)) {
-					sub_query.track_variable(sub_query_var);
-					// the expression is assigned the corresponding var_id of the subquery
-					// this allows to remove the var_ids of the subquery once the variables are resolved in the parent query
-					var_expr.push_back(std::make_unique<PrimaryVarExpression>(sub_query_var,
-																			  query->tracked_variable_position(sub_query_var),
-																			  sub_query.variable_id(sub_query_var)));
-				}
-			}
-			expr = std::make_unique<Exists>(std::move(var_expr), sub_query.raw_query(), not_exists);
 		} else {
 			assert(false);
 		}
-		// track the variables of the built-in call
-		for (auto const &var : expr->variables())
-			query->track_variable(var);
 		return expr;
+	}
+
+	std::unique_ptr<expressions::SPARQLExpression> SelectAskQueryVisitor::visitExists(SparqlParser::GroupGraphPatternContext *ctx, bool is_not) {
+		// treat the pattern of the EXIST function as a subquery
+		SPARQLQuery sub_query;
+		SelectAskQueryVisitor sub_query_visitor(&sub_query, triple_store, prefixes_, timeout_end_time_);
+		sub_query_visitor.visitGroupGraphPattern(ctx);
+		// associate the variables of the EXIST subquery with the current query
+		boost::container::flat_map<char, size_t> subquery_var_ids_positions{};
+		std::vector<rdf4cpp::rdf::query::Variable> vars{};
+		for (auto const &sub_query_var : sub_query_visitor.vars_in_scope) {
+			if (vars_in_scope.contains(sub_query_var)) {
+				vars.push_back(sub_query_var);
+				query->track_variable(sub_query_var);
+				subquery_var_ids_positions[sub_query.variable_id(sub_query_var)] = query->tracked_variable_position(sub_query_var);
+			}
+		}
+		return std::make_unique<Exists>(std::move(vars), std::move(subquery_var_ids_positions),
+										sub_query.raw_query(), is_not, timeout_end_time_);
 	}
 
 	antlrcpp::Any SelectAskQueryVisitor::visitAggregate(SparqlParser::AggregateContext *ctx) {

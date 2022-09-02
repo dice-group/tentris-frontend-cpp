@@ -11,10 +11,6 @@ namespace dice::sparql2tensor {
 
 	void SPARQLQuery::set_ask() { ask_ = true; }
 
-	void SPARQLQuery::set_prefixes(robin_hood::unordered_map<std::string, std::string> prefixes) {
-		prefixes_ = std::move(prefixes);
-	}
-
 	void SPARQLQuery::register_variable(rdf4cpp::rdf::query::Variable var) {
 		if (var_to_id_.contains(var))
 			return;
@@ -23,15 +19,6 @@ namespace dice::sparql2tensor {
 
 	void SPARQLQuery::add_projected_variable(rdf4cpp::rdf::query::Variable var) {
 		projected_variables_.push_back(var);
-	}
-
-	std::string const &SPARQLQuery::resolve_prefix(std::string const &prefix) {
-		assert(prefixes_.contains(prefix));
-		return prefixes_.at(prefix);
-	}
-
-	robin_hood::unordered_map<std::string, std::string> const &SPARQLQuery::get_prefixes() const {
-		return prefixes_;
 	}
 
 	rdf_tensor::operand_desc SPARQLQuery::add_triple_pattern(const rdf4cpp::rdf::query::TriplePattern &tp,
