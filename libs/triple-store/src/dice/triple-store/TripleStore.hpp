@@ -54,11 +54,11 @@ namespace dice::triple_store {
 			serd_load(file_path, add_entry_callback);
 		}
 
-		void remove(std::vector<rdf_tensor::NonZeroEntry> &&entries, uint32_t bulk_size = 1'000'000) {
+		void remove(std::vector<rdf_tensor::NonZeroEntry> const &entries, uint32_t bulk_size = 1'000'000) {
 			HypertrieBulkRemover bulk_remover{hypertrie_, bulk_size};
 
-			for (auto &&e : std::move(entries)) {
-				bulk_remover.add(std::move(e));
+			for (auto const &e : entries) {
+				bulk_remover.add(e);
 			}
 		}
 

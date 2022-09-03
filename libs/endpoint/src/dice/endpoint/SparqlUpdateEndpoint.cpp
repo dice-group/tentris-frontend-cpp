@@ -19,18 +19,23 @@ namespace dice::endpoint {
 				using namespace dice::sparql2tensor;
 				using namespace restinio;
 
-				// update query and parsing
-				auto update_query = parse_sparql_update_param(req);
-				for (auto const &entry : update_query.entries_for_removal) {
-					spdlog::debug("removing triple ({}, {}, {})", entry[0], entry[1], entry[2]);
+				try {
+					auto const update_query = parse_sparql_update_param(req);
+
+					for (auto const &entry : update_query.entries_for_removal) {
+						spdlog::debug("removing triple ({}, {}, {})", entry[0], entry[1], entry[2]);
+					}
+
+					triplestore_.remove(update_query.entries_for_removal);
+
+					req->create_response(status_ok()).done();
+					spdlog::info("HTTP response {}", status_ok());
+				} catch (std::runtime_error const &e) {
+					static constexpr auto message = "Invalid Content-Type";
+
+					req->create_response(status_bad_request()).set_body(message).done();
+					spdlog::warn("HTTP response {}: {} (detail: {})", status_bad_request(), message, e.what());
 				}
-
-				triplestore_.remove(std::move(update_query.entries_for_removal));
-
-				req->create_response(status_ok())
-						.done();
-
-				spdlog::info("HTTP response {}", status_ok());
 			}, std::move(req));
 
 			return restinio::request_accepted();

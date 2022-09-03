@@ -27,7 +27,7 @@ namespace dice::endpoint {
 			auto update_query = UPDATEQuery::parse(sparql_update_str);
 			return update_query;
 		} catch (std::exception &ex) {
-			static auto const message = "Value of parameter 'update' is not parsable.";
+			static constexpr auto message = "Value of parameter 'update' is not parsable.";
 			spdlog::warn("HTTP response {}: {} (detail: {})", status_bad_request(), message, ex.what());
 			req->create_response(status_bad_request()).set_body(message).done();
 			return {};

@@ -37,9 +37,9 @@ namespace dice::endpoint {
 						  CountEndpoint{executor_, triplestore_, sparql_query_cache_, cfg_.timeout_duration});
 		spdlog::info("  GET  /count?query= as a workaround for count");
 
-		router_->http_post(R"(/sparql-update/)",
+		router_->http_post(R"(/sparql-update)",
 						   SPARQLUpdateEndpoint{executor_, triplestore_});
-		spdlog::info("  POST  /sparql-update/ for update queries");
+		spdlog::info("  POST  /sparql-update for update queries");
 
 
 		router_->non_matched_request_handler(
