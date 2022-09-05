@@ -3,6 +3,9 @@
 
 namespace dice::sparql2tensor {
 
+	SPARQLQuery::SPARQLQuery(rdf_tensor::HypertrieContext_ptr context)
+		: raw_query_(context) {}
+
 	rdf_tensor::Query SPARQLQuery::raw_query() const { return raw_query_; }
 
 	const std::vector<rdf4cpp::rdf::query::Variable> &SPARQLQuery::projected_variables() const { return projected_variables_; }
@@ -10,10 +13,6 @@ namespace dice::sparql2tensor {
 	bool SPARQLQuery::ask() const { return ask_; }
 
 	void SPARQLQuery::set_ask() { ask_ = true; }
-
-	void SPARQLQuery::set_prefixes(robin_hood::unordered_map<std::string, std::string> prefixes) {
-		prefixes_ = std::move(prefixes);
-	}
 
 	void SPARQLQuery::register_variable(rdf4cpp::rdf::query::Variable var) {
 		if (var_to_id_.contains(var))
@@ -23,11 +22,6 @@ namespace dice::sparql2tensor {
 
 	void SPARQLQuery::add_projected_variable(rdf4cpp::rdf::query::Variable var) {
 		projected_variables_.push_back(var);
-	}
-
-	std::string const &SPARQLQuery::resolve_prefix(std::string const &prefix) {
-		assert(prefixes_.contains(prefix));
-		return prefixes_.at(prefix);
 	}
 
 	rdf_tensor::operand_desc SPARQLQuery::add_triple_pattern(const rdf4cpp::rdf::query::TriplePattern &tp,
@@ -65,6 +59,15 @@ namespace dice::sparql2tensor {
 			vars_ids.push_back(var_to_id_[var]);
 		}
 		return raw_query_.add_filter(vars_ids, std::move(expression), triple_store.get_true_scalar());
+	}
+
+	rdf_tensor::operand_desc SPARQLQuery::add_subquery(SPARQLQuery subquery) {
+		std::vector<char> vars_ids{};
+		for (auto var : subquery.projected_variables()) {
+			assert(var_to_id_.contains(var));
+			vars_ids.push_back(var_to_id_[var]);
+		}
+		return raw_query_.add_subquery(vars_ids, subquery.raw_query());
 	}
 
 	void SPARQLQuery::add_dependency(rdf_tensor::operand_desc operand_1, rdf_tensor::operand_desc operand_2, bool bidirectional) {

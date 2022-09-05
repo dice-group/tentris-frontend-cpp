@@ -30,8 +30,6 @@ namespace dice::sparql2tensor {
 		std::vector<rdf4cpp::rdf::query::Variable> projected_variables_;
 		// the triple patterns of the query
 		std::vector<rdf4cpp::rdf::query::TriplePattern> triple_patterns_;
-		// the prefixes of the query
-		robin_hood::unordered_map<std::string, std::string> prefixes_;
 		// a flag capturing whether the query is an ask query
 		bool ask_ = false;
 		// the next available var_id
@@ -39,6 +37,7 @@ namespace dice::sparql2tensor {
 
 	public:
 		SPARQLQuery() = default;
+		explicit SPARQLQuery(rdf_tensor::HypertrieContext_ptr context);
 		// returns a copy of raw_query_. returns a copy to keep a "clean" copy of the current object (*this) in the cache
 		[[nodiscard]] rdf_tensor::Query raw_query() const;
 		// returns a reference to the projected variables of the SPARQL query
@@ -53,8 +52,6 @@ namespace dice::sparql2tensor {
 		void register_variable(rdf4cpp::rdf::query::Variable var);
 		// appends a variable to projected_variables_
 		void add_projected_variable(rdf4cpp::rdf::query::Variable var);
-		// returns the namespace of the provided prefix
-		std::string const &resolve_prefix(std::string const &prefix);
 
 		/* wrappers for rdf_tensor::Query methods */
 
@@ -63,6 +60,8 @@ namespace dice::sparql2tensor {
 
 		[[nodiscard]] rdf_tensor::operand_desc add_filter_expr(std::unique_ptr<expressions::SPARQLExpression> expression,
 															   dice::triple_store::TripleStore const &triple_store);
+
+		[[nodiscard]] rdf_tensor::operand_desc add_subquery(SPARQLQuery subquery);
 
 		void add_dependency(rdf_tensor::operand_desc operand_1, rdf_tensor::operand_desc operand_2, bool bidirectional = true);
 

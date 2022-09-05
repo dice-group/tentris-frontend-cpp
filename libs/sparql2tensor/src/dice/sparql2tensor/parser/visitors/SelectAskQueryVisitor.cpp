@@ -1,5 +1,6 @@
 #include "dice/sparql2tensor/parser/visitors/SelectAskQueryVisitor.hpp"
 #include "dice/sparql2tensor/expressions/expressions.hpp"
+#include "dice/sparql2tensor/parser/SPARQLParser.hpp"
 
 #include <boost/container/flat_set.hpp>
 
@@ -10,8 +11,10 @@ namespace dice::sparql2tensor::parser::visitors {
 
 	using namespace dice::sparql2tensor::expressions;
 
-	SelectAskQueryVisitor::SelectAskQueryVisitor(SPARQLQuery *q, triple_store::TripleStore const &ts)
-		: query(q), triple_store(ts) {}
+	SelectAskQueryVisitor::SelectAskQueryVisitor(SPARQLQuery *q,
+												 triple_store::TripleStore const &ts,
+												 robin_hood::unordered_map<std::string, std::string> prefixes)
+		: query(q), triple_store(ts), prefixes(std::move(prefixes)) {}
 
 	antlrcpp::Any SelectAskQueryVisitor::visitAskQuery(SparqlParser::AskQueryContext *ctx) {
 		query->set_ask();
@@ -97,8 +100,10 @@ namespace dice::sparql2tensor::parser::visitors {
 		triples_blocks.emplace_back();
 		optional_blocks.emplace_back();
 		filter_blocks.emplace_back();
-		visitGroupGraphPattern(ctx->groupGraphPattern());
+		subselect_blocks.emplace_back();
+		visitWellDesignedPattern(ctx->groupGraphPattern(), {});
 		// pop the top entry of the stacks, as we have finished visiting the graph pattern
+		subselect_blocks.pop_back();
 		filter_blocks.pop_back();
 		optional_blocks.pop_back();
 		triples_blocks.pop_back();
@@ -107,8 +112,8 @@ namespace dice::sparql2tensor::parser::visitors {
 	}
 
 	antlrcpp::Any SelectAskQueryVisitor::visitGroupGraphPattern(SparqlParser::GroupGraphPatternContext *ctx) {
-		if (ctx->subSelect())
-			throw std::runtime_error("Subqueries are not supported yet");
+		if (auto sub_select_ctx = ctx->subSelect(); sub_select_ctx)
+			visitSubSelect(sub_select_ctx);
 		else if (auto group_graph_pattern_sub_ctx = ctx->groupGraphPatternSub(); group_graph_pattern_sub_ctx)
 			visitGroupGraphPatternSub(group_graph_pattern_sub_ctx);
 		else
@@ -116,38 +121,69 @@ namespace dice::sparql2tensor::parser::visitors {
 		return nullptr;
 	}
 
-	antlrcpp::Any SelectAskQueryVisitor::visitGroupGraphPatternSub(SparqlParser::GroupGraphPatternSubContext *ctx) {
-		visitWellDesignedPattern(ctx, {});
+	antlrcpp::Any SelectAskQueryVisitor::visitSubSelect(SparqlParser::SubSelectContext *ctx) {
+		// TODO: properly parse all grammar rules
+		SPARQLQuery sub_query{query->raw_query().context()};
+		SelectAskQueryVisitor subquery_parser{&sub_query, triple_store, prefixes};
+		subquery_parser.visitWhereClause(ctx->whereClause());
+		if (auto group_clause_ctx = ctx->solutionModifier()->groupClause(); group_clause_ctx)
+			subquery_parser.visitGroupClause(group_clause_ctx);
+		subquery_parser.visitSelectClause(ctx->selectClause());
+		if (sub_query.projected_variables().size() > 3)
+			throw std::runtime_error("Subqueries support up to three projected variables.");
+		for (auto const &var : sub_query.projected_variables()) {
+			query->register_variable(var);
+			vars_in_scope.insert(var);
+		}
+		auto operand_desc = query->add_subquery(sub_query);
+		// operand dependencies
+		for (auto desc : group_patterns.back()) {
+			query->add_dependency(operand_desc, desc);
+		}
+		group_patterns.back().push_back(operand_desc);
 		return nullptr;
 	}
 
-	void SelectAskQueryVisitor::visitWellDesignedPattern(SparqlParser::GroupGraphPatternSubContext *ctx,
+	antlrcpp::Any SelectAskQueryVisitor::visitGroupGraphPatternSub(SparqlParser::GroupGraphPatternSubContext *ctx) {
+		//visitWellDesignedPattern(ctx, {});
+		return nullptr;
+	}
+
+	void SelectAskQueryVisitor::visitWellDesignedPattern(SparqlParser::GroupGraphPatternContext *ctx,
 														 std::vector<SparqlParser::GroupOrUnionGraphPatternContext *> gou_ctxs) {
-		// store the context of the first triples block, if it is provided
-		if (auto triples_block = ctx->triplesBlock(); triples_block)
-			triples_blocks.back().push_back(triples_block);
-		// iterate over all GroupGraphPatternSubs
-		for (auto sub_ctx : ctx->groupGraphPatternSubList()) {
-			if (auto graph_pattern_not_triples_ctx = sub_ctx->graphPatternNotTriples(); graph_pattern_not_triples_ctx) {
-				// store all GroupOrUnionGraphPatterns that appear in the pattern
-				if (auto group_or_union_graph_pattern_ctx = graph_pattern_not_triples_ctx->groupOrUnionGraphPattern(); group_or_union_graph_pattern_ctx)
-					gou_ctxs.push_back(group_or_union_graph_pattern_ctx);
-				// store all OptionalGraphPatterns that appear in the pattern
-				else if (auto optional_graph_pattern_ctx = sub_ctx->graphPatternNotTriples()->optionalGraphPattern(); optional_graph_pattern_ctx)
-					optional_blocks.back().push_back(optional_graph_pattern_ctx);
-				// store all FilterPatterns that appear in the pattern
-				else if (auto filter_ctx = sub_ctx->graphPatternNotTriples()->filter(); filter_ctx)
-					filter_blocks.back().push_back(filter_ctx);
+		if (ctx->subSelect()) {
+			subselect_blocks.back().push_back(ctx->subSelect());
+		} else {
+			// store the context of the first triples block, if it is provided
+			if (auto triples_block = ctx->groupGraphPatternSub()->triplesBlock(); triples_block)
+				triples_blocks.back().push_back(triples_block);
+			// iterate over all GroupGraphPatternSubs
+			for (auto sub_ctx : ctx->groupGraphPatternSub()->groupGraphPatternSubList()) {
+				if (auto graph_pattern_not_triples_ctx = sub_ctx->graphPatternNotTriples(); graph_pattern_not_triples_ctx) {
+					// store all GroupOrUnionGraphPatterns that appear in the pattern
+					if (auto group_or_union_graph_pattern_ctx = graph_pattern_not_triples_ctx->groupOrUnionGraphPattern(); group_or_union_graph_pattern_ctx)
+						gou_ctxs.push_back(group_or_union_graph_pattern_ctx);
+					// store all OptionalGraphPatterns that appear in the pattern
+					else if (auto optional_graph_pattern_ctx = sub_ctx->graphPatternNotTriples()->optionalGraphPattern(); optional_graph_pattern_ctx)
+						optional_blocks.back().push_back(optional_graph_pattern_ctx);
+					// store all FilterPatterns that appear in the pattern
+					else if (auto filter_ctx = sub_ctx->graphPatternNotTriples()->filter(); filter_ctx)
+						filter_blocks.back().push_back(filter_ctx);
+				}
+				// store all triples blocks that appear in the pattern
+				if (auto triples_block_ctx = sub_ctx->triplesBlock(); triples_block_ctx)
+					triples_blocks.back().push_back(triples_block_ctx);
 			}
-			// store all triples blocks that appear in the pattern
-			if (auto triples_block_ctx = sub_ctx->triplesBlock(); triples_block_ctx)
-				triples_blocks.back().push_back(triples_block_ctx);
 		}
 		// the current pattern does not contain any GroupOrUnionGraphPatterns
 		if (gou_ctxs.empty()) {
 			// visit all triples blocks first
 			for (auto tb_ctx : triples_blocks.back()) {
 				visitTriplesBlock(tb_ctx);
+			}
+			// visit all subqueries
+			for (auto sub_ctx : subselect_blocks.back()) {
+				visitSubSelect(sub_ctx);
 			}
 			// visit all filters
 			for (auto f_ctx : filter_blocks.back()) {
@@ -180,12 +216,14 @@ namespace dice::sparql2tensor::parser::visitors {
 				triples_blocks.emplace_back();
 				optional_blocks.emplace_back();
 				filter_blocks.emplace_back();
-				visitWellDesignedPattern(opt_ctx->groupGraphPattern()->groupGraphPatternSub(), {});
+				subselect_blocks.emplace_back();
+				visitWellDesignedPattern(opt_ctx->groupGraphPattern(), {});
 				union_operands.back().clear();
 				// clear the vector from the operands of the visited graph pattern
 				// the top vector of the stack is shared across all optional subgraph pattern of the current graph pattern
 				union_operands.back().clear();
 				// pop the top vector from the stack, as we have finished processing the graph pattern
+				subselect_blocks.pop_back();
 				filter_blocks.pop_back();
 				optional_blocks.pop_back();
 				triples_blocks.pop_back();
@@ -204,14 +242,16 @@ namespace dice::sparql2tensor::parser::visitors {
 			size_t current_tbs = triples_blocks.back().size();
 			size_t current_opts = optional_blocks.back().size();
 			size_t current_filters = filter_blocks.back().size();
+			size_t current_subselect = subselect_blocks.back().size();
 			// visit each group graph pattern of the GroupOrUnionGraphPattern
 			// while visiting each group graph pattern, the triples and optional blocks stored until this point will also be visited
 			for (auto grp_ctx : cur_gou_ctx->groupGraphPattern()) {
-				visitWellDesignedPattern(grp_ctx->groupGraphPatternSub(), gou_ctxs);
+				visitWellDesignedPattern(grp_ctx, gou_ctxs);
 				// we resize the vectors in order to keep only the blocks that were present before visiting grp_ctx
 				triples_blocks.back().resize(current_tbs);
 				optional_blocks.back().resize(current_opts);
 				filter_blocks.back().resize(current_filters);
+				subselect_blocks.back().resize(current_subselect);
 			}
 		}
 	}
@@ -321,7 +361,7 @@ namespace dice::sparql2tensor::parser::visitors {
 		std::string predicate = ctx->prefixedName()->PNAME_LN()->getText();
 		std::size_t split = predicate.find(':');
 		try {
-			return rdf4cpp::rdf::IRI(query->resolve_prefix(predicate.substr(0, split)) + predicate.substr(split + 1));
+			return rdf4cpp::rdf::IRI(prefixes.at(predicate.substr(0, split)) + predicate.substr(split + 1));
 		} catch (...) {
 			throw std::out_of_range("Prefix " + predicate.substr(0, split) + " not declared.");
 		}

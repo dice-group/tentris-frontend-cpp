@@ -1,0 +1,5 @@
+# https://github.com/w3c/rdf-tests/blob/main/sparql11/data-sparql11/subquery/sq05.rdf
+@prefix ex: <http://www.example.org/schema#> .
+
+<http://www.example.org/instance#a> ex:p <http://www.example.org/instance#b> .
+<http://www.example.org/instance#c> ex:p "" .

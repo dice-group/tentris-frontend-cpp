@@ -32,3 +32,10 @@ target_link_libraries(tests_SPARQL_Filters
         tentris::tentris
         )
 add_test(NAME tests_SPARQL_Filters COMMAND tests_SPARQL_Filters)
+
+add_executable(tests_SPARQL_Subqueries sparql/subqueries/tests_Subqueries.cpp)
+target_link_libraries(tests_SPARQL_Subqueries
+        doctest::doctest
+        tentris::tentris
+        )
+add_test(NAME tests_SPARQL_Subqueries COMMAND tests_SPARQL_Subqueries)

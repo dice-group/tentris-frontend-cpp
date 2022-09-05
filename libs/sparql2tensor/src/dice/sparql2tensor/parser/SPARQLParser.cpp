@@ -10,7 +10,7 @@ namespace dice::sparql2tensor::parser {
 
 	SPARQLQuery SPARQLParser::parse_query(const std::string &sparql_query_str,
 										  const triple_store::TripleStore &triple_store) {
-		SPARQLQuery sparql_query;
+		SPARQLQuery sparql_query{triple_store.get_hypertrie().context()};
 		// prepare antlr4 parser
 		antlr4::ANTLRInputStream input(sparql_query_str);
 		Dice::sparql_parser::base::SparqlLexer lexer(&input);
@@ -21,13 +21,13 @@ namespace dice::sparql2tensor::parser {
 		if (not query_ctx)
 			throw std::runtime_error("The provided query is not a QueryUnit");
 		// parse the prefixes
+		robin_hood::unordered_map<std::string, std::string> prefixes;
 		if (auto prologue_ctx = query_ctx->prologue(); prologue_ctx) {
 			visitors::PrologueVisitor prologue_visitor{};
-			auto prefixes = prologue_visitor.visitPrologue(query_ctx->prologue());
-			sparql_query.set_prefixes(std::move(prefixes));
+			prefixes = prologue_visitor.visitPrologue(query_ctx->prologue());
 		}
 		// parse the query
-		visitors::SelectAskQueryVisitor select_ask_visitor{&sparql_query, triple_store};
+		visitors::SelectAskQueryVisitor select_ask_visitor{&sparql_query, triple_store, std::move(prefixes)};
 		if (auto ask_ctx = query_ctx->askQuery(); ask_ctx)
 			select_ask_visitor.visitAskQuery(ask_ctx);
 		else if (auto select_ctx = query_ctx->selectQuery(); select_ctx)

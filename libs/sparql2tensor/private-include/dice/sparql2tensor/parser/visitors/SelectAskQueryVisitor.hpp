@@ -18,6 +18,7 @@ namespace dice::sparql2tensor::parser::visitors {
 	private:
 		SPARQLQuery *const query;
 		triple_store::TripleStore const &triple_store;
+		robin_hood::unordered_map<std::string, std::string> prefixes;
 		// for the construction of the raw query
 		rdf4cpp::rdf::Node active_subject;
 		rdf4cpp::rdf::Node active_predicate;
@@ -32,11 +33,14 @@ namespace dice::sparql2tensor::parser::visitors {
 		std::vector<std::vector<SparqlParser::TriplesBlockContext *>> triples_blocks;
 		std::vector<std::vector<SparqlParser::FilterContext *>> filter_blocks;
 		std::vector<std::vector<SparqlParser::OptionalGraphPatternContext *>> optional_blocks;
+		std::vector<std::vector<SparqlParser::SubSelectContext *>> subselect_blocks;
 
 	public:
 		SelectAskQueryVisitor() = delete;
 
-		SelectAskQueryVisitor(SPARQLQuery *q, triple_store::TripleStore const& ts);
+		SelectAskQueryVisitor(SPARQLQuery *q,
+							  triple_store::TripleStore const& ts,
+							  robin_hood::unordered_map<std::string, std::string> prefixes);
 
 		antlrcpp::Any visitAskQuery(SparqlParser::AskQueryContext *ctx) override;
 
@@ -47,6 +51,8 @@ namespace dice::sparql2tensor::parser::visitors {
 		antlrcpp::Any visitWhereClause(SparqlParser::WhereClauseContext *) override;
 
 		antlrcpp::Any visitGroupGraphPattern(SparqlParser::GroupGraphPatternContext *) override;
+
+		antlrcpp::Any visitSubSelect(SparqlParser::SubSelectContext *ctx) override;
 
 		antlrcpp::Any visitGroupGraphPatternSub(SparqlParser::GroupGraphPatternSubContext *) override;
 
@@ -118,7 +124,7 @@ namespace dice::sparql2tensor::parser::visitors {
 		/**
 		 * @brief: Visitor for well-designed SPARQL patterns
 		 */
-		void visitWellDesignedPattern(SparqlParser::GroupGraphPatternSubContext *ctx,
+		void visitWellDesignedPattern(SparqlParser::GroupGraphPatternContext *ctx,
 									  std::vector<SparqlParser::GroupOrUnionGraphPatternContext *> gou_ctxs);
 
 	};
