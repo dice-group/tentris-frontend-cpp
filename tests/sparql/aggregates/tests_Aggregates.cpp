@@ -218,6 +218,123 @@ namespace dice::tests::sparql {
 			auto *store = init_stores(storage_manager, path_to_data);
 			CHECK_THROWS_WITH(eval_sparql_query(sparql_str, *store), "Variable ?O1 is not part of the group key");
 		}
+
+		TEST_CASE("Query: agg-max-01") {
+			const std::string path_to_data = "../sparql/aggregates/agg-numeric.ttl";
+			const std::string sparql_str = "PREFIX : <http://www.example.org/>\n"
+										   "SELECT (MAX(?o) AS ?max)\n"
+										   "WHERE {\n"
+										   "\t?s ?p ?o\n"
+										   "}";
+
+			create_metall_db(db_path);
+			rdf_tensor::metall_manager storage_manager{metall::open_only, db_path.c_str()};
+			auto *store = init_stores(storage_manager, path_to_data);
+			std::vector<rdf_tensor::Entry> actual_results = eval_sparql_query(sparql_str, *store);
+
+			std::vector<rdf_tensor::Entry> expected_results{
+					rdf_tensor::Entry({Literal("3.0E4", IRI("http://www.w3.org/2001/XMLSchema#double"))})};
+			CHECK(compare_results(actual_results, expected_results));
+		}
+
+		TEST_CASE("Query: agg-max-02") {
+			const std::string path_to_data = "../sparql/aggregates/agg-numeric.ttl";
+			const std::string sparql_str = "PREFIX : <http://www.example.org/>\n"
+										   "SELECT ?s (MAX(?o) AS ?max)\n"
+										   "WHERE {\n"
+										   "\t?s ?p ?o\n"
+										   "}\n"
+										   "GROUP BY ?s";
+
+			create_metall_db(db_path);
+			rdf_tensor::metall_manager storage_manager{metall::open_only, db_path.c_str()};
+			auto *store = init_stores(storage_manager, path_to_data);
+			std::vector<rdf_tensor::Entry> actual_results = eval_sparql_query(sparql_str, *store);
+
+			for (auto &result : actual_results) {
+				std::cout << result[0] << result[1] << std::endl;
+			}
+
+			std::vector<rdf_tensor::Entry> expected_results{
+					rdf_tensor::Entry({IRI("http://www.example.org/ints"), Literal("3", IRI("http://www.w3.org/2001/XMLSchema#integer"))}),
+					rdf_tensor::Entry({IRI("http://www.example.org/decimals"), Literal("3.5", IRI("http://www.w3.org/2001/XMLSchema#decimal"))}),
+					rdf_tensor::Entry({IRI("http://www.example.org/doubles"), Literal("3.0E4", IRI("http://www.w3.org/2001/XMLSchema#double"))}),
+					rdf_tensor::Entry({IRI("http://www.example.org/mixed1"), Literal("2.2", IRI("http://www.w3.org/2001/XMLSchema#decimal"))}),
+					rdf_tensor::Entry({IRI("http://www.example.org/mixed2"), Literal("2.2", IRI("http://www.w3.org/2001/XMLSchema#decimal"))})
+			};
+			CHECK(compare_results(actual_results, expected_results));
+		}
+
+		TEST_CASE("Query: agg-min-01") {
+			const std::string path_to_data = "../sparql/aggregates/agg-numeric.ttl";
+			const std::string sparql_str = "PREFIX : <http://www.example.org/>\n"
+										   "SELECT (MIN(?o) AS ?min)\n"
+										   "WHERE {\n"
+										   "\t?s :dec ?o\n"
+										   "}";
+
+			create_metall_db(db_path);
+			rdf_tensor::metall_manager storage_manager{metall::open_only, db_path.c_str()};
+			auto *store = init_stores(storage_manager, path_to_data);
+			std::vector<rdf_tensor::Entry> actual_results = eval_sparql_query(sparql_str, *store);
+
+			std::vector<rdf_tensor::Entry> expected_results{
+					rdf_tensor::Entry({Literal("1.0", IRI("http://www.w3.org/2001/XMLSchema#decimal"))})};
+			CHECK(compare_results(actual_results, expected_results));
+		}
+
+		TEST_CASE("Query: agg-min-02") {
+			const std::string path_to_data = "../sparql/aggregates/agg-numeric.ttl";
+			const std::string sparql_str = "PREFIX : <http://www.example.org/>\n"
+										   "SELECT ?s (MIN(?o) AS ?min)\n"
+										   "WHERE {\n"
+										   "\t?s ?p ?o\n"
+										   "}\n"
+										   "GROUP BY ?s";
+
+			create_metall_db(db_path);
+			rdf_tensor::metall_manager storage_manager{metall::open_only, db_path.c_str()};
+			auto *store = init_stores(storage_manager, path_to_data);
+			std::vector<rdf_tensor::Entry> actual_results = eval_sparql_query(sparql_str, *store);
+
+			for (auto &result : actual_results) {
+				std::cout << result[0] << result[1] << std::endl;
+			}
+
+			std::vector<rdf_tensor::Entry> expected_results{
+					rdf_tensor::Entry({IRI("http://www.example.org/ints"), Literal("1", IRI("http://www.w3.org/2001/XMLSchema#integer"))}),
+					rdf_tensor::Entry({IRI("http://www.example.org/decimals"), Literal("1.0", IRI("http://www.w3.org/2001/XMLSchema#decimal"))}),
+					rdf_tensor::Entry({IRI("http://www.example.org/doubles"), Literal("1.0E2", IRI("http://www.w3.org/2001/XMLSchema#double"))}),
+					rdf_tensor::Entry({IRI("http://www.example.org/mixed1"), Literal("1", IRI("http://www.w3.org/2001/XMLSchema#integer"))}),
+					rdf_tensor::Entry({IRI("http://www.example.org/mixed2"), Literal("2.0E-1", IRI("http://www.w3.org/2001/XMLSchema#double"))})
+			};
+			CHECK(compare_results(actual_results, expected_results));
+		}
+
+		TEST_CASE("Query: agg-sample-01") {
+			const std::string path_to_data = "../sparql/aggregates/agg-numeric.ttl";
+			const std::string sparql_str = "PREFIX : <http://www.example.org/>"
+										   "SELECT (SAMPLE(?o) AS ?sample)\n"
+										   "\tWHERE {\n"
+										   "\t?s :dec ?o\n"
+										   "\t}";
+
+			create_metall_db(db_path);
+			rdf_tensor::metall_manager storage_manager{metall::open_only, db_path.c_str()};
+			auto *store = init_stores(storage_manager, path_to_data);
+			std::vector<rdf_tensor::Entry> actual_results = eval_sparql_query(sparql_str, *store);
+
+			std::vector<rdf_tensor::Entry> expected_results_1{
+					rdf_tensor::Entry({Literal("1.0", IRI("http://www.w3.org/2001/XMLSchema#decimal"))})};
+			std::vector<rdf_tensor::Entry> expected_results_2{
+					rdf_tensor::Entry({Literal("2.2", IRI("http://www.w3.org/2001/XMLSchema#decimal"))})};
+			std::vector<rdf_tensor::Entry> expected_results_3{
+					rdf_tensor::Entry({Literal("3.5", IRI("http://www.w3.org/2001/XMLSchema#decimal"))})};
+			CHECK((compare_results(actual_results, expected_results_1) or
+				  compare_results(actual_results, expected_results_2)  or
+				  compare_results(actual_results, expected_results_3)));
+		}
+
 	}
 
 }// namespace dice::tests::sparql

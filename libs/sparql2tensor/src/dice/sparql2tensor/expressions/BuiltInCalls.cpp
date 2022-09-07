@@ -131,7 +131,7 @@ namespace dice::sparql2tensor::expressions {
 			return {Literal(expr_result.backend_handle().literal_backend().lexical_form)};
 		}
 		// iri case
-		return {Literal(std::string(expr_result))};
+		return {Literal(expr_result.backend_handle().iri_backend().identifier)};
 	}
 
 	Str *Str::clone_impl() const {
