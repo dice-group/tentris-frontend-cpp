@@ -587,6 +587,12 @@ namespace dice::sparql2tensor::parser::visitors {
 				} else {
 					expr = std::make_unique<CountDistinct>(std::move(nested_expr));
 				}
+			} else if (ctx->MIN()) {
+				expr = std::make_unique<Min>(std::move(nested_expr));
+			} else if (ctx->MAX()) {
+				expr = std::make_unique<Max>(std::move(nested_expr));
+			} else if (ctx->SAMPLE()) {
+				expr = std::make_unique<Sample>(std::move(nested_expr));
 			} else {
 				throw std::runtime_error("not supported");
 			}
@@ -600,6 +606,12 @@ namespace dice::sparql2tensor::parser::visitors {
 				} else {
 					expr = std::make_unique<Count>(std::move(nested_expr));
 				}
+			} else if (ctx->MIN()) {
+				expr = std::make_unique<Min>(std::move(nested_expr));
+			} else if (ctx->MAX()) {
+				expr = std::make_unique<Max>(std::move(nested_expr));
+			} else if (ctx->SAMPLE()) {
+				expr = std::make_unique<Sample>(std::move(nested_expr));
 			} else {
 				throw std::runtime_error("not supported");
 			}

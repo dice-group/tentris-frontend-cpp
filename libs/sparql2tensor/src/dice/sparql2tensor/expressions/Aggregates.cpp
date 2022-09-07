@@ -93,5 +93,63 @@ namespace dice::sparql2tensor::expressions {
 		return new CountDistinct(op_expr_->clone(), rdf_nodes_);
 	}
 
+	/* Min Expression */
+	Min::Min(std::unique_ptr<SPARQLExpression> expr, Node rdf_node)
+		: Aggregate(std::move(expr)), rdf_node_(rdf_node) {}
+
+	void Min::update_value([[maybe_unused]] rdf_tensor::Entry const &entry) {
+		op_expr_->update_value(entry);
+		auto expr_result = op_expr_->evaluate();
+		if (expr_result.null())
+			return;
+		if ((Node)expr_result < rdf_node_ or rdf_node_.null())
+			rdf_node_ = expr_result;
+	}
+
+	rdf_tensor::NodeWrapper Min::evaluate() const {
+		return rdf_node_;
+	}
+
+	Min *Min::clone_impl() const {
+		return new Min(op_expr_->clone(), rdf_node_);
+	}
+
+	/* Max Expression */
+	Max::Max(std::unique_ptr<SPARQLExpression> expr, Node rdf_node)
+		: Aggregate(std::move(expr)), rdf_node_(rdf_node) {}
+
+	void Max::update_value([[maybe_unused]] rdf_tensor::Entry const &entry) {
+		op_expr_->update_value(entry);
+		auto expr_result = op_expr_->evaluate();
+		if (expr_result.null())
+			return;
+		if ((Node)expr_result > rdf_node_)
+			rdf_node_ = expr_result;
+	}
+
+	rdf_tensor::NodeWrapper Max::evaluate() const {
+		return rdf_node_;
+	}
+
+	Max *Max::clone_impl() const {
+		return new Max(op_expr_->clone(), rdf_node_);
+	}
+
+	/* Sample Expression */
+	Sample::Sample(std::unique_ptr<SPARQLExpression> expr)
+		: Aggregate(std::move(expr)) {}
+
+	void Sample::update_value([[maybe_unused]] rdf_tensor::Entry const &entry) {
+		op_expr_->update_value(entry);
+	}
+
+	rdf_tensor::NodeWrapper Sample::evaluate() const {
+		return op_expr_->evaluate();
+	}
+
+	Sample *Sample::clone_impl() const {
+		return new Sample(op_expr_->clone());
+	}
+
 
 }// namespace dice::sparql2tensor::expressions
