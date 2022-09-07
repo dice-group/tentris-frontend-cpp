@@ -59,6 +59,28 @@ namespace dice::tests::sparql {
 			CHECK(compare_results(actual_results, expected_results));
 		}
 
+		TEST_CASE("Query: sq08") {
+			const std::string path_to_data = "../sparql/subqueries/sq08.ttl";
+			const std::string sparql_str = "prefix ex:\t<http://www.example.org/schema#>\n"
+										   "prefix in:\t<http://www.example.org/instance#>\n"
+										   "\n"
+										   "select ?x ?max where {\n"
+										   "{select (max(?y) as ?max) where {?x ex:p ?y} } \n"
+										   "?x ex:p ?max\n"
+										   "}";
+
+			create_metall_db(db_path);
+			rdf_tensor::metall_manager storage_manager{metall::open_only, db_path.c_str()};
+			auto *store = init_stores(storage_manager, path_to_data);
+			std::vector<rdf_tensor::Entry> actual_results = eval_sparql_query(sparql_str, *store);
+
+			std::vector<rdf_tensor::Entry> expected_results{
+					rdf_tensor::Entry({rdf4cpp::rdf::IRI("http://www.example.org/instance#b"),
+									   rdf4cpp::rdf::Literal("3", rdf4cpp::rdf::IRI("http://www.w3.org/2001/XMLSchema#integer"))})
+			};
+			CHECK(compare_results(actual_results, expected_results));
+		}
+
 	}
 
 }// namespace dice::tests::sparql
