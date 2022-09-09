@@ -14,9 +14,9 @@ namespace dice::tests::sparql {
 
 #define GENERATE_SPARQL_TEST_CASE(const_url, data, query, result)                         \
 	TEST_CASE(query) {                                                                    \
-		const std::string data_url = const_url + data;                                    \
-		const std::string query_url = const_url + query;                                  \
-		const std::string result_url = const_url + result;                                \
+		const std::string data_url = (const_url) + (data);                                \
+		const std::string query_url = (const_url) + (query);                              \
+		const std::string result_url = (const_url) + (result);                            \
 		const std::string rdf_data = read_file_from_url(data_url);                        \
 		create_metall_db(db_path);                                                        \
 		rdf_tensor::metall_manager storage_manager{metall::open_only, db_path.c_str()};   \
@@ -29,8 +29,8 @@ namespace dice::tests::sparql {
 
 #define GENERATE_SPARQL_TEST_CASE_PARSE_EXCEPTION(const_url, data, query, exception)    \
 	TEST_CASE(query) {                                                                  \
-		const std::string data_url = const_url + data;                                  \
-		const std::string query_url = const_url + query;                                \
+		const std::string data_url = (const_url) + (data);                              \
+		const std::string query_url = (const_url) + (query);                            \
 		const std::string rdf_data = read_file_from_url(data_url);                      \
 		create_metall_db(db_path);                                                      \
 		rdf_tensor::metall_manager storage_manager{metall::open_only, db_path.c_str()}; \
@@ -81,6 +81,8 @@ namespace dice::tests::sparql {
 			for (size_t i = 0; i < entry.value(); i++) {
 				std::map<rdf4cpp::rdf::query::Variable, rdf_tensor::NodeWrapper> result{};
 				for (size_t j = 0; j < entry.key().size(); j++) {
+					if (entry.key()[j].null())
+						continue;
 					result[sparql_query.projected_variables()[j]] = entry.key()[j];
 				}
 				actual_results.push_back(result);
@@ -93,6 +95,20 @@ namespace dice::tests::sparql {
 						 std::vector<std::map<rdf4cpp::rdf::query::Variable, rdf_tensor::NodeWrapper>> expected_results) {
 		std::sort(expected_results.begin(), expected_results.end());
 		std::sort(actual_results.begin(), actual_results.end());
+		std::cout << "Actual Results" << std::endl;
+		for (auto const &result : actual_results) {
+			for (auto const &[var, binding] : result) {
+				std::cout << var << ":" << binding << " ";
+			}
+			std::cout << std::endl;
+		}
+		std::cout << "Expected Results" << std::endl;
+		for (auto const &result : expected_results) {
+			for (auto const &[var, binding] : result) {
+				std::cout << var << ":" << binding << " ";
+			}
+			std::cout << std::endl;
+		}
 		return (actual_results == expected_results);
 	}
 
