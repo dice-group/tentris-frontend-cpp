@@ -54,7 +54,8 @@ class Recipe(ConanFile):
         ]
 
         test_reqs = [
-            "doctest/2.4.6"
+            "doctest/2.4.6",
+            "pugixml/1.12.1"
         ]
 
         for req in public_reqs:
