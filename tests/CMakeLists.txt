@@ -18,17 +18,32 @@ install_packages_via_conan("${CMAKE_SOURCE_DIR}/../conanfile.py" "with_test_deps
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/.. ${CMAKE_CURRENT_BINARY_DIR}/libtentris)
 
 find_package(doctest REQUIRED)
+find_package(pugixml REQUIRED)
+find_package(CURL REQUIRED)
 
-add_executable(tests_SPARQL_Aggregates sparql/aggregates/tests_Aggregates.cpp)
+add_executable(tests_SPARQL_Aggregates sparql/tests_Aggregates.cpp)
 target_link_libraries(tests_SPARQL_Aggregates
         doctest::doctest
         tentris::tentris
+        pugixml::pugixml
+        CURL::libcurl
         )
 add_test(NAME tests_SPARQL_Aggregates COMMAND tests_SPARQL_Aggregates)
 
-add_executable(tests_SPARQL_Filters sparql/filters/tests_Filters.cpp)
+add_executable(tests_SPARQL_Filters sparql/tests_Filters.cpp)
 target_link_libraries(tests_SPARQL_Filters
         doctest::doctest
         tentris::tentris
+        pugixml::pugixml
+        CURL::libcurl
         )
 add_test(NAME tests_SPARQL_Filters COMMAND tests_SPARQL_Filters)
+
+add_executable(tests_SPARQL_Functions sparql/tests_Functions.cpp)
+target_link_libraries(tests_SPARQL_Functions
+        doctest::doctest
+        tentris::tentris
+        pugixml::pugixml
+        CURL::libcurl
+        )
+add_test(NAME tests_SPARQL_Functions COMMAND tests_SPARQL_Functions)
