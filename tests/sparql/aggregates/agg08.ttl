@@ -1,5 +1,0 @@
-# https://github.com/w3c/rdf-tests/blob/main/sparql11/data-sparql11/aggregates/agg08.ttl
-@prefix : <http://www.example.org/> .
-
-:s :p 0,1,2 .
-:s :q 0,1,2 .

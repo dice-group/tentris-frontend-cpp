@@ -466,7 +466,7 @@ namespace dice::sparql2tensor::parser::visitors {
 		} else if (auto relational_ctx = dynamic_cast<SparqlParser::RelationalExpressionContext *>(ctx); relational_ctx) {
 			expr = std::move(visitRelationalExpression(relational_ctx).as<std::unique_ptr<SPARQLExpression>>());
 		} else {
-			assert(false);
+			throw std::runtime_error("Unsupported Expression: " + ctx->getText());
 		}
 		return expr;
 	}
@@ -571,8 +571,22 @@ namespace dice::sparql2tensor::parser::visitors {
 		} else if (ctx->CONTAINS()) {
 			expr = std::make_unique<Contains>(std::move(visitExpression(ctx->expression(0)).as<std::unique_ptr<SPARQLExpression>>()),
 											  std::move(visitExpression(ctx->expression(1)).as<std::unique_ptr<SPARQLExpression>>()));
+		} else if (ctx->LANG()) {
+			expr = std::make_unique<Lang>(std::move(visitExpression(ctx->expression(0)).as<std::unique_ptr<SPARQLExpression>>()));
+		} else if (ctx->STRSTARTS()) {
+			expr = std::make_unique<StrStarts>(std::move(visitExpression(ctx->expression(0)).as<std::unique_ptr<SPARQLExpression>>()),
+											   std::move(visitExpression(ctx->expression(1)).as<std::unique_ptr<SPARQLExpression>>()));
+		} else if (ctx->STRENDS()) {
+			expr = std::make_unique<StrEnds>(std::move(visitExpression(ctx->expression(0)).as<std::unique_ptr<SPARQLExpression>>()),
+											 std::move(visitExpression(ctx->expression(1)).as<std::unique_ptr<SPARQLExpression>>()));
+		} else if (ctx->STRLANG()) {
+			expr = std::make_unique<StrLang>(std::move(visitExpression(ctx->expression(0)).as<std::unique_ptr<SPARQLExpression>>()),
+											 std::move(visitExpression(ctx->expression(1)).as<std::unique_ptr<SPARQLExpression>>()));
+		} else if (ctx->LANGMATCHES()) {
+			expr = std::make_unique<LangMatches>(std::move(visitExpression(ctx->expression(0)).as<std::unique_ptr<SPARQLExpression>>()),
+												 std::move(visitExpression(ctx->expression(1)).as<std::unique_ptr<SPARQLExpression>>()));
 		} else {
-			assert(false);
+			throw std::runtime_error("Unsupported built-in function: " + ctx->getText());
 		}
 		return expr;
 	}
@@ -616,6 +630,12 @@ namespace dice::sparql2tensor::parser::visitors {
 				} else {
 					expr = std::make_unique<CountDistinct>(std::move(nested_expr));
 				}
+			} else if (ctx->MIN()) {
+				expr = std::make_unique<Min>(std::move(nested_expr));
+			} else if (ctx->MAX()) {
+				expr = std::make_unique<Max>(std::move(nested_expr));
+			} else if (ctx->SAMPLE()) {
+				expr = std::make_unique<Sample>(std::move(nested_expr));
 			} else {
 				throw std::runtime_error("not supported");
 			}
@@ -629,6 +649,12 @@ namespace dice::sparql2tensor::parser::visitors {
 				} else {
 					expr = std::make_unique<Count>(std::move(nested_expr));
 				}
+			} else if (ctx->MIN()) {
+				expr = std::make_unique<Min>(std::move(nested_expr));
+			} else if (ctx->MAX()) {
+				expr = std::make_unique<Max>(std::move(nested_expr));
+			} else if (ctx->SAMPLE()) {
+				expr = std::make_unique<Sample>(std::move(nested_expr));
 			} else {
 				throw std::runtime_error("not supported");
 			}

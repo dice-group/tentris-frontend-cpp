@@ -60,6 +60,37 @@ namespace dice::sparql2tensor::expressions {
 		[[nodiscard]] CountDistinct *clone_impl() const override;
 	};
 
+	class Min : public Aggregate {
+	private:
+		rdf4cpp::rdf::Node rdf_node_;
+	public:
+		explicit Min(std::unique_ptr<SPARQLExpression> expr, rdf4cpp::rdf::Node rdf_node = {});
+		void update_value(rdf_tensor::Entry const &entry) override;
+		[[nodiscard]] rdf_tensor::NodeWrapper evaluate() const override;
+	protected:
+		[[nodiscard]] Min *clone_impl() const override;
+	};
+
+	class Max : public Aggregate {
+	private:
+		rdf4cpp::rdf::Node rdf_node_;
+	public:
+		explicit Max(std::unique_ptr<SPARQLExpression> expr, rdf4cpp::rdf::Node rdf_node = {});
+		void update_value(rdf_tensor::Entry const &entry) override;
+		[[nodiscard]] rdf_tensor::NodeWrapper evaluate() const override;
+	protected:
+		[[nodiscard]] Max *clone_impl() const override;
+	};
+
+	class Sample : public Aggregate {
+	public:
+		explicit Sample(std::unique_ptr<SPARQLExpression> expr);
+		void update_value(rdf_tensor::Entry const &entry) override;
+		[[nodiscard]] rdf_tensor::NodeWrapper evaluate() const override;
+	protected:
+		[[nodiscard]] Sample *clone_impl() const override;
+	};
+
 }// namespace dice::sparql2tensor::expressions
 
 #endif//DICE_SPARQL_AGGREGATES_HPP

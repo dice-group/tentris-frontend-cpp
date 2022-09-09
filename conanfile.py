@@ -31,7 +31,7 @@ class Recipe(ConanFile):
             "fmt/8.1.1",
             "restinio/0.6.15",
             "expected-lite/0.6.0",  # overrides restinio dependency
-            "hypertrie/0.9.1@dice-group/rc2",
+            "hypertrie/0.9.1@dice-group/exists",
             "metall/0.20",
             "rdf4cpp/0.0.4",
             "dice-hash/0.4.0",
@@ -54,7 +54,8 @@ class Recipe(ConanFile):
         ]
 
         test_reqs = [
-            "doctest/2.4.6"
+            "doctest/2.4.6",
+            "pugixml/1.12.1"
         ]
 
         for req in public_reqs:
