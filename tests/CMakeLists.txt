@@ -46,4 +46,13 @@ target_link_libraries(tests_SPARQL_Functions
         pugixml::pugixml
         CURL::libcurl
         )
-add_test(NAME tests_SPARQL_Functions COMMAND tests_SPARQL_Functions)
+add_test(NAME tests_Functions COMMAND tests_Functions)
+
+add_executable(tests_SPARQL_ProjectExpressions sparql/tests_ProjectExpressions.cpp)
+target_link_libraries(tests_SPARQL_ProjectExpressions
+        doctest::doctest
+        tentris::tentris
+        pugixml::pugixml
+        CURL::libcurl
+        )
+add_test(NAME tests_SPARQL_ProjectExpressions COMMAND tests_SPARQL_ProjectExpressions)
