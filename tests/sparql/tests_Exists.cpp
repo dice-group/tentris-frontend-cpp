@@ -13,7 +13,7 @@ namespace dice::tests::sparql {
 		GENERATE_SPARQL_TEST_CASE(const_url, "exists01.ttl", "exists01.rq", "exists01.srx");
 		GENERATE_SPARQL_TEST_CASE(const_url, "exists01.ttl", "exists02.rq", "exists02.srx");
 		GENERATE_SPARQL_TEST_CASE(const_url, "exists01.ttl", "exists04.rq", "exists04.srx");
-		GENERATE_SPARQL_TEST_CASE(const_url, "exists01.ttl", "exists04.rq", "exists04.srx");
+		GENERATE_SPARQL_TEST_CASE(const_url, "exists01.ttl", "exists05.rq", "exists05.srx");
 	}
 
 }// namespace dice::tests::sparql

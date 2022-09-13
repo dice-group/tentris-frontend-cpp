@@ -14,6 +14,7 @@ add_library(sparql2tensor
         src/dice/sparql2tensor/parser/SPARQLParser.cpp
         src/dice/sparql2tensor/parser/visitors/PrologueVisitor.cpp
         src/dice/sparql2tensor/parser/visitors/SelectAskQueryVisitor.cpp
+        src/dice/sparql2tensor/parser/exception/SPARQLErrorListener.cpp
         src/dice/sparql2tensor/SPARQLQuery.cpp
         )
 

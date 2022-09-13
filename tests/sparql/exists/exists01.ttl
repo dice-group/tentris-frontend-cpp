@@ -1,5 +1,0 @@
-# https://github.com/w3c/rdf-tests/blob/main/sparql11/data-sparql11/exists/exists01.ttl
-@prefix : <http://www.example.org/> .
-
-:s :p :o, :o1, :o2.
-:t :p :o1, :o2.

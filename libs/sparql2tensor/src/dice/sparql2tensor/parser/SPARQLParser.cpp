@@ -2,6 +2,7 @@
 
 #include "dice/sparql2tensor/parser/visitors/PrologueVisitor.hpp"
 #include "dice/sparql2tensor/parser/visitors/SelectAskQueryVisitor.hpp"
+#include "dice/sparql2tensor/parser/exception/SPARQLErrorListener.hpp"
 
 #include <SparqlLexer/SparqlLexer.h>
 #include <SparqlParser/SparqlParser.h>
@@ -13,10 +14,13 @@ namespace dice::sparql2tensor::parser {
 										  std::chrono::steady_clock::time_point timeout) {
 		SPARQLQuery sparql_query;
 		// prepare antlr4 parser
+		exception::SPARQLErrorListener error_listener{};
 		antlr4::ANTLRInputStream input(sparql_query_str);
 		Dice::sparql_parser::base::SparqlLexer lexer(&input);
 		antlr4::CommonTokenStream tokens(&lexer);
 		Dice::sparql_parser::base::SparqlParser parser(&tokens);
+		parser.removeErrorListeners();
+		parser.addErrorListener(&error_listener);
 		// check if the provided string is a QueryUnit (https://www.w3.org/TR/sparql11-query/#rQueryUnit)
 		auto query_ctx = parser.query();
 		if (not query_ctx)

@@ -131,6 +131,9 @@ namespace dice::sparql2tensor::parser::visitors {
 			triples_blocks.back().push_back(triples_block);
 		// iterate over all GroupGraphPatternSubs
 		for (auto sub_ctx : ctx->groupGraphPatternSubList()) {
+			if (sub_ctx->graphPatternNotTriples()->bind() or sub_ctx->graphPatternNotTriples()->inlineData() or
+				sub_ctx->graphPatternNotTriples()->minusGraphPattern() or sub_ctx->graphPatternNotTriples()->serviceGraphPattern())
+				throw std::runtime_error("Feature not supported: " + sub_ctx->graphPatternNotTriples()->getText());
 			if (auto graph_pattern_not_triples_ctx = sub_ctx->graphPatternNotTriples(); graph_pattern_not_triples_ctx) {
 				// store all GroupOrUnionGraphPatterns that appear in the pattern
 				if (auto group_or_union_graph_pattern_ctx = graph_pattern_not_triples_ctx->groupOrUnionGraphPattern(); group_or_union_graph_pattern_ctx)
@@ -508,7 +511,7 @@ namespace dice::sparql2tensor::parser::visitors {
 		else if (ctx->LESS_EQUAL())
 			expression = std::make_unique<LessEqualsExpression>(std::move(lhs_op), std::move(rhs_op));
 		else
-			assert(false);
+			throw std::runtime_error("Expression not supported: " + ctx->getText());
 		return expression;
 	}
 
