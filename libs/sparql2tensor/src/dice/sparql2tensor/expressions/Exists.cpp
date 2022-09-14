@@ -18,14 +18,13 @@ namespace dice::sparql2tensor::expressions {
 		  timeout_(timeout), variables_(std::move(variables)), var_ids_positions_(std::move(var_ids_positions)) {}
 
 	void Exists::update_value(const rdf_tensor::Entry &entry) {
-		resolved_values_.clear();
 		for (auto const &[var_id, pos] : var_ids_positions_) {
-			resolved_values_.emplace_back(var_id, entry[pos]);
+			sub_query_.assign_value_to_var(var_id, entry[pos]);
 		}
 	}
 
 	rdf_tensor::NodeWrapper Exists::evaluate() const {
-		auto generator_iter = rdf_tensor::QueryEvaluation::evaluate(sub_query_, timeout_, resolved_values_);
+		auto generator_iter = rdf_tensor::QueryEvaluation::evaluate(sub_query_, timeout_);
 		bool has_solutions = false;
 		if (generator_iter.begin() != generator_iter.end() and (*generator_iter.begin()).value() > 0) {
 			has_solutions = true;

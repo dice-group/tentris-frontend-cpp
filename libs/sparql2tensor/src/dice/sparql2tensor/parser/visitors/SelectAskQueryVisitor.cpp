@@ -230,7 +230,8 @@ namespace dice::sparql2tensor::parser::visitors {
 			expression = std::move(visitBuiltInCall(built_in_call_ctx).as<std::unique_ptr<SPARQLExpression>>());
 		else
 			throw std::runtime_error("function calls are not supported");
-		if (auto and_ctx = dynamic_cast<LogicalAndExpression *>(expression.get()); and_ctx == nullptr) {
+		if (auto and_expr = dynamic_cast<LogicalAndExpression *>(expression.get()); and_expr == nullptr) {
+			// check here if we have trivial equals
 			auto operand_desc = query->add_filter_expr(std::move(expression), triple_store);
 			for (auto desc : group_patterns.back()) {
 				query->add_dependency(operand_desc, desc);
@@ -239,7 +240,8 @@ namespace dice::sparql2tensor::parser::visitors {
 		} else {
 			// in case of ConditionalAndExpressions, create a unique vertex for each operand
 			// this allows for returning false as soon as an operand evaluates to false
-			for (auto &expr : and_ctx->expressions()) {
+			for (auto &expr : and_expr->expressions()) {
+				// check here if we have trivial equals
 				auto operand_desc = query->add_filter_expr(std::move(expr), triple_store);
 				for (auto desc : group_patterns.back()) {
 					query->add_dependency(operand_desc, desc);

@@ -12,7 +12,6 @@ namespace dice::sparql2tensor::expressions {
 		std::chrono::steady_clock::time_point timeout_;
 		std::vector<rdf4cpp::rdf::query::Variable> variables_;
 		boost::container::flat_map<char, size_t> var_ids_positions_;
-		std::vector<std::pair<char, rdf_tensor::NodeWrapper>> resolved_values_;
 
 	public:
 		Exists(std::vector<rdf4cpp::rdf::query::Variable> variables,

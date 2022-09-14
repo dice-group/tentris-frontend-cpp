@@ -89,6 +89,10 @@ namespace dice::sparql2tensor {
 		raw_query_.add_grouping_expression(std::move(expression));
 	}
 
+	void SPARQLQuery::assign_value_to_var(rdf4cpp::rdf::query::Variable var, rdf_tensor::NodeWrapper value) {
+		raw_query_.assign_value_to_var(var_to_id_[var], value);
+	}
+
 	void SPARQLQuery::set_distinct() { raw_query_.set_distinct(); }
 
 	void SPARQLQuery::set_aggregates() { raw_query_.set_aggregates(); }

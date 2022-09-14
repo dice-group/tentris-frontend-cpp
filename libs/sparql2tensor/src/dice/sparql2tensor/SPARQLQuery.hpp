@@ -72,6 +72,8 @@ namespace dice::sparql2tensor {
 
 		void add_grouping_expression(std::unique_ptr<expressions::SPARQLExpression> expression);
 
+		void assign_value_to_var(rdf4cpp::rdf::query::Variable, rdf_tensor::NodeWrapper);
+
 		void set_distinct();
 
 		void set_aggregates();
