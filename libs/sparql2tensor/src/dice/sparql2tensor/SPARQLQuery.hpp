@@ -36,7 +36,6 @@ namespace dice::sparql2tensor {
 		char next_var_id = 'a';
 
 	public:
-		SPARQLQuery() = default;
 		explicit SPARQLQuery(rdf_tensor::HypertrieContext_ptr context);
 		// returns a copy of raw_query_. returns a copy to keep a "clean" copy of the current object (*this) in the cache
 		[[nodiscard]] rdf_tensor::Query raw_query() const;
@@ -46,8 +45,6 @@ namespace dice::sparql2tensor {
 		[[nodiscard]] bool ask() const;
 		// sets the value of ask_ to true; for ASK queries
 		void set_ask();
-		// sets the prefixes used in the query
-		void set_prefixes(robin_hood::unordered_map<std::string, std::string> prefixes);
 		// assigns an id to the provided variable
 		void register_variable(rdf4cpp::rdf::query::Variable var);
 		// appends a variable to projected_variables_
@@ -69,11 +66,15 @@ namespace dice::sparql2tensor {
 
 		void track_variable(rdf4cpp::rdf::query::Variable variable);
 
-		size_t tracked_variable_position(rdf4cpp::rdf::query::Variable variable);
+		[[nodiscard]] size_t tracked_variable_position(rdf4cpp::rdf::query::Variable variable);
+
+		[[nodiscard]] char variable_id(rdf4cpp::rdf::query::Variable variable);
 
 		void add_solution_binding(std::unique_ptr<expressions::SPARQLExpression> expression);
 
 		void add_grouping_expression(std::unique_ptr<expressions::SPARQLExpression> expression);
+
+		void assign_value_to_var(rdf4cpp::rdf::query::Variable, rdf_tensor::NodeWrapper);
 
 		void set_distinct();
 

@@ -39,7 +39,7 @@ namespace dice::endpoint {
 				auto sparql_query = sparql_query_cache_[sparql_query_str];
 				if (not sparql_query) {
 					try {
-						sparql_query = sparql_query_cache_.insert(sparql_query_str, SPARQLParser::parse_query(sparql_query_str, triplestore_));
+						sparql_query = sparql_query_cache_.insert(sparql_query_str, SPARQLParser::parse_query(sparql_query_str, triplestore_, timeout));
 					} catch (std::runtime_error &e) {
 						static auto const message = "Value of query parameter 'query' is not parsable.";
 						spdlog::warn("HTTP response {}: {} (detail: {})", status_bad_request(), message, e.what());

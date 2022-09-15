@@ -49,6 +49,15 @@ target_link_libraries(tests_SPARQL_Subqueries
         )
 add_test(NAME tests_SPARQL_Subqueries COMMAND tests_SPARQL_Subqueries)
 
+add_executable(tests_SPARQL_Exists sparql/tests_Exists.cpp)
+target_link_libraries(tests_SPARQL_Exists
+        doctest::doctest
+        tentris::tentris
+        pugixml::pugixml
+        CURL::libcurl
+        )
+add_test(NAME tests_SPARQL_Exists COMMAND tests_SPARQL_Exists)
+
 add_executable(tests_SPARQL_Functions sparql/tests_Functions.cpp)
 target_link_libraries(tests_SPARQL_Functions
         doctest::doctest
@@ -57,3 +66,12 @@ target_link_libraries(tests_SPARQL_Functions
         CURL::libcurl
         )
 add_test(NAME tests_SPARQL_Functions COMMAND tests_SPARQL_Functions)
+
+add_executable(tests_SPARQL_ProjectExpressions sparql/tests_ProjectExpressions.cpp)
+target_link_libraries(tests_SPARQL_ProjectExpressions
+        doctest::doctest
+        tentris::tentris
+        pugixml::pugixml
+        CURL::libcurl
+        )
+add_test(NAME tests_SPARQL_ProjectExpressions COMMAND tests_SPARQL_ProjectExpressions)

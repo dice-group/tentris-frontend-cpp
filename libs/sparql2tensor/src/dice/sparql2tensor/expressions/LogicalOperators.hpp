@@ -33,6 +33,9 @@ namespace dice::sparql2tensor::expressions {
 	};
 
 	/* Equals RelationalExpression (https://www.w3.org/TR/sparql11-query/#rRelationalExpression) */
+	// todo: create a class for equals expressions that follow the patterns (?var = "literal") or (?var = <iri>).
+	// todo: such expressions can be used to slice operands in advance
+	// todo: Example { ?a :p ?b FILTER (?b = "literal" ) } -> slice the operand corresponding to (?a :p ?b) and then iterate over the values of ?a
 	class EqualsExpression : public SPARQLExpression {
 	private:
 		std::unique_ptr<SPARQLExpression> lhs_op_;

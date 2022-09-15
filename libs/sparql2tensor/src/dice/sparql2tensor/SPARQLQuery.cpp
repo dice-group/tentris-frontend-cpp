@@ -88,12 +88,21 @@ namespace dice::sparql2tensor {
 		return raw_query_.tracked_var_position(var_to_id_[variable]);
 	}
 
+	char SPARQLQuery::variable_id(rdf4cpp::rdf::query::Variable variable) {
+		assert(var_to_id_.contains(variable));
+		return var_to_id_[variable];
+	}
+
 	void SPARQLQuery::add_solution_binding(std::unique_ptr<expressions::SPARQLExpression> expression) {
 		raw_query_.add_binding(std::move(expression));
 	}
 
 	void SPARQLQuery::add_grouping_expression(std::unique_ptr<expressions::SPARQLExpression> expression) {
 		raw_query_.add_grouping_expression(std::move(expression));
+	}
+
+	void SPARQLQuery::assign_value_to_var(rdf4cpp::rdf::query::Variable var, rdf_tensor::NodeWrapper value) {
+		raw_query_.assign_value_to_var(var_to_id_[var], value);
 	}
 
 	void SPARQLQuery::set_distinct() { raw_query_.set_distinct(); }

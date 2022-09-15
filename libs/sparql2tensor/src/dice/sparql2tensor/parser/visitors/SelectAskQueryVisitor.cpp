@@ -13,8 +13,9 @@ namespace dice::sparql2tensor::parser::visitors {
 
 	SelectAskQueryVisitor::SelectAskQueryVisitor(SPARQLQuery *q,
 												 triple_store::TripleStore const &ts,
-												 robin_hood::unordered_map<std::string, std::string> prefixes)
-		: query(q), triple_store(ts), prefixes(std::move(prefixes)) {}
+												 robin_hood::unordered_map<std::string, std::string> prefixes,
+												 std::chrono::steady_clock::time_point timeout)
+		: query(q), triple_store(ts), prefixes_(std::move(prefixes)), timeout_end_time_(timeout) {}
 
 	antlrcpp::Any SelectAskQueryVisitor::visitAskQuery(SparqlParser::AskQueryContext *ctx) {
 		query->set_ask();
@@ -95,13 +96,19 @@ namespace dice::sparql2tensor::parser::visitors {
 	}
 
 	antlrcpp::Any SelectAskQueryVisitor::visitWhereClause(SparqlParser::WhereClauseContext *ctx) {
+		if (ctx->groupGraphPattern())
+			visitGroupGraphPattern(ctx->groupGraphPattern());
+		return nullptr;
+	}
+
+	antlrcpp::Any SelectAskQueryVisitor::visitGroupGraphPattern(SparqlParser::GroupGraphPatternContext *ctx) {
 		// push a new entry into the stacks, as we are about to visit a graph pattern
 		group_patterns.emplace_back();
 		triples_blocks.emplace_back();
 		optional_blocks.emplace_back();
 		filter_blocks.emplace_back();
 		subselect_blocks.emplace_back();
-		visitWellDesignedPattern(ctx->groupGraphPattern(), {});
+		visitWellDesignedPattern(ctx, {});
 		// pop the top entry of the stacks, as we have finished visiting the graph pattern
 		subselect_blocks.pop_back();
 		filter_blocks.pop_back();
@@ -111,20 +118,10 @@ namespace dice::sparql2tensor::parser::visitors {
 		return nullptr;
 	}
 
-	antlrcpp::Any SelectAskQueryVisitor::visitGroupGraphPattern(SparqlParser::GroupGraphPatternContext *ctx) {
-		if (auto sub_select_ctx = ctx->subSelect(); sub_select_ctx)
-			visitSubSelect(sub_select_ctx);
-		else if (auto group_graph_pattern_sub_ctx = ctx->groupGraphPatternSub(); group_graph_pattern_sub_ctx)
-			visitGroupGraphPatternSub(group_graph_pattern_sub_ctx);
-		else
-			throw std::runtime_error("Malformed query");
-		return nullptr;
-	}
-
 	antlrcpp::Any SelectAskQueryVisitor::visitSubSelect(SparqlParser::SubSelectContext *ctx) {
 		// TODO: properly parse all grammar rules
 		SPARQLQuery sub_query{query->raw_query().context()};
-		SelectAskQueryVisitor subquery_parser{&sub_query, triple_store, prefixes};
+		SelectAskQueryVisitor subquery_parser{&sub_query, triple_store, prefixes_, timeout_end_time_};
 		subquery_parser.visitWhereClause(ctx->whereClause());
 		if (auto group_clause_ctx = ctx->solutionModifier()->groupClause(); group_clause_ctx)
 			subquery_parser.visitGroupClause(group_clause_ctx);
@@ -141,11 +138,6 @@ namespace dice::sparql2tensor::parser::visitors {
 			query->add_dependency(operand_desc, desc);
 		}
 		group_patterns.back().push_back(operand_desc);
-		return nullptr;
-	}
-
-	antlrcpp::Any SelectAskQueryVisitor::visitGroupGraphPatternSub(SparqlParser::GroupGraphPatternSubContext *ctx) {
-		//visitWellDesignedPattern(ctx, {});
 		return nullptr;
 	}
 
@@ -211,23 +203,11 @@ namespace dice::sparql2tensor::parser::visitors {
 			union_operands.emplace_back();
 			// visit all optional patterns
 			for (auto opt_ctx : optional_blocks.back()) {
-				// push a new vector into the stacks, as we are going to visit a new graph pattern
-				group_patterns.emplace_back();
-				triples_blocks.emplace_back();
-				optional_blocks.emplace_back();
-				filter_blocks.emplace_back();
-				subselect_blocks.emplace_back();
-				visitWellDesignedPattern(opt_ctx->groupGraphPattern(), {});
-				union_operands.back().clear();
+				visitGroupGraphPattern(opt_ctx->groupGraphPattern());
 				// clear the vector from the operands of the visited graph pattern
 				// the top vector of the stack is shared across all optional subgraph pattern of the current graph pattern
+				opt_operands.back().clear();
 				union_operands.back().clear();
-				// pop the top vector from the stack, as we have finished processing the graph pattern
-				subselect_blocks.pop_back();
-				filter_blocks.pop_back();
-				optional_blocks.pop_back();
-				triples_blocks.pop_back();
-				group_patterns.pop_back();
 			}
 			union_operands.pop_back();
 			opt_operands.pop_back();
@@ -264,8 +244,8 @@ namespace dice::sparql2tensor::parser::visitors {
 			expression = std::move(visitBuiltInCall(built_in_call_ctx).as<std::unique_ptr<SPARQLExpression>>());
 		else
 			throw std::runtime_error("function calls are not supported");
-		std::vector<std::unique_ptr<SPARQLExpression>> expressions;
-		if (auto and_ctx = dynamic_cast<LogicalAndExpression *>(expression.get()); and_ctx == nullptr) {
+		if (auto and_expr = dynamic_cast<LogicalAndExpression *>(expression.get()); and_expr == nullptr) {
+			// check here if we have trivial equals
 			auto operand_desc = query->add_filter_expr(std::move(expression), triple_store);
 			for (auto desc : group_patterns.back()) {
 				query->add_dependency(operand_desc, desc);
@@ -274,7 +254,8 @@ namespace dice::sparql2tensor::parser::visitors {
 		} else {
 			// in case of ConditionalAndExpressions, create a unique vertex for each operand
 			// this allows for returning false as soon as an operand evaluates to false
-			for (auto &expr : and_ctx->expressions()) {
+			for (auto &expr : and_expr->expressions()) {
+				// check here if we have trivial equals
 				auto operand_desc = query->add_filter_expr(std::move(expr), triple_store);
 				for (auto desc : group_patterns.back()) {
 					query->add_dependency(operand_desc, desc);
@@ -361,7 +342,7 @@ namespace dice::sparql2tensor::parser::visitors {
 		std::string predicate = ctx->prefixedName()->PNAME_LN()->getText();
 		std::size_t split = predicate.find(':');
 		try {
-			return rdf4cpp::rdf::IRI(prefixes.at(predicate.substr(0, split)) + predicate.substr(split + 1));
+			return rdf4cpp::rdf::IRI(prefixes_.at(predicate.substr(0, split)) + predicate.substr(split + 1));
 		} catch (...) {
 			throw std::out_of_range("Prefix " + predicate.substr(0, split) + " not declared.");
 		}
@@ -546,7 +527,7 @@ namespace dice::sparql2tensor::parser::visitors {
 		else if (ctx->LESS_EQUAL())
 			expression = std::make_unique<LessEqualsExpression>(std::move(lhs_op), std::move(rhs_op));
 		else
-			assert(false);
+			throw std::runtime_error("Expression not supported: " + ctx->getText());
 		return expression;
 	}
 
@@ -587,6 +568,14 @@ namespace dice::sparql2tensor::parser::visitors {
 	}
 
 	antlrcpp::Any SelectAskQueryVisitor::visitBuiltInCall(SparqlParser::BuiltInCallContext *ctx) {
+		// treat EXISTS differently from the other built-in calls
+		if (auto exists_ctx = ctx->existsFunction(); exists_ctx) {
+			return visitExists(exists_ctx->groupGraphPattern(), false);
+		}
+		if (auto not_exists_ctx = ctx->notExistsFunction(); not_exists_ctx) {
+			return visitExists(not_exists_ctx->groupGraphPattern(), true);
+		}
+		// built-in function calls
 		std::unique_ptr<SPARQLExpression> expr;
 		if (ctx->ISIRI() or ctx->ISURI()) {
 			expr = std::make_unique<IsIRI>(std::move(visitExpression(ctx->expression(0)).as<std::unique_ptr<SPARQLExpression>>()));
@@ -619,6 +608,25 @@ namespace dice::sparql2tensor::parser::visitors {
 			throw std::runtime_error("Unsupported built-in function: " + ctx->getText());
 		}
 		return expr;
+	}
+
+	std::unique_ptr<expressions::SPARQLExpression> SelectAskQueryVisitor::visitExists(SparqlParser::GroupGraphPatternContext *ctx, bool is_not) {
+		// treat the pattern of the EXIST function as a subquery
+		SPARQLQuery sub_query(query->raw_query().context());
+		SelectAskQueryVisitor sub_query_visitor(&sub_query, triple_store, prefixes_, timeout_end_time_);
+		sub_query_visitor.visitGroupGraphPattern(ctx);
+		// associate the variables of the EXIST subquery with the current query
+		boost::container::flat_map<char, size_t> subquery_var_ids_positions{};
+		std::vector<rdf4cpp::rdf::query::Variable> vars{};
+		for (auto const &sub_query_var : sub_query_visitor.vars_in_scope) {
+			if (vars_in_scope.contains(sub_query_var)) {
+				vars.push_back(sub_query_var);
+				query->track_variable(sub_query_var);
+				subquery_var_ids_positions[sub_query.variable_id(sub_query_var)] = query->tracked_variable_position(sub_query_var);
+			}
+		}
+		return std::make_unique<Exists>(std::move(vars), std::move(subquery_var_ids_positions),
+										sub_query.raw_query(), is_not, timeout_end_time_);
 	}
 
 	antlrcpp::Any SelectAskQueryVisitor::visitAggregate(SparqlParser::AggregateContext *ctx) {

@@ -2,6 +2,7 @@
 
 #include "dice/sparql2tensor/parser/visitors/PrologueVisitor.hpp"
 #include "dice/sparql2tensor/parser/visitors/SelectAskQueryVisitor.hpp"
+#include "dice/sparql2tensor/parser/exception/SPARQLErrorListener.hpp"
 
 #include <SparqlLexer/SparqlLexer.h>
 #include <SparqlParser/SparqlParser.h>
@@ -9,13 +10,17 @@
 namespace dice::sparql2tensor::parser {
 
 	SPARQLQuery SPARQLParser::parse_query(const std::string &sparql_query_str,
-										  const triple_store::TripleStore &triple_store) {
+										  const triple_store::TripleStore &triple_store,
+										  std::chrono::steady_clock::time_point timeout) {
 		SPARQLQuery sparql_query{triple_store.get_hypertrie().context()};
 		// prepare antlr4 parser
+		exception::SPARQLErrorListener error_listener{};
 		antlr4::ANTLRInputStream input(sparql_query_str);
 		Dice::sparql_parser::base::SparqlLexer lexer(&input);
 		antlr4::CommonTokenStream tokens(&lexer);
 		Dice::sparql_parser::base::SparqlParser parser(&tokens);
+		parser.removeErrorListeners();
+		parser.addErrorListener(&error_listener);
 		// check if the provided string is a QueryUnit (https://www.w3.org/TR/sparql11-query/#rQueryUnit)
 		auto query_ctx = parser.query();
 		if (not query_ctx)
@@ -27,7 +32,7 @@ namespace dice::sparql2tensor::parser {
 			prefixes = prologue_visitor.visitPrologue(query_ctx->prologue());
 		}
 		// parse the query
-		visitors::SelectAskQueryVisitor select_ask_visitor{&sparql_query, triple_store, std::move(prefixes)};
+		visitors::SelectAskQueryVisitor select_ask_visitor{&sparql_query, triple_store, std::move(prefixes), timeout};
 		if (auto ask_ctx = query_ctx->askQuery(); ask_ctx)
 			select_ask_visitor.visitAskQuery(ask_ctx);
 		else if (auto select_ctx = query_ctx->selectQuery(); select_ctx)
