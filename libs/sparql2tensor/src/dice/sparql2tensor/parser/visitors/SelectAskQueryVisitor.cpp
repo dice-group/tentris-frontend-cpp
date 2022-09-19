@@ -206,7 +206,6 @@ namespace dice::sparql2tensor::parser::visitors {
 				visitGroupGraphPattern(opt_ctx->groupGraphPattern());
 				// clear the vector from the operands of the visited graph pattern
 				// the top vector of the stack is shared across all optional subgraph pattern of the current graph pattern
-				opt_operands.back().clear();
 				union_operands.back().clear();
 			}
 			union_operands.pop_back();
