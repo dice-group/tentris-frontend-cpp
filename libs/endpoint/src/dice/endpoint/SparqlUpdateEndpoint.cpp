@@ -25,9 +25,8 @@ namespace dice::endpoint {
 				try {
 					auto const update_query = parse_sparql_update_param(req);
 
-					for (auto const &entry : update_query.entries_for_removal) {
-						spdlog::debug("removing triple ({}, {}, {})", entry[0], entry[1], entry[2]);
-					}
+					spdlog::debug("to remove size: {}", update_query.entries_for_removal.size());
+					spdlog::debug("hypertrie size: {}", triplestore_.size());
 
 					size_t const size_before = triplestore_.size();
 					triplestore_.remove(update_query.entries_for_removal);
@@ -48,6 +47,7 @@ namespace dice::endpoint {
 							.set_body(std::string{buf.GetString(), buf.GetSize()})
 							.done();
 
+					spdlog::debug("hypertrie size after: {}", triplestore_.size());
 					spdlog::info("HTTP response {}, mutation_count: {}", status_ok(), mutation_count);
 				} catch (std::runtime_error const &e) {
 					static constexpr auto message = "Invalid Content-Type";

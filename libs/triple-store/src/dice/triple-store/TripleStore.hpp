@@ -13,7 +13,21 @@
 #endif
 #include <metall/metall.hpp>
 
+#include <mutex>
+#include <shared_mutex>
+
 namespace dice::triple_store {
+
+	template<typename T>
+	struct ReadMutexGuard {
+		std::shared_lock<std::shared_mutex> guard;
+		std::reference_wrapper<T const> value;
+
+		[[nodiscard]] T const &get() const {
+			return value.get();
+		}
+	};
+
 	class TripleStore {
 
 		using HypertrieContext = rdf_tensor::HypertrieContext;
@@ -32,19 +46,26 @@ namespace dice::triple_store {
 		HypertrieContext context_;
 		BoolHypertrie hypertrie_;
 
+		std::shared_mutex mutable hypertrie_mutex_;
+
 	public:
 		explicit TripleStore(allocator_type const &allocator)
 			: context_(allocator),
 			  hypertrie_(3, HypertrieContext_ptr(&context_)) {}
 
-		[[nodiscard]] BoolHypertrie const &get_hypertrie() const {
-			return hypertrie_;
+		[[nodiscard]] ReadMutexGuard<BoolHypertrie> get_hypertrie() const {
+			return ReadMutexGuard<BoolHypertrie> {
+				.guard = std::shared_lock{hypertrie_mutex_},
+				.value = std::ref(hypertrie_)
+			};
 		}
 
 		void load_ttl(
 				const std::string &file_path,
 				uint32_t bulk_size = 1'000'000,
 				HypertrieBulkInserter::BulkInserted_callback const &call_back = [](size_t, size_t, size_t) -> void {}) {
+			std::unique_lock lock{hypertrie_mutex_};
+
 			HypertrieBulkInserter bulk_inserter{hypertrie_, bulk_size, call_back};
 			AddTripleCallback_function add_entry_callback =
 					[&bulk_inserter](rdf4cpp::rdf::Node subj, rdf4cpp::rdf::Node pred, rdf4cpp::rdf::Node obj) noexcept -> void {
@@ -55,6 +76,7 @@ namespace dice::triple_store {
 		}
 
 		void remove(std::vector<rdf_tensor::NonZeroEntry> const &entries, uint32_t bulk_size = 1'000'000) {
+			std::unique_lock lock{hypertrie_mutex_};
 			HypertrieBulkRemover bulk_remover{hypertrie_, bulk_size};
 
 			for (auto const &e : entries) {
@@ -65,6 +87,8 @@ namespace dice::triple_store {
 		void add_statement(const rdf4cpp::rdf::Statement &statement) {
 			static_assert(sizeof(statement.subject()) == sizeof(uint64_t));
 			static_assert(sizeof(Key::value_type) == sizeof(uint64_t));
+
+			std::unique_lock lock{hypertrie_mutex_};
 			Key key{statement.subject(), statement.predicate(), statement.object()};
 			hypertrie_.set(key, true);
 		}
@@ -78,6 +102,8 @@ namespace dice::triple_store {
 		std::generator<rdf_tensor::Entry const &>
 		eval_select(const sparql2tensor::SPARQLQuery &query,
 					std::chrono::steady_clock::time_point endtime = std::chrono::steady_clock::time_point::max()) {
+			std::unique_lock lock{hypertrie_mutex_};
+
 			auto operands = generate_operands(query.get_slice_keys());
 			std::vector<char> proj_vars_id{};
 			for (auto const &proj_var : query.projected_variables_) {
@@ -106,6 +132,8 @@ namespace dice::triple_store {
 		 */
 		bool eval_ask(const sparql2tensor::SPARQLQuery &query,
 					  std::chrono::steady_clock::time_point endtime = std::chrono::steady_clock::time_point::max()) {
+			std::unique_lock lock{hypertrie_mutex_};
+
 			auto operands = generate_operands(query.get_slice_keys());
 			rdf_tensor::Query q{query.odg_, operands, {}, endtime};
 			return dice::query::Evaluation::evaluate_ask<htt_t, allocator_type>(q);
@@ -113,13 +141,15 @@ namespace dice::triple_store {
 
 		size_t count(const sparql2tensor::SPARQLQuery &query,
 					 std::chrono::steady_clock::time_point endtime = std::chrono::steady_clock::time_point::max()) {
+			std::unique_lock lock{hypertrie_mutex_};
+
 			using namespace sparql2tensor;
 			if (query.triple_patterns_.size() == 1) {// O(1)
 				auto slice_key = query.get_slice_keys()[0];
 				if (slice_key.get_fixed_depth() == 3)
-					return (size_t) std::get<bool>(get_hypertrie()[slice_key]);
+					return (size_t) std::get<bool>(hypertrie_[slice_key]);
 				else
-					return std::get<const_BoolHypertrie>(get_hypertrie()[slice_key]).size();
+					return std::get<const_BoolHypertrie>(hypertrie_[slice_key]).size();
 			} else {
 				size_t count = 0;
 				for (auto const &entry : this->eval_select(query, endtime))
@@ -128,11 +158,13 @@ namespace dice::triple_store {
 			}
 		}
 
-		bool contains(const rdf4cpp::rdf::Statement &statement) {
+		bool contains(const rdf4cpp::rdf::Statement &statement) const {
+			std::shared_lock lock{hypertrie_mutex_};
 			return hypertrie_[Key{statement.subject(), statement.predicate(), statement.object()}];
 		}
 
 		[[nodiscard]] size_t size() const {
+			std::shared_lock lock{hypertrie_mutex_};
 			return hypertrie_.size();
 		}
 

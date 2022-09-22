@@ -132,7 +132,7 @@ int main(int argc, char *argv[]) {
 	tf::Executor executor(endpoint_cfg.threads);
 	// setup and configure endpoints
 	endpoint::HTTPServer http_server{executor, triplestore, endpoint_cfg};
-	const auto cards = triplestore.get_hypertrie().get_cards({0, 1, 2});
+	const auto cards = triplestore.get_hypertrie().get().get_cards({0, 1, 2});
 	spdlog::info("Storage stats: {} triples ({} distinct subjects, {} distinct predicates, {} distinct objects)",
 				 triplestore.size(), cards[0], cards[1], cards[2]);
 	spdlog::info("SPARQL endpoint serving sparkling linked data treasures on {} threads at http://0.0.0.0:{}/ with {} request timeout.",
