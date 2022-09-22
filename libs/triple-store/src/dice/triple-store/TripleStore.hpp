@@ -102,13 +102,14 @@ namespace dice::triple_store {
 		std::generator<rdf_tensor::Entry const &>
 		eval_select(const sparql2tensor::SPARQLQuery &query,
 					std::chrono::steady_clock::time_point endtime = std::chrono::steady_clock::time_point::max()) {
-			std::unique_lock lock{hypertrie_mutex_};
 
 			auto operands = generate_operands(query.get_slice_keys());
 			std::vector<char> proj_vars_id{};
 			for (auto const &proj_var : query.projected_variables_) {
 				proj_vars_id.push_back(query.var_to_id_.at(proj_var));
 			}
+
+			std::shared_lock lock{hypertrie_mutex_};
 			rdf_tensor::Query q{query.odg_, operands, proj_vars_id, endtime};
 			if (query.distinct_) {
 				rdf_tensor::Entry entry;
@@ -132,19 +133,18 @@ namespace dice::triple_store {
 		 */
 		bool eval_ask(const sparql2tensor::SPARQLQuery &query,
 					  std::chrono::steady_clock::time_point endtime = std::chrono::steady_clock::time_point::max()) {
-			std::unique_lock lock{hypertrie_mutex_};
-
 			auto operands = generate_operands(query.get_slice_keys());
+
+			std::shared_lock lock{hypertrie_mutex_};
 			rdf_tensor::Query q{query.odg_, operands, {}, endtime};
 			return dice::query::Evaluation::evaluate_ask<htt_t, allocator_type>(q);
 		}
 
 		size_t count(const sparql2tensor::SPARQLQuery &query,
 					 std::chrono::steady_clock::time_point endtime = std::chrono::steady_clock::time_point::max()) {
-			std::unique_lock lock{hypertrie_mutex_};
-
 			using namespace sparql2tensor;
 			if (query.triple_patterns_.size() == 1) {// O(1)
+				std::shared_lock lock{hypertrie_mutex_};
 				auto slice_key = query.get_slice_keys()[0];
 				if (slice_key.get_fixed_depth() == 3)
 					return (size_t) std::get<bool>(hypertrie_[slice_key]);
@@ -175,6 +175,7 @@ namespace dice::triple_store {
 		 * @return A vector of tensor operands (const_BoolHypertries).
 		 */
 		std::vector<const_BoolHypertrie> generate_operands(std::vector<rdf_tensor::SliceKey> const &slice_keys) {
+			std::unique_lock lock{hypertrie_mutex_};
 			std::vector<const_BoolHypertrie> operands;
 			for (auto const &slice_key : slice_keys) {
 				auto slice_result = hypertrie_[slice_key];
