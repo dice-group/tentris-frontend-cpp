@@ -19,7 +19,6 @@ class Recipe(ConanFile):
         "shared": False,
         "fPIC": True,
         "with_exec_deps": False,
-        "boost:header_only": True,  # override hypertrie settings # TODO: remove in hypertrie and here
         "restinio:asio": "boost",
     }
 
@@ -29,7 +28,7 @@ class Recipe(ConanFile):
             "fmt/8.1.1",
             "restinio/0.6.15",
             "expected-lite/0.6.0",  # overrides restinio dependency
-            "hypertrie/0.9.1@dice-group/experimental",
+            "hypertrie/0.9.2",
             "metall/0.21",
             "rdf4cpp/0.0.4",
             "dice-hash/0.4.0",
