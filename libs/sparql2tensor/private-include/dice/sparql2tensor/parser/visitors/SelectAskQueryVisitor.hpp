@@ -11,7 +11,7 @@
 
 namespace dice::sparql2tensor::parser::visitors {
 
-	using namespace Dice::sparql_parser::base;
+	using namespace dice::sparql_parser::base;
 
 	class SelectAskQueryVisitor : public SparqlParserBaseVisitor {
 
@@ -38,57 +38,57 @@ namespace dice::sparql2tensor::parser::visitors {
 
 		explicit SelectAskQueryVisitor(SPARQLQuery *q) : query{q} {}
 
-		antlrcpp::Any visitAskQuery(SparqlParser::AskQueryContext *ctx) override;
+		std::any visitAskQuery(SparqlParser::AskQueryContext *ctx) override;
 
-		antlrcpp::Any visitSelectQuery(SparqlParser::SelectQueryContext *) override;
+		std::any visitSelectQuery(SparqlParser::SelectQueryContext *) override;
 
-		antlrcpp::Any visitSelectClause(SparqlParser::SelectClauseContext *) override;
+		std::any visitSelectClause(SparqlParser::SelectClauseContext *) override;
 
-		antlrcpp::Any visitWhereClause(SparqlParser::WhereClauseContext *) override;
+		std::any visitWhereClause(SparqlParser::WhereClauseContext *) override;
 
-		antlrcpp::Any visitGroupGraphPattern(SparqlParser::GroupGraphPatternContext *) override;
+		std::any visitGroupGraphPattern(SparqlParser::GroupGraphPatternContext *) override;
 
-		antlrcpp::Any visitGroupGraphPatternSub(SparqlParser::GroupGraphPatternSubContext *) override;
+		std::any visitGroupGraphPatternSub(SparqlParser::GroupGraphPatternSubContext *) override;
 
-		antlrcpp::Any visitTriplesBlock(SparqlParser::TriplesBlockContext *) override;
+		std::any visitTriplesBlock(SparqlParser::TriplesBlockContext *) override;
 
-		antlrcpp::Any visitTriplesSameSubjectPath(SparqlParser::TriplesSameSubjectPathContext *) override;
+		std::any visitTriplesSameSubjectPath(SparqlParser::TriplesSameSubjectPathContext *) override;
 
-		antlrcpp::Any visitPropertyListPathNotEmpty(SparqlParser::PropertyListPathNotEmptyContext *) override;
+		std::any visitPropertyListPathNotEmpty(SparqlParser::PropertyListPathNotEmptyContext *) override;
 
-		antlrcpp::Any visitVarOrTerm(SparqlParser::VarOrTermContext *) override;
+		std::any visitVarOrTerm(SparqlParser::VarOrTermContext *) override;
 
-		antlrcpp::Any visitIri(SparqlParser::IriContext *) override;
+		std::any visitIri(SparqlParser::IriContext *) override;
 
-		antlrcpp::Any visitBlankNode(SparqlParser::BlankNodeContext *) override;
+		std::any visitBlankNode(SparqlParser::BlankNodeContext *) override;
 
-		antlrcpp::Any visitVar(SparqlParser::VarContext *) override;
+		std::any visitVar(SparqlParser::VarContext *) override;
 
-		antlrcpp::Any visitObjectListPath(SparqlParser::ObjectListPathContext *) override;
+		std::any visitObjectListPath(SparqlParser::ObjectListPathContext *) override;
 
-		antlrcpp::Any visitObjectList(SparqlParser::ObjectListContext *) override;
+		std::any visitObjectList(SparqlParser::ObjectListContext *) override;
 
-		antlrcpp::Any visitObjectPath(SparqlParser::ObjectPathContext *) override;
+		std::any visitObjectPath(SparqlParser::ObjectPathContext *) override;
 
-		antlrcpp::Any visitObject(SparqlParser::ObjectContext *) override;
+		std::any visitObject(SparqlParser::ObjectContext *) override;
 
-		antlrcpp::Any visitPath(SparqlParser::PathContext *) override;
+		std::any visitPath(SparqlParser::PathContext *) override;
 
-		antlrcpp::Any visitPathAlternative(SparqlParser::PathAlternativeContext *) override;
+		std::any visitPathAlternative(SparqlParser::PathAlternativeContext *) override;
 
-		antlrcpp::Any visitPathSequence(SparqlParser::PathSequenceContext *) override;
+		std::any visitPathSequence(SparqlParser::PathSequenceContext *) override;
 
-		antlrcpp::Any visitPathEltOrInverse(SparqlParser::PathEltOrInverseContext *) override;
+		std::any visitPathEltOrInverse(SparqlParser::PathEltOrInverseContext *) override;
 
-		antlrcpp::Any visitPathElt(SparqlParser::PathEltContext *) override;
+		std::any visitPathElt(SparqlParser::PathEltContext *) override;
 
-		antlrcpp::Any visitRdfLiteral(SparqlParser::RdfLiteralContext *) override;
+		std::any visitRdfLiteral(SparqlParser::RdfLiteralContext *) override;
 
-		antlrcpp::Any visitNumericLiteral(SparqlParser::NumericLiteralContext *) override;
+		std::any visitNumericLiteral(SparqlParser::NumericLiteralContext *) override;
 
-		antlrcpp::Any visitBooleanLiteral(SparqlParser::BooleanLiteralContext *) override;
+		std::any visitBooleanLiteral(SparqlParser::BooleanLiteralContext *) override;
 
-		antlrcpp::Any visitString(SparqlParser::StringContext *) override;
+		std::any visitString(SparqlParser::StringContext *) override;
 
 	private:
 		void register_var(rdf4cpp::rdf::query::Variable const &var);

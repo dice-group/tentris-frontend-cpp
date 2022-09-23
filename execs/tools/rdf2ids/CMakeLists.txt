@@ -13,7 +13,6 @@ add_executable(rdf2ids
         )
 
 target_link_libraries(rdf2ids PRIVATE
-        ${TENTRIS_STATIC_DEF}
         Threads::Threads
         dice-hash::dice-hash
         rdf4cpp::rdf4cpp

@@ -6,9 +6,14 @@ ARG CONAN_PW="none"
 
 
 RUN apk update && \
-    apk add git make cmake boost-build pythonispython3 py3-pip autoconf automake gcc g++ clang \
-    clang-dev clang-libs clang-extra-tools clang-static llvm14 llvm14-dev lld pkgconfig libuuid \
-    libtool util-linux-dev linux-headers openjdk11-jdk && \
+    apk add \
+    make cmake autoconf automake pkgconfig \
+    gcc g++ gdb \
+    clang clang-dev clang-libs clang-extra-tools clang-static lldb llvm14 llvm14-dev\
+    openjdk11-jdk \
+    pythonispython3 py3-pip \
+    bash git libtool util-linux-dev linux-headers \
+    && \
     apk add mold --repository=https://mirrors.edge.kernel.org/alpine/edge/testing
 
 ARG CC="clang"
@@ -36,6 +41,7 @@ RUN pip3 install conan && \
     conan profile new --detect default && \
     conan profile update settings.compiler=clang default && \
     conan profile update settings.compiler.libcxx=libstdc++11 default && \
+    conan profile update settings.compiler.cppstd=20 default && \
     conan profile update env.CXXFLAGS="${CXXFLAGS}" default && \
     conan profile update env.CXX="${CXX}" default && \
     conan profile update env.CC="${CC}" default && \
@@ -50,7 +56,7 @@ RUN conan user ${CONAN_USER} -p ${CONAN_PW} -r tentris-private
 WORKDIR /conan_cache
 COPY conanfile.py .
 COPY CMakeLists.txt .
-RUN conan install . --build=missing --profile default
+RUN conan install . --build=* --profile default
 # import project files
 WORKDIR /tentris
 COPY libs libs

@@ -10,7 +10,6 @@ find_package(restinio REQUIRED)
 find_package(Metall REQUIRED)
 
 target_link_libraries(tentris_server PRIVATE
-        ${TENTRIS_STATIC_DEF}
         Threads::Threads
         tentris::tentris
         restinio::restinio

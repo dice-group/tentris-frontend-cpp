@@ -12,9 +12,9 @@ namespace dice::sparql2tensor {
 
 	SPARQLQuery dice::sparql2tensor::SPARQLQuery::parse(std::string const &sparql_query_str) {
 		antlr4::ANTLRInputStream input(sparql_query_str);
-		Dice::sparql_parser::base::SparqlLexer lexer(&input);
+		dice::sparql_parser::base::SparqlLexer lexer(&input);
 		antlr4::CommonTokenStream tokens(&lexer);
-		Dice::sparql_parser::base::SparqlParser parser(&tokens);
+		dice::sparql_parser::base::SparqlParser parser(&tokens);
 
 		auto q_ctx = parser.query();
 
@@ -24,7 +24,7 @@ namespace dice::sparql2tensor {
 		SPARQLQuery p_sparql{};
 		if (q_ctx->prologue()) {
 			parser::visitors::PrologueVisitor p_visitor{};
-			p_sparql.prefixes_ = p_visitor.visitPrologue(q_ctx->prologue()).as<robin_hood::unordered_map<std::string, std::string>>();
+			p_sparql.prefixes_ = std::any_cast<robin_hood::unordered_map<std::string, std::string>>(p_visitor.visitPrologue(q_ctx->prologue()));
 		}
 
 		parser::visitors::SelectAskQueryVisitor visitor{&p_sparql};

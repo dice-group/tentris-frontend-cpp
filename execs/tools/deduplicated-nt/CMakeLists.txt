@@ -12,7 +12,6 @@ add_executable(deduplicated_nt
         )
 
 target_link_libraries(deduplicated_nt PRIVATE
-        ${TENTRIS_STATIC_DEF}
         Threads::Threads
         rdf4cpp::rdf4cpp
         dice-sparse-map::dice-sparse-map
