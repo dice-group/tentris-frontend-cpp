@@ -32,6 +32,8 @@ namespace dice::endpoint {
 					triplestore_.remove(update_query.entries_for_removal);
 					size_t const mutation_count = size_before - triplestore_.size();
 
+					spdlog::debug("hypertrie size after: {}", triplestore_.size());
+
 					rapidjson::StringBuffer buf;
 					{
 						rapidjson::Writer<rapidjson::StringBuffer> jw{buf};
@@ -47,10 +49,9 @@ namespace dice::endpoint {
 							.set_body(std::string{buf.GetString(), buf.GetSize()})
 							.done();
 
-					spdlog::debug("hypertrie size after: {}", triplestore_.size());
 					spdlog::info("HTTP response {}, mutation_count: {}", status_ok(), mutation_count);
 				} catch (std::runtime_error const &e) {
-					static constexpr auto message = "Invalid Content-Type";
+					static constexpr auto message = "Request error";
 
 					req->create_response(status_bad_request()).set_body(message).done();
 					spdlog::warn("HTTP response {}: {} (detail: {})", status_bad_request(), message, e.what());

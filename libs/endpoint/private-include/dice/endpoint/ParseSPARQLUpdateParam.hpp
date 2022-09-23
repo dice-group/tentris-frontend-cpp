@@ -23,13 +23,15 @@ namespace dice::endpoint {
 			throw std::runtime_error("Expected content-type: application/sparql-update");
 		}
 		std::string sparql_update_str{req->body()};
-
 		try {
 			auto update_query = UPDATEQuery::parse(sparql_update_str);
 			return update_query;
 		} catch (std::exception &ex) {
 			static constexpr auto message = "Value of parameter 'update' is not parsable: ";
 			throw std::runtime_error{std::string{message} + ex.what()};
+		} catch (...) {
+			static constexpr auto message = "Unknown error";
+			throw std::runtime_error{message};
 		}
 	}
 }// namespace dice::endpoint
