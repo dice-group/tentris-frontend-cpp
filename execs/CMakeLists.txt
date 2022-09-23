@@ -44,7 +44,7 @@ if (WITH_TCMALLOC)
     if (NOT TCMALLOCMINIMAL)
         message(FATAL_ERROR "Neither tcmalloc-minimal nor tcmalloc_minimal was found")
     endif ()
-    message(INFO "tcmalloc minimal ${TCMALLOCMINIMAL}")
+    message(STATUS "tcmalloc minimal ${TCMALLOCMINIMAL}")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${TCMALLOCMINIMAL}")
 endif ()
 
