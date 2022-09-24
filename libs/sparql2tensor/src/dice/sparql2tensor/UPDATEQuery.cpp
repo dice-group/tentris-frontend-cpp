@@ -5,14 +5,18 @@
 
 #include "dice/sparql2tensor/parser/visitors/PrologueVisitor.hpp"
 #include "dice/sparql2tensor/parser/visitors/UpdateQueryVisitor.hpp"
+#include "dice/sparql2tensor/parser/exception/SPARQLErrorListener.hpp"
 
 namespace dice::sparql2tensor {
 
 	UPDATEQuery UPDATEQuery::parse(std::string const &sparql_update_str) {
+		parser::exception::SPARQLErrorListener error_listener{};
 		antlr4::ANTLRInputStream input(sparql_update_str);
 		Dice::sparql_parser::base::SparqlLexer lexer(&input);
 		antlr4::CommonTokenStream tokens(&lexer);
 		Dice::sparql_parser::base::SparqlParser parser(&tokens);
+		parser.removeErrorListeners();
+		parser.addErrorListener(&error_listener);
 
 		auto update_ctx = parser.updateCommand();
 

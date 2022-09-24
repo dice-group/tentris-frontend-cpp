@@ -53,7 +53,7 @@ namespace dice::endpoint {
 				} catch (std::runtime_error const &e) {
 					static constexpr auto message = "Request error";
 
-					req->create_response(status_bad_request()).set_body(message).done();
+					req->create_response(status_bad_request()).set_body(std::string{message} + ": " + e.what()).done();
 					spdlog::warn("HTTP response {}: {} (detail: {})", status_bad_request(), message, e.what());
 				}
 			}, std::move(req));
