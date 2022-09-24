@@ -23,13 +23,15 @@ namespace dice::endpoint {
 				using namespace restinio;
 
 				try {
-					auto const update_query = parse_sparql_update_param(req);
+					//auto const update_query = parse_sparql_update_param(req);
+					auto const update_query = extract_sparql_update_param(req);
 
-					spdlog::debug("to remove size: {}", update_query.entries_for_removal.size());
+					//spdlog::debug("to remove size: {}", update_query.entries_for_removal.size());
 					spdlog::debug("hypertrie size: {}", triplestore_.size());
 
 					size_t const size_before = triplestore_.size();
-					triplestore_.remove(update_query.entries_for_removal);
+					//triplestore_.remove(update_query.entries_for_removal);
+					triplestore_.remove_parse(update_query);
 					size_t const mutation_count = size_before - triplestore_.size();
 
 					spdlog::debug("hypertrie size after: {}", triplestore_.size());

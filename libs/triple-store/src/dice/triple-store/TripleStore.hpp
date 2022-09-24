@@ -62,6 +62,20 @@ namespace dice::triple_store {
 			}
 		}
 
+		void remove_parse(std::string_view query, uint32_t bulk_size = 1'000'000) {
+			std::vector<hypertrie::internal::raw::SingleEntry<3, htt_t>> entries;
+
+			AddTripleCallback_function add_entry_callback = [&entries](rdf4cpp::rdf::Node subj, rdf4cpp::rdf::Node pred, rdf4cpp::rdf::Node obj) noexcept {
+				entries.push_back(hypertrie::internal::raw::SingleEntry<3, htt_t>{{subj, pred, obj}});
+			};
+			serd_load_delete_data_triples_from_string(query, add_entry_callback);
+
+			HypertrieBulkRemover bulk_remover{hypertrie_, bulk_size};
+			for (auto const &e : entries) {
+				bulk_remover.add(e);
+			}
+		}
+
 		void add_statement(const rdf4cpp::rdf::Statement &statement) {
 			static_assert(sizeof(statement.subject()) == sizeof(uint64_t));
 			static_assert(sizeof(Key::value_type) == sizeof(uint64_t));
