@@ -24,10 +24,10 @@ class Recipe(ConanFile):
 
     def requirements(self):
         public_reqs = [
-            "boost/1.79.0",
+            "boost/1.80.0",
             "fmt/8.1.1",
-            "restinio/0.6.15",
-            "expected-lite/0.6.0",  # overrides restinio dependency
+            "restinio/0.6.17",
+            "expected-lite/0.6.2",  # overrides restinio dependency
             "hypertrie/0.9.3",
             "metall/0.21",
             "rdf4cpp/0.0.5",
@@ -36,17 +36,17 @@ class Recipe(ConanFile):
             "cxxopts/2.2.1",
             "serd/0.30.16",
             "sparql-parser-base/0.3.0",
-            "taskflow/3.3.0",
+            "taskflow/3.4.0",
             "cppitertools/2.1",
             "spdlog/1.10.0",
-            "rapidjson/cci.20211112",
+            "rapidjson/cci.20220822",
         ]
 
         private_reqs = [
         ]
 
         exec_reqs = [
-            "nlohmann_json/3.10.5",
+            "nlohmann_json/3.11.2",
             "vincentlaucsb-csv-parser/2.1.3",
         ]
         for req in public_reqs:
