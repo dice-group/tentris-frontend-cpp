@@ -65,6 +65,8 @@ jobs:
         id: checkTag
         with:
           tag: v${{ env.asset_version }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Check if tag exists already
         if: '${{ steps.checkTag.outputs.exists }}' != 'true'
