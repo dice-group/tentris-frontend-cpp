@@ -10,7 +10,7 @@ env:
 
 jobs:
   create_release:
-    name: Creates an release with static binaries and uploads the library to conan.dice-research.org
+    name: Creates a release with static binaries and uploads the library to the artifactory conan.dice-research.org
     runs-on: ubuntu-22.04
     steps:
       # cmake and conan to extract the version
@@ -45,12 +45,6 @@ jobs:
           path: ~/.conan/data
           key: ${{ env.os }}-${{ env.compiler }}-conan
 
-      # setup docker
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-
       - name: Checkout
         uses: actions/checkout@v3
 
@@ -61,14 +55,16 @@ jobs:
         run: |
           echo "asset_version=$(conan inspect . --raw version)" >> $GITHUB_ENV
 
-      - name: Check if commit already exists
+      - name: Extract Tag
         uses: mukunku/tag-exists-action@v1.0.0
         id: checkTag
         with:
           tag: v${{ env.asset_version }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Check if tag exists already
-        if: ${{ steps.checkTag.outputs.exists }} != 'true'
+        if: steps.checkTag.outputs.exists == 'true'
         uses: actions/github-script@v6
         with:
           result-encoding: string
@@ -76,15 +72,12 @@ jobs:
             core.setFailed('There is already a tag for this version. Dump the version in CMakeLists.txt and try again.')
 
       - name: Build Dockerfile
+        id: build-docker
         uses: docker/build-push-action@v3
         with:
           context: .
-          push: false
-          tags: |
-            dicegroup/tentris_server:current_build
-            dicegroup/tentris_server:${{ env.asset_version }}
+          tags: tentris_server:latest
           cache-from: type=gha
-          cache-to: type=gha,mode=max
           build-args: |
             "CONAN_USER=${{ secrets.CONAN_USER }}"
             "CONAN_PW=${{ secrets.CONAN_PW }}"
@@ -98,17 +91,18 @@ jobs:
           (conan remove -f "$(conan inspect . --raw name)/$(conan inspect . --raw version)@" || true)
           conan create . "$(conan inspect . --raw name)/$(conan inspect . --raw version)@" --build missing -o boost:header_only=True -pr:b=default -pr:h=default
 
-      - name: Extract binaries from Dockerfile
+      - uses: shrink/actions-docker-extract@v1
+        id: extract
+        with:
+          image: tentris_server:latest
+          path: /.
+
+      - name: zip assets
         shell: bash
         env:
           asset_version: ${{ env.asset_version }}
-        run: |
-          container_id=$(docker create dicegroup/tentris_server:current_build)
-          docker cp ${container_id}:/tentris_server ./tentris_server
-          docker cp ${container_id}:/tentris_loader ./tentris_loader
-          docker cp ${container_id}:/rdf2ids ./rdf2ids
-          docker cp ${container_id}:/deduplicated_nt ./deduplicated_nt
-          zip "tentris_${asset_version}_clang14_libstdcxx11.zip" tentris_server tentris_loader rdf2ids deduplicated_nt
+          asset_dir: ${{ steps.extract.outputs.destination }}
+        run: zip "tentris_${asset_version}_clang14_libstdcxx11.zip" -j ${asset_dir}/*
 
       - name: Upload to artifactory
         shell: bash
