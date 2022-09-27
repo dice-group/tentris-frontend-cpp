@@ -1,45 +1,42 @@
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED True)
-set(CMAKE_CXX_EXTENSIONS OFF)
-include(GNUInstallDirs)
-
-add_library(endpoint
-        src/Dice/endpoint/HTTPServer.cpp
-        src/Dice/endpoint/SparqlEndpoint.cpp
-        src/Dice/endpoint/CountEndpoint.cpp
-        src/Dice/endpoint/AskEndpoint.cpp
-        src/Dice/endpoint/SparqlStreamingEndpoint.cpp
-        src/Dice/endpoint/SparqlQueryCache.cpp
-        )
-
 find_package(Taskflow REQUIRED)
 find_package(restinio REQUIRED)
 find_package(spdlog REQUIRED)
+find_package(cppitertools REQUIRED)
+find_package(RapidJSON REQUIRED)
 
-set(ENV{cppitertools_INSTALL_CMAKE_DIR} TRUE)
-FetchContent_Declare(
-        cppitertools
-        GIT_REPOSITORY https://github.com/ryanhaining/cppitertools.git
-        GIT_TAG v2.1
-        GIT_SHALLOW TRUE)
-FetchContent_MakeAvailable(cppitertools)
+add_library(endpoint
+        src/dice/endpoint/HTTPServer.cpp
+        src/dice/endpoint/SparqlEndpoint.cpp
+        src/dice/endpoint/CountEndpoint.cpp
+        src/dice/endpoint/SparqlStreamingEndpoint.cpp
+        src/dice/endpoint/SparqlQueryCache.cpp
+        )
+add_library(tentris::endpoint ALIAS endpoint)
 
-add_library(Dice::endpoint ALIAS endpoint)
+target_include_directories(endpoint PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
+        PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/private-include
+        )
+
+set_target_properties(endpoint PROPERTIES
+        VERSION ${PROJECT_VERSION}
+        SOVERSION ${PROJECT_VERSION_MAJOR}
+        CXX_STANDARD 20
+        CXX_STANDARD_REQUIRED YES
+        CXX_EXTENSIONS NO
+        )
 
 target_link_libraries(endpoint PUBLIC
-        Dice::triple_store
-        Dice::node_store
+        tentris::triple-store
+        tentris::node-store
         restinio::restinio
         Taskflow::Taskflow
         PRIVATE
         spdlog::spdlog
         cppitertools::cppitertools
-        rapidjson
+        RapidJSON::RapidJSON
         )
 
-target_include_directories(endpoint PUBLIC
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
-        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-        PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/private-include
-        )
+include(${PROJECT_SOURCE_DIR}/cmake/install_library.cmake)
+install_component(endpoint src)
