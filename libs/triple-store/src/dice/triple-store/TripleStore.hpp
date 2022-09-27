@@ -37,7 +37,7 @@ namespace dice::triple_store {
 	public:
 		explicit TripleStore(BoolHypertrie &hypertrie);
 
-		virtual ~TripleStore();
+		~TripleStore();
 
 		[[nodiscard]] BoolHypertrie const &get_hypertrie() const {
 			return hypertrie_;
