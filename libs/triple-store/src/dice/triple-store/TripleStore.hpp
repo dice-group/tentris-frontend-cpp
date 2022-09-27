@@ -6,12 +6,12 @@
 
 #include <dice/sparql2tensor/SPARQLQuery.hpp>
 
-#include <dice/triple-store/SerdLoad.hpp>
-
 #ifndef BOOST_BIND_GLOBAL_PLACEHOLDERS
 #define BOOST_BIND_GLOBAL_PLACEHOLDERS
 #endif
 #include <metall/metall.hpp>
+
+#include <shared_mutex>
 
 namespace dice::triple_store {
 	class TripleStore {
@@ -19,6 +19,7 @@ namespace dice::triple_store {
 		using HypertrieContext = rdf_tensor::HypertrieContext;
 		using HypertrieContext_ptr = rdf_tensor::HypertrieContext_ptr;
 		using HypertrieBulkInserter = rdf_tensor::HypertrieBulkInserter;
+		using HypertrieSyncBulkInserter = rdf_tensor::HypertrieSyncBulkInserter;
 		using BoolHypertrie = rdf_tensor::BoolHypertrie;
 		using const_BoolHypertrie = rdf_tensor::const_BoolHypertrie;
 		using Key = rdf_tensor::Key;
@@ -28,37 +29,45 @@ namespace dice::triple_store {
 		using allocator_type = rdf_tensor::allocator_type;
 
 	private:
-		HypertrieContext context_;
-		BoolHypertrie hypertrie_;
+		BoolHypertrie &hypertrie_;
+		mutable std::shared_mutex mutex_;
+		mutable HypertrieSyncBulkInserter inserter_;
+
 
 	public:
-		explicit TripleStore(allocator_type const &allocator)
-			: context_(allocator),
-			  hypertrie_(3, HypertrieContext_ptr(&context_)) {}
+		explicit TripleStore(BoolHypertrie &hypertrie);
+
+		~TripleStore();
 
 		[[nodiscard]] BoolHypertrie const &get_hypertrie() const {
 			return hypertrie_;
 		}
 
+		/**
+		 * This function enforces stricter requirements upon rdf:Lists than described in <a href="https://www.w3.org/TR/2014/REC-rdf11-mt-20140225/#rdf-containers">D.3 RDF collections</a>.
+		 * An rdf:List must either be the IRI rdf:nil or must have the properties rdf:first and rdf:rest, both with cardinality 1.
+		 * @param list the node to be checked if it is a list
+		 * @return if list is an rdf:List
+		 */
+		[[nodiscard]] bool is_rdf_list(rdf4cpp::rdf::Node list) const noexcept;
+
+		/**
+		 * Returns the items of an rdf:List as vector.
+		 *
+		 * Restrictions from is_rdf_list(rdf4cpp::rdf::Node) const noexcept apply.
+		 *
+		 * @param list the start node of the list
+		 * @return the elements of the list as vector
+		 * @throws std::runtime_error If the list is malformed.
+		 */
+		std::vector<rdf4cpp::rdf::Node> get_rdf_list(rdf4cpp::rdf::Node list) const;
+
 		void load_ttl(
 				const std::string &file_path,
 				uint32_t bulk_size = 1'000'000,
-				HypertrieBulkInserter::BulkInserted_callback const &call_back = [](size_t, size_t, size_t) -> void {}) {
-			HypertrieBulkInserter bulk_inserter{hypertrie_, bulk_size, call_back};
-			AddTripleCallback_function add_entry_callback =
-					[&bulk_inserter](rdf4cpp::rdf::Node subj, rdf4cpp::rdf::Node pred, rdf4cpp::rdf::Node obj) noexcept -> void {
-						hypertrie::internal::raw::SingleEntry<3, htt_t> entry{{subj, pred, obj}};
-						bulk_inserter.add(entry);
-					};
-			serd_load(file_path, add_entry_callback);
-		}
+				HypertrieBulkInserter::BulkInserted_callback const &call_back = [](size_t, size_t, size_t) -> void {});
 
-		void add_statement(const rdf4cpp::rdf::Statement &statement) {
-			static_assert(sizeof(statement.subject()) == sizeof(uint64_t));
-			static_assert(sizeof(Key::value_type) == sizeof(uint64_t));
-			Key key{statement.subject(), statement.predicate(), statement.object()};
-			hypertrie_.set(key, true);
-		}
+		void add_statement(const rdf4cpp::rdf::Statement &statement);
 
 		/**
 		 * @brief Evaluation of SPARQL SELECT queries.
@@ -68,26 +77,7 @@ namespace dice::triple_store {
 		 */
 		std::generator<rdf_tensor::Entry const &>
 		eval_select(const sparql2tensor::SPARQLQuery &query,
-					std::chrono::steady_clock::time_point endtime = std::chrono::steady_clock::time_point::max()) {
-			auto operands = generate_operands(query.get_slice_keys());
-			std::vector<char> proj_vars_id{};
-			for (auto const &proj_var : query.projected_variables_) {
-				proj_vars_id.push_back(query.var_to_id_.at(proj_var));
-			}
-			rdf_tensor::Query q{query.odg_, operands, proj_vars_id, endtime};
-			if (query.distinct_) {
-				rdf_tensor::Entry entry;
-				entry.key().resize(query.projected_variables_.size());
-				for (auto const &distinct_entry : dice::query::Evaluation::evaluate<htt_t, allocator_type, true>(q)) {
-					std::copy(distinct_entry.key().begin(), distinct_entry.key().end(), entry.key().begin());
-					co_yield entry;
-				}
-			} else {
-				for (auto const &entry : dice::query::Evaluation::evaluate<htt_t, allocator_type>(q)) {
-					co_yield entry;
-				}
-			}
-		}
+					std::chrono::steady_clock::time_point endtime = std::chrono::steady_clock::time_point::max()) const;
 
 		/**
 		 * @brief Evaluation of SPARQL ASK queries.
@@ -96,60 +86,18 @@ namespace dice::triple_store {
 		 * @return The result of the ask query (true or false).
 		 */
 		bool eval_ask(const sparql2tensor::SPARQLQuery &query,
-					  std::chrono::steady_clock::time_point endtime = std::chrono::steady_clock::time_point::max()) {
-			auto operands = generate_operands(query.get_slice_keys());
-			rdf_tensor::Query q{query.odg_, operands, {}, endtime};
-			return dice::query::Evaluation::evaluate_ask<htt_t, allocator_type>(q);
-		}
+					  std::chrono::steady_clock::time_point endtime = std::chrono::steady_clock::time_point::max()) const;
 
 		size_t count(const sparql2tensor::SPARQLQuery &query,
-					 std::chrono::steady_clock::time_point endtime = std::chrono::steady_clock::time_point::max()) {
-			using namespace sparql2tensor;
-			if (query.triple_patterns_.size() == 1) {// O(1)
-				auto slice_key = query.get_slice_keys()[0];
-				if (slice_key.get_fixed_depth() == 3)
-					return (size_t) std::get<bool>(get_hypertrie()[slice_key]);
-				else
-					return std::get<const_BoolHypertrie>(get_hypertrie()[slice_key]).size();
-			} else {
-				size_t count = 0;
-				for (auto const &entry : this->eval_select(query, endtime))
-					count += entry.value();
-				return count;
-			}
-		}
+					 std::chrono::steady_clock::time_point endtime = std::chrono::steady_clock::time_point::max()) const;
 
-		bool contains(const rdf4cpp::rdf::Statement &statement) {
-			return hypertrie_[Key{statement.subject(), statement.predicate(), statement.object()}];
-		}
+		bool contains(const rdf4cpp::rdf::Statement &statement) const;
 
-		[[nodiscard]] size_t size() const {
-			return hypertrie_.size();
-		}
+		// todo: add match
 
-	private:
-		/**
-		 * @brief Generates the tensor operands of a query
-		 * @param slice_keys The slice keys corresponding to the query being evaluated
-		 * @return A vector of tensor operands (const_BoolHypertries).
-		 */
-		std::vector<const_BoolHypertrie> generate_operands(std::vector<rdf_tensor::SliceKey> const &slice_keys) {
-			std::vector<const_BoolHypertrie> operands;
-			for (auto const &slice_key : slice_keys) {
-				auto slice_result = hypertrie_[slice_key];
-				if (slice_key.get_fixed_depth() == 3) {
-					auto entry_exists = std::get<bool>(slice_result);
-					BoolHypertrie ht_0{0, &context_};
-					if (entry_exists)
-						ht_0.set({}, true);
-					operands.push_back(ht_0);
-				} else {
-					auto operand = std::get<const_BoolHypertrie>(slice_result);
-					operands.push_back(std::move(operand));
-				}
-			}
-			return operands;
-		}
+		[[nodiscard]] size_t size() const;
+
+		void flush() const;
 	};
-};    // namespace dice::triple-store
+};    // namespace dice::triple_store
 #endif//TENTRIS_STORE_TRIPLESTORE

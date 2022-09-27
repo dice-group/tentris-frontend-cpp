@@ -45,7 +45,11 @@ RUN pip3 install conan && \
     conan profile update env.CXXFLAGS="${CXXFLAGS}" default && \
     conan profile update env.CXX="${CXX}" default && \
     conan profile update env.CC="${CC}" default && \
-    conan profile update options.boost:extra_b2_flags="cxxflags=\\\"${CXXFLAGS}\\\"" default
+    conan profile update options.boost:extra_b2_flags="cxxflags=\\\"${CXXFLAGS}\\\"" default && \
+    conan profile update options.boost:header_only=True default && \
+    conan profile update options.restinio:asio=boost default
+# note: the conan package for boost (as of 1.79.x/1.80.0) does not build properly on alpine. Therefore, we use only the header_only parts
+# todo: remove header_only as soon as build works on alpine
 
 # add conan repositories
 RUN conan remote add dice-group https://conan.dice-research.org/artifactory/api/conan/tentris

@@ -8,7 +8,8 @@ namespace dice::rdf_tensor {
 	using HypertrieContext = dice::hypertrie::HypertrieContext<htt_t, allocator_type>;
 	using BoolHypertrie = dice::hypertrie::Hypertrie<htt_t, allocator_type>;
 	using const_BoolHypertrie = dice::hypertrie::const_Hypertrie<htt_t, allocator_type>;
-	using HypertrieBulkInserter = dice::hypertrie::BulkInserter<htt_t, allocator_type>;
+	using HypertrieBulkInserter = dice::hypertrie::BulkInserter<htt_t, allocator_type, true>;
+	using HypertrieSyncBulkInserter = dice::hypertrie::BulkInserter<htt_t, allocator_type, false>;
 	using HypertrieContext_ptr = dice::hypertrie::HypertrieContext_ptr<htt_t, allocator_type>;
 }// namespace dice::rdf-tensor
 #endif//TENTRIS_RDFTENSOR_HPP
