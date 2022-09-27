@@ -64,7 +64,7 @@ jobs:
       - uses: mukunku/tag-exists-action@v1.0.0
         id: checkTag
         with:
-          tag: 'v${{ env.asset_version }}'
+          tag: v${{ env.asset_version }}
 
       - name: Check if tag exists already
         if: '${{ steps.checkTag.outputs.exists }}' != 'true'
