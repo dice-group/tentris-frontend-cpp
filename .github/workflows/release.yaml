@@ -60,10 +60,18 @@ jobs:
         shell: bash
         run: |
           echo "asset_version=$(conan inspect . --raw version)" >> $GITHUB_ENV
-      - name: Check if tag exists already
-        if: '${{ steps.checkTag.outputs.exists }}' != 'true'
-        uses: actions/github-script@v3
+
+      - name: Check if commit already exists
+        uses: mukunku/tag-exists-action@v1.0.0
+        id: checkTag
         with:
+          tag: v${{ env.asset_version }}
+
+      - name: Check if tag exists already
+        if: ${{ steps.checkTag.outputs.exists }} != 'true'
+        uses: actions/github-script@v6
+        with:
+          result-encoding: string
           script: |
             core.setFailed('There is already a tag for this version. Dump the version in CMakeLists.txt and try again.')
 
