@@ -61,12 +61,6 @@ jobs:
         run: |
           echo "asset_version=$(conan inspect . --raw version)" >> $GITHUB_ENV
 
-      - uses: mukunku/tag-exists-action@v1.0.0
-        id: checkTag
-        with:
-          tag: v${{ env.asset_version }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Check if tag exists already
         if: '${{ steps.checkTag.outputs.exists }}' != 'true'
         uses: actions/github-script@v3
