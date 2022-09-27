@@ -292,7 +292,7 @@ namespace dice::sparql2tensor::parser::visitors {
 
 	std::any SelectAskQueryVisitor::visitObject(SparqlParser::ObjectContext *ctx) {
 		if (auto var_or_term_ctx = ctx->graphNode()->varOrTerm(); var_or_term_ctx) {
-			rdf4cpp::rdf::Node obj = std::any_cast<rdf4cpp::rdf::Literal>(visitVarOrTerm(var_or_term_ctx));
+			auto obj = std::any_cast<rdf4cpp::rdf::Node>(visitVarOrTerm(var_or_term_ctx));
 			if (obj.is_variable())
 				register_var(rdf4cpp::rdf::query::Variable(obj));
 			query->triple_patterns_.emplace_back(active_subject, active_predicate, obj);
