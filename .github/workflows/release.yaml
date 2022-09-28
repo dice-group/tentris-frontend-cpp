@@ -102,7 +102,7 @@ jobs:
         env:
           asset_version: ${{ env.asset_version }}
           asset_dir: ${{ steps.extract.outputs.destination }}
-        run: zip "tentris_${asset_version}_clang14_libstdcxx11.zip" -j ${asset_dir}/*
+        run: zip "tentris_${asset_version}_clang14_libstdcxx12.zip" -j ${asset_dir}/*
 
       - name: Upload to artifactory
         shell: bash
@@ -114,6 +114,6 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            tentris_${{ env.asset_version }}_clang14_libstdcxx11.zip
+            tentris_${{ env.asset_version }}_clang14_libstdcxx12.zip
           tag_name: "v${{ env.asset_version }}"
           draft: true
