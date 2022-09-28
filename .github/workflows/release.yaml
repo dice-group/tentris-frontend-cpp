@@ -114,6 +114,6 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            "tentris_${{ env.asset_version }}_clang14_libstdcxx11.zip"
+            tentris_${{ env.asset_version }}_clang14_libstdcxx11.zip
           tag_name: "v${{ env.asset_version }}"
           draft: true
