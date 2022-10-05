@@ -30,7 +30,9 @@ namespace dice::sparql2tensor::expressions {
 			has_solutions = true;
 		}
 		bool result = not_exists_ ? not has_solutions : has_solutions;
-		return Literal{std::to_string(result), rdf4cpp::rdf::IRI("http://www.w3.org/2001/XMLSchema#boolean")};
+		if (result)
+			return true_;
+		return false_;
 	}
 
 	std::vector<rdf4cpp::rdf::query::Variable> Exists::variables() const {

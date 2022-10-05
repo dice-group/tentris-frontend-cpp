@@ -12,6 +12,8 @@ namespace dice::sparql2tensor::expressions {
 		std::chrono::steady_clock::time_point timeout_;
 		std::vector<rdf4cpp::rdf::query::Variable> variables_;
 		boost::container::flat_map<char, size_t> var_ids_positions_;
+		rdf4cpp::rdf::Literal true_{"true", rdf4cpp::rdf::IRI("http://www.w3.org/2001/XMLSchema#boolean")};
+		rdf4cpp::rdf::Literal false_{"false", rdf4cpp::rdf::IRI("http://www.w3.org/2001/XMLSchema#boolean")};
 
 	public:
 		Exists(std::vector<rdf4cpp::rdf::query::Variable> variables,
