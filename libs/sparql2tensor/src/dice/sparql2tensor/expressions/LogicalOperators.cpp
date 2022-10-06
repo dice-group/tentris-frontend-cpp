@@ -19,7 +19,8 @@ namespace dice::sparql2tensor::expressions {
 								  [](std::unique_ptr<SPARQLExpression> const &expr) {
 									  return bool(expr->evaluate());
 								  });
-		return Literal{std::to_string(result), rdf4cpp::rdf::IRI("http://www.w3.org/2001/XMLSchema#boolean")};
+		if (result) return TrueLiteral::instance();
+		return FalseLiteral::instance();
 	}
 
 	LogicalAndExpression *LogicalAndExpression::clone_impl() const {
@@ -58,7 +59,8 @@ namespace dice::sparql2tensor::expressions {
 								  [](std::unique_ptr<SPARQLExpression> const &expr) {
 									  return bool(expr->evaluate());
 								  });
-		return Literal{std::to_string(result), rdf4cpp::rdf::IRI("http://www.w3.org/2001/XMLSchema#boolean")};
+		if (result) return TrueLiteral::instance();
+		return FalseLiteral::instance();
 	}
 
 	LogicalOrExpression *LogicalOrExpression::clone_impl() const {
@@ -91,7 +93,8 @@ namespace dice::sparql2tensor::expressions {
 		auto lhs_res = lhs_op_->evaluate();
 		auto rhs_res = rhs_op_->evaluate();
 		auto result = (lhs_res == rhs_res);
-		return Literal{std::to_string(result), rdf4cpp::rdf::IRI("http://www.w3.org/2001/XMLSchema#boolean")};
+		if (result) return TrueLiteral::instance();
+		return FalseLiteral::instance();
 	}
 
 	EqualsExpression *EqualsExpression::clone_impl() const {
@@ -118,7 +121,8 @@ namespace dice::sparql2tensor::expressions {
 		auto lhs_res = lhs_op_->evaluate();
 		auto rhs_res = rhs_op_->evaluate();
 		auto result = (lhs_res != rhs_res);
-		return Literal{std::to_string(result), rdf4cpp::rdf::IRI("http://www.w3.org/2001/XMLSchema#boolean")};
+		if (result) return TrueLiteral::instance();
+		return FalseLiteral::instance();
 	}
 
 	NotEqualsExpression *NotEqualsExpression::clone_impl() const {
@@ -145,7 +149,8 @@ namespace dice::sparql2tensor::expressions {
 		auto lhs_res = lhs_op_->evaluate();
 		auto rhs_res = rhs_op_->evaluate();
 		auto result = (lhs_res < rhs_res);
-		return Literal{std::to_string(result), rdf4cpp::rdf::IRI("http://www.w3.org/2001/XMLSchema#boolean")};
+		if (result) return TrueLiteral::instance();
+		return FalseLiteral::instance();
 	}
 
 	LessExpression *LessExpression::clone_impl() const {
@@ -172,7 +177,8 @@ namespace dice::sparql2tensor::expressions {
 		auto lhs_res = lhs_op_->evaluate();
 		auto rhs_res = rhs_op_->evaluate();
 		auto result = (lhs_res > rhs_res);
-		return Literal{std::to_string(result), rdf4cpp::rdf::IRI("http://www.w3.org/2001/XMLSchema#boolean")};
+		if (result) return TrueLiteral::instance();
+		return FalseLiteral::instance();
 	}
 
 	GreaterExpression *GreaterExpression::clone_impl() const {
@@ -199,7 +205,8 @@ namespace dice::sparql2tensor::expressions {
 		auto lhs_res = lhs_op_->evaluate();
 		auto rhs_res = rhs_op_->evaluate();
 		auto result = (lhs_res <= rhs_res);
-		return Literal{std::to_string(result), rdf4cpp::rdf::IRI("http://www.w3.org/2001/XMLSchema#boolean")};
+		if (result) return TrueLiteral::instance();
+		return FalseLiteral::instance();
 	}
 
 	LessEqualsExpression *LessEqualsExpression::clone_impl() const {
@@ -226,7 +233,8 @@ namespace dice::sparql2tensor::expressions {
 		auto lhs_res = lhs_op_->evaluate();
 		auto rhs_res = rhs_op_->evaluate();
 		auto result = (lhs_res >= rhs_res);
-		return Literal{std::to_string(result), rdf4cpp::rdf::IRI("http://www.w3.org/2001/XMLSchema#boolean")};
+		if (result) return TrueLiteral::instance();
+		return FalseLiteral::instance();
 	}
 
 	GreaterEqualsExpression *GreaterEqualsExpression::clone_impl() const {

@@ -11,8 +11,31 @@ namespace dice::sparql2tensor::expressions {
 		SPARQLExpression() = default;
 		[[nodiscard]] std::unique_ptr<SPARQLExpression> clone() const { return std::unique_ptr<SPARQLExpression>(clone_impl()); }
 		[[nodiscard]] virtual std::vector<rdf4cpp::rdf::query::Variable> variables() const = 0;
+
 	protected:
 		[[nodiscard]] virtual SPARQLExpression *clone_impl() const = 0;
+	};
+
+	class TrueLiteral {
+	private:
+		TrueLiteral() = default;
+
+	public:
+		static rdf4cpp::rdf::Literal instance() {
+			static rdf4cpp::rdf::Literal true_literal{"true", rdf4cpp::rdf::IRI("http://www.w3.org/2001/XMLSchema#boolean")};
+			return true_literal;
+		}
+	};
+
+	class FalseLiteral {
+	private:
+		FalseLiteral() = default;
+
+	public:
+		static rdf4cpp::rdf::Literal instance() {
+			static rdf4cpp::rdf::Literal false_literal{"false", rdf4cpp::rdf::IRI("http://www.w3.org/2001/XMLSchema#boolean")};
+			return false_literal;
+		}
 	};
 
 }//namespace dice::sparql2tensor::expressions

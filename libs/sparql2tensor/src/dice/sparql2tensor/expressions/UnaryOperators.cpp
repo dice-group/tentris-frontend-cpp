@@ -18,7 +18,8 @@ namespace dice::sparql2tensor::expressions {
 		if (expr_result.null())
 			return {};
 		auto bool_result = not bool(expr_result); // boolean coercion
-		return Literal{std::to_string(bool_result), rdf4cpp::rdf::IRI("http://www.w3.org/2001/XMLSchema#boolean")};
+		if (bool_result) return TrueLiteral::instance();
+		return FalseLiteral::instance();
 	}
 
 	NotExpression *NotExpression::clone_impl() const {

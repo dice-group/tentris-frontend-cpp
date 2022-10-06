@@ -31,8 +31,8 @@ namespace dice::sparql2tensor::expressions {
 		auto expr_result = op_expr_->evaluate();
 		if (expr_result.null())
 			return {};
-		return Literal(std::to_string(expr_result.is_iri()),
-					   IRI(IRI("http://www.w3.org/2001/XMLSchema#boolean")));
+		if (expr_result.is_iri()) return TrueLiteral::instance();
+		return FalseLiteral::instance();
 	}
 
 	IsIRI *IsIRI::clone_impl() const {
@@ -55,8 +55,8 @@ namespace dice::sparql2tensor::expressions {
 		auto expr_result = op_expr_->evaluate();
 		if (expr_result.null())
 			return {};
-		return Literal(std::to_string(expr_result.is_blank_node()),
-					   IRI(IRI("http://www.w3.org/2001/XMLSchema#boolean")));
+		if (expr_result.is_blank_node()) return TrueLiteral::instance();
+		return FalseLiteral::instance();
 	}
 
 	IsBlank *IsBlank::clone_impl() const {
@@ -79,8 +79,8 @@ namespace dice::sparql2tensor::expressions {
 		auto expr_result = op_expr_->evaluate();
 		if (expr_result.null())
 			return {};
-		return Literal(std::to_string(expr_result.is_literal()),
-					   IRI(IRI("http://www.w3.org/2001/XMLSchema#boolean")));
+		if (expr_result.is_literal()) return TrueLiteral::instance();
+		return FalseLiteral::instance();
 	}
 
 	IsLiteral *IsLiteral::clone_impl() const {
@@ -163,8 +163,8 @@ namespace dice::sparql2tensor::expressions {
 		if (not compatible_str_arguments(literal_1, literal_2))
 			return {};
 		if (literal_1.lexical_form().find(literal_2.lexical_form()) != std::string::npos)
-			return Literal("true", IRI("http://www.w3.org/2001/XMLSchema#boolean"));
-		return Literal("false", IRI("http://www.w3.org/2001/XMLSchema#boolean"));
+			return TrueLiteral::instance();
+		return FalseLiteral::instance();
 	}
 
 	Contains *Contains::clone_impl() const {
@@ -199,8 +199,8 @@ namespace dice::sparql2tensor::expressions {
 		if (not compatible_str_arguments(literal_1, literal_2))
 			return {};
 		if (literal_1.lexical_form().starts_with(literal_2.lexical_form()))
-			return Literal("true", IRI("http://www.w3.org/2001/XMLSchema#boolean"));
-		return Literal("false", IRI("http://www.w3.org/2001/XMLSchema#boolean"));
+			return TrueLiteral::instance();
+		return FalseLiteral::instance();
 	}
 
 	StrStarts *StrStarts::clone_impl() const {
@@ -235,8 +235,8 @@ namespace dice::sparql2tensor::expressions {
 		if (not compatible_str_arguments(literal_1, literal_2))
 			return {};
 		if (literal_1.lexical_form().ends_with(literal_2.lexical_form()))
-			return Literal("true", IRI("http://www.w3.org/2001/XMLSchema#boolean"));
-		return Literal("false", IRI("http://www.w3.org/2001/XMLSchema#boolean"));
+			return TrueLiteral::instance();
+		return FalseLiteral::instance();
 	}
 
 	StrEnds *StrEnds::clone_impl() const {
@@ -274,13 +274,13 @@ namespace dice::sparql2tensor::expressions {
 			literal_2.datatype() != IRI("http://www.w3.org/2001/XMLSchema#string"))
 			return {};
 		if (literal_2_str == "*" and not literal_1_str.empty())
-			return Literal("true", IRI("http://www.w3.org/2001/XMLSchema#boolean"));
+			return TrueLiteral::instance();
 		// case-insensitive comparison of language tags (https://stackoverflow.com/a/28387449)
 		if (literal_1_str.length() == literal_2_str.length() and
 			std::equal(literal_1.language_tag().begin(), literal_1.language_tag().end(), literal_2.lexical_form().begin(),
 					   [](char const &a, char const &b) { return std::tolower(a) == std::tolower(b); }))
-			return Literal("true", IRI("http://www.w3.org/2001/XMLSchema#boolean"));
-		return Literal("false", IRI("http://www.w3.org/2001/XMLSchema#boolean"));
+			return TrueLiteral::instance();
+		return FalseLiteral::instance();
 	}
 
 	LangMatches *LangMatches::clone_impl() const {

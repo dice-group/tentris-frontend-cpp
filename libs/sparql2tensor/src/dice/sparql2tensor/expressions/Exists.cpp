@@ -30,9 +30,8 @@ namespace dice::sparql2tensor::expressions {
 			has_solutions = true;
 		}
 		bool result = not_exists_ ? not has_solutions : has_solutions;
-		if (result)
-			return true_;
-		return false_;
+		if (result) return TrueLiteral::instance();
+		return FalseLiteral::instance();
 	}
 
 	std::vector<rdf4cpp::rdf::query::Variable> Exists::variables() const {
