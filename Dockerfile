@@ -7,7 +7,7 @@ ARG CONAN_PW="none"
 
 RUN apk update && \
     apk add git make cmake boost-build pythonispython3 py3-pip autoconf automake gcc g++ clang \
-    clang-dev clang-libs clang-extra-tools clang-static llvm14 llvm14-dev lld pkgconfig libuuid \
+    clang-dev clang-libs clang-extra-tools clang-static llvm15 llvm15-dev lld pkgconfig libuuid \
     libtool util-linux-dev linux-headers openjdk11-jdk && \
     apk add mold --repository=https://mirrors.edge.kernel.org/alpine/edge/testing
 
