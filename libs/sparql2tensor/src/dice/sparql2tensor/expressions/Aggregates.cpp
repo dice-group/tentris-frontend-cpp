@@ -24,7 +24,7 @@ namespace dice::sparql2tensor::expressions {
 	}
 
 	rdf_tensor::NodeWrapper CountStar::evaluate() const {
-		return Literal(std::to_string(count_), IRI("http://www.w3.org/2001/XMLSchema#integer"));
+		return Literal::make<datatypes::xsd::Integer>(count_);
 	}
 
 	CountStar *CountStar::clone_impl() const {
@@ -44,7 +44,7 @@ namespace dice::sparql2tensor::expressions {
 	}
 
 	rdf_tensor::NodeWrapper CountStarDistinct::evaluate() const {
-		return Literal(std::to_string(entries_.size()), IRI("http://www.w3.org/2001/XMLSchema#integer"));
+		return Literal::make<datatypes::xsd::Integer>(entries_.size());
 	}
 
 	CountStarDistinct *CountStarDistinct::clone_impl() const {
@@ -67,7 +67,7 @@ namespace dice::sparql2tensor::expressions {
 	}
 
 	rdf_tensor::NodeWrapper Count::evaluate() const {
-		return Literal(std::to_string(count_), IRI("http://www.w3.org/2001/XMLSchema#integer"));
+		return Literal::make<datatypes::xsd::Integer>(count_);
 	}
 
 	Count *Count::clone_impl() const {
@@ -86,7 +86,7 @@ namespace dice::sparql2tensor::expressions {
 	}
 
 	rdf_tensor::NodeWrapper CountDistinct::evaluate() const {
-		return Literal(std::to_string(rdf_nodes_.size()), IRI("http://www.w3.org/2001/XMLSchema#integer"));
+		return Literal::make<datatypes::xsd::Integer>(rdf_nodes_.size());
 	}
 
 	CountDistinct *CountDistinct::clone_impl() const {
