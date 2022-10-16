@@ -75,3 +75,12 @@ target_link_libraries(tests_SPARQL_ProjectExpressions
         CURL::libcurl
         )
 add_test(NAME tests_SPARQL_ProjectExpressions COMMAND tests_SPARQL_ProjectExpressions)
+
+add_executable(tests_SPARQL_Inline sparql/tests_Inline.cpp)
+target_link_libraries(tests_SPARQL_Inline
+        doctest::doctest
+        tentris::tentris
+        pugixml::pugixml
+        CURL::libcurl
+        )
+add_test(NAME tests_SPARQL_Inline COMMAND tests_SPARQL_Inline)

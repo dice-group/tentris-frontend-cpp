@@ -107,10 +107,12 @@ namespace dice::sparql2tensor::parser::visitors {
 		triples_blocks.emplace_back();
 		optional_blocks.emplace_back();
 		filter_blocks.emplace_back();
+		inline_data_blocks.emplace_back();
 		subselect_blocks.emplace_back();
 		visitWellDesignedPattern(ctx, {});
 		// pop the top entry of the stacks, as we have finished visiting the graph pattern
 		subselect_blocks.pop_back();
+		inline_data_blocks.pop_back();
 		filter_blocks.pop_back();
 		optional_blocks.pop_back();
 		triples_blocks.pop_back();
@@ -141,6 +143,44 @@ namespace dice::sparql2tensor::parser::visitors {
 		return nullptr;
 	}
 
+	antlrcpp::Any SelectAskQueryVisitor::visitInlineData(SparqlParser::InlineDataContext *ctx) {
+		if (auto data_block_ctx = ctx->dataBlock(); data_block_ctx)
+			visitDataBlock(data_block_ctx);
+		return nullptr;
+	}
+
+	antlrcpp::Any SelectAskQueryVisitor::visitDataBlock(SparqlParser::DataBlockContext *ctx) {
+		if (auto data_one_var_ctx = ctx->inlineDataOneVar(); data_one_var_ctx)
+			visitInlineDataOneVar(data_one_var_ctx);
+		if (auto data_full_ctx = ctx->inlineDataFull(); data_full_ctx)
+			throw std::runtime_error("InlineDataFull not supported");
+		return nullptr;
+	}
+
+	antlrcpp::Any SelectAskQueryVisitor::visitInlineDataOneVar(SparqlParser::InlineDataOneVarContext *ctx) {
+		rdf4cpp::rdf::query::Variable var = visitVar(ctx->var());
+		std::vector<rdf4cpp::rdf::Node> values{};
+		for (auto data_block_value_ctx : ctx->dataBlockValue()) {
+			if (auto iri_ctx = data_block_value_ctx->iri(); iri_ctx)
+				values.emplace_back(visitIri(iri_ctx).as<rdf4cpp::rdf::IRI>());
+			else if (auto literal_ctx = data_block_value_ctx->rdfLiteral(); literal_ctx)
+				values.emplace_back(visitRdfLiteral(literal_ctx).as<rdf4cpp::rdf::Literal>());
+			else if (auto num_literal_ctx = data_block_value_ctx->numericLiteral(); num_literal_ctx)
+				values.emplace_back(visitNumericLiteral(num_literal_ctx).as<rdf4cpp::rdf::Literal>());
+			else if (auto bool_literal = data_block_value_ctx->booleanLiteral(); bool_literal)
+				values.emplace_back(visitBooleanLiteral(bool_literal).as<rdf4cpp::rdf::Literal>());
+			else
+				values.emplace_back(rdf4cpp::rdf::Node{});
+		}
+		auto operand_desc = query->add_inline_data(var, values, triple_store);
+		// odg dependencies (join)
+		for (auto desc : group_patterns.back()) {
+			query->add_dependency(operand_desc, desc);
+		}
+		group_patterns.back().push_back(operand_desc);
+		return nullptr;
+	}
+
 	void SelectAskQueryVisitor::visitWellDesignedPattern(SparqlParser::GroupGraphPatternContext *ctx,
 														 std::vector<SparqlParser::GroupOrUnionGraphPatternContext *> gou_ctxs) {
 		if (ctx->subSelect()) {
@@ -161,6 +201,8 @@ namespace dice::sparql2tensor::parser::visitors {
 					// store all FilterPatterns that appear in the pattern
 					else if (auto filter_ctx = sub_ctx->graphPatternNotTriples()->filter(); filter_ctx)
 						filter_blocks.back().push_back(filter_ctx);
+					else if (auto inline_data_ctx = sub_ctx->graphPatternNotTriples()->inlineData(); inline_data_ctx)
+						inline_data_blocks.back().push_back(inline_data_ctx);
 				}
 				// store all triples blocks that appear in the pattern
 				if (auto triples_block_ctx = sub_ctx->triplesBlock(); triples_block_ctx)
@@ -180,6 +222,10 @@ namespace dice::sparql2tensor::parser::visitors {
 			// visit all filters
 			for (auto f_ctx : filter_blocks.back()) {
 				visitFilter(f_ctx);
+			}
+			// visit all inline data
+			for (auto id_ctx : inline_data_blocks.back()) {
+				visitInlineData(id_ctx);
 			}
 			// if we are in an optional pattern we need to capture dependencies
 			if (not opt_operands.empty()) {
@@ -222,6 +268,7 @@ namespace dice::sparql2tensor::parser::visitors {
 			size_t current_opts = optional_blocks.back().size();
 			size_t current_filters = filter_blocks.back().size();
 			size_t current_subselect = subselect_blocks.back().size();
+			size_t current_inline_data = inline_data_blocks.back().size();
 			// visit each group graph pattern of the GroupOrUnionGraphPattern
 			// while visiting each group graph pattern, the triples and optional blocks stored until this point will also be visited
 			for (auto grp_ctx : cur_gou_ctx->groupGraphPattern()) {
@@ -231,6 +278,7 @@ namespace dice::sparql2tensor::parser::visitors {
 				optional_blocks.back().resize(current_opts);
 				filter_blocks.back().resize(current_filters);
 				subselect_blocks.back().resize(current_subselect);
+				inline_data_blocks.back().resize(current_inline_data);
 			}
 		}
 	}

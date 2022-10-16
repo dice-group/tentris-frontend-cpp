@@ -50,6 +50,16 @@ namespace dice::sparql2tensor {
 		return raw_query_.add_operand(vars_ids, std::get<rdf_tensor::const_BoolHypertrie>(slice_result));
 	}
 
+	rdf_tensor::operand_desc SPARQLQuery::add_inline_data(const rdf4cpp::rdf::query::Variable &var,
+														  const std::vector<rdf4cpp::rdf::Node> &data,
+														  const triple_store::TripleStore &triple_store) {
+		rdf_tensor::BoolHypertrie data_ht{1, raw_query_.context()};
+		for (auto const &node : data) {
+			data_ht.set({node}, true);
+		}
+		return raw_query_.add_operand({var_to_id_[var]}, std::move(data_ht));
+	}
+
 	rdf_tensor::operand_desc SPARQLQuery::add_filter_expr(std::unique_ptr<expressions::SPARQLExpression> expression,
 														  const triple_store::TripleStore &triple_store) {
 		auto variables = expression->variables();

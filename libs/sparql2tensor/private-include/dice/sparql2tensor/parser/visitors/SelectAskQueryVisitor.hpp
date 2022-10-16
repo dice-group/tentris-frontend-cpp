@@ -35,6 +35,7 @@ namespace dice::sparql2tensor::parser::visitors {
 		std::vector<std::vector<SparqlParser::FilterContext *>> filter_blocks;
 		std::vector<std::vector<SparqlParser::OptionalGraphPatternContext *>> optional_blocks;
 		std::vector<std::vector<SparqlParser::SubSelectContext *>> subselect_blocks;
+		std::vector<std::vector<SparqlParser::InlineDataContext *>> inline_data_blocks;
 
 	public:
 		SelectAskQueryVisitor() = delete;
@@ -57,6 +58,12 @@ namespace dice::sparql2tensor::parser::visitors {
 		antlrcpp::Any visitSubSelect(SparqlParser::SubSelectContext *ctx) override;
 
 		antlrcpp::Any visitFilter(SparqlParser::FilterContext *ctx) override;
+
+		antlrcpp::Any visitInlineData(SparqlParser::InlineDataContext *ctx) override;
+
+		antlrcpp::Any visitDataBlock(SparqlParser::DataBlockContext *ctx) override;
+
+		antlrcpp::Any visitInlineDataOneVar(SparqlParser::InlineDataOneVarContext *ctx) override;
 
 		antlrcpp::Any visitTriplesBlock(SparqlParser::TriplesBlockContext *) override;
 
