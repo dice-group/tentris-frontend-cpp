@@ -15,12 +15,20 @@ namespace dice::sparql2tensor::expressions {
 	}
 
 	rdf_tensor::NodeWrapper LogicalAndExpression::evaluate() const {
-		auto result = std::all_of(op_expressions_.begin(), op_expressions_.end(),
-								  [](std::unique_ptr<SPARQLExpression> const &expr) {
-									  return bool(expr->evaluate());
-								  });
-		if (result) return TrueLiteral::instance();
-		return FalseLiteral::instance();
+		bool contains_error = false;
+		for (auto const &expr : op_expressions_) {
+			auto expr_result = expr->evaluate();
+			if (expr_result.null()) {
+				contains_error = true;
+				continue;
+			}
+			if (not bool(expr_result)) {
+				return FalseLiteral::instance();
+			}
+		}
+		if (contains_error)
+			return {};
+		return TrueLiteral::instance();
 	}
 
 	LogicalAndExpression *LogicalAndExpression::clone_impl() const {
@@ -55,11 +63,19 @@ namespace dice::sparql2tensor::expressions {
 	}
 
 	rdf_tensor::NodeWrapper LogicalOrExpression::evaluate() const {
-		auto result = std::any_of(op_expressions_.begin(), op_expressions_.end(),
-								  [](std::unique_ptr<SPARQLExpression> const &expr) {
-									  return bool(expr->evaluate());
-								  });
-		if (result) return TrueLiteral::instance();
+		bool contains_error = false;
+		for (auto const &expr : op_expressions_) {
+			auto expr_result = expr->evaluate();
+			if (expr_result.null()) {
+				contains_error = true;
+				continue;
+			}
+			if (not bool(expr_result)) {
+				return TrueLiteral::instance();
+			}
+		}
+		if (contains_error)
+			return {};
 		return FalseLiteral::instance();
 	}
 
