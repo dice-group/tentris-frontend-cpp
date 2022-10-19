@@ -1,6 +1,7 @@
 #include "TripleStore.hpp"
 
-#include <dice/triple-store/SerdLoad.hpp>
+#include <fstream>
+
 
 namespace dice::triple_store {
 	TripleStore::TripleStore(TripleStore::BoolHypertrie &hypertrie) : hypertrie_(hypertrie), inserter_(hypertrie_) {}
@@ -11,15 +12,24 @@ namespace dice::triple_store {
 	}
 
 	void TripleStore::load_ttl(const std::string &file_path, uint32_t bulk_size, const rdf_tensor::HypertrieBulkInserter::BulkInserted_callback &call_back) {
+		std::ifstream ifs{file_path};
+
+		if (!ifs.is_open()) {
+			throw std::runtime_error{"unable to open provided file " + file_path};
+		}
+
 		flush();
 		std::unique_lock<std::shared_mutex> writer_lock{mutex_};
 		HypertrieBulkInserter bulk_inserter{hypertrie_, bulk_size, call_back};
-		AddTripleCallback_function add_entry_callback =
-				[&bulk_inserter](rdf4cpp::rdf::Node subj, rdf4cpp::rdf::Node pred, rdf4cpp::rdf::Node obj) noexcept -> void {
-			hypertrie::internal::raw::SingleEntry<3, htt_t> entry{{subj, pred, obj}};
-			bulk_inserter.add(entry);
-		};
-		serd_load(file_path, add_entry_callback);
+		for (rdf4cpp::rdf::parser::IStreamQuadIterator qit{ifs}; qit != rdf4cpp::rdf::parser::IStreamQuadIterator{}; ++qit) {
+			if (qit->has_value()) {
+				auto const &quad = qit->value();
+				bulk_inserter.add(
+						hypertrie::internal::raw::SingleEntry<3, htt_t>{{quad.subject(), quad.predicate(), quad.object()}});
+			} else {
+				std::cerr << qit->error() << '\n';
+			}
+		}
 	}
 	void TripleStore::add_statement(const rdf4cpp::rdf::Statement &statement) {
 		std::unique_lock<std::shared_mutex> writer_lock{mutex_};

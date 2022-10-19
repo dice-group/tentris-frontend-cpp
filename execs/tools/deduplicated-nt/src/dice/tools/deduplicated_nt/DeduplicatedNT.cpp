@@ -1,5 +1,6 @@
 #include <chrono>
 #include <filesystem>
+#include <fstream>
 
 #include <dice/hash/DiceHash.hpp>
 #include <dice/sparse-map/sparse_set.hpp>
@@ -7,11 +8,11 @@
 
 #include <cxxopts.hpp>
 #include <fmt/format.h>
+
+#include <rdf4cpp/rdf.hpp>
 #include <spdlog/logger.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
-
-#include "SerdParser.hpp"
 
 int main(int argc, char *argv[]) {
 	using namespace dice;
@@ -77,34 +78,30 @@ int main(int argc, char *argv[]) {
 			}
 		};
 
-		// callback that produces unique id triples
-		auto distinct_callback = [&](rdf4cpp::rdf::Node s, rdf4cpp::rdf::Node p, rdf4cpp::rdf::Node o) {
-			static dice::sparse_map::sparse_set<uint64_t> deduplication;
+		auto file_path = parsed_args["file"].as<std::string>();
+		std::ifstream ifs{file_path};
 
-			IDTriple id_triple = std::make_tuple(s.backend_handle().raw(), p.backend_handle().raw(), o.backend_handle().raw());
-			auto hash = hasher(id_triple);
-			if (not deduplication.contains(hash)) {
-				terminate_at_limit();
-				std::cout << fmt::format("{} {} {} . \n", std::string(s), std::string(p), std::string(o));
-				deduplication.insert(hash);
+		if (!ifs.is_open()) {
+			throw std::runtime_error{"unable to open provided file " + file_path};
+		}
+
+		dice::sparse_map::sparse_set<uint64_t> deduplication;
+		for (rdf4cpp::rdf::parser::IStreamQuadIterator qit{ifs}; qit != rdf4cpp::rdf::parser::IStreamQuadIterator{}; ++qit) {
+			if (qit->has_value()) {
+				auto const &quad = qit->value();
+				IDTriple id_triple = std::make_tuple(quad.subject().backend_handle().raw(),
+													 quad.predicate().backend_handle().raw(),
+													 quad.object().backend_handle().raw());
+				auto hash = hasher(id_triple);
+				if (not deduplication.contains(hash)) {
+					terminate_at_limit();
+					std::cout << fmt::format("{} {} {} . \n", std::string(quad.subject()), std::string(quad.predicate()), std::string(quad.object()));
+					deduplication.insert(hash);
+				}
+			} else {
+				std::cerr << qit->error() << '\n';
 			}
-		};
-
-		using namespace dice::tools::rdf2ids::serd_parser;
-
-		// start serd parser
-		SerdHandle serd_handle{
-				.prefixes = {},
-				.add_triple_callback = distinct_callback};
-
-		SerdReader *reader = serd_reader_new(SERD_TURTLE, (void *) &serd_handle,
-											 nullptr,
-											 reinterpret_cast<SerdBaseSink>(on_base),
-											 reinterpret_cast<SerdPrefixSink>(on_prefix),
-											 reinterpret_cast<SerdStatementSink>(on_statement),
-											 reinterpret_cast<SerdEndSink>(on_end));
-		serd_reader_read_file(reader, reinterpret_cast<const uint8_t *>(parsed_args["file"].as<std::string>().c_str()));
-		serd_reader_free(reader);
+		}
 	}
 
 	spdlog::info("Shutdown successful.");

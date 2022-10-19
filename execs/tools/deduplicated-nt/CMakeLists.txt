@@ -5,7 +5,6 @@ find_package(dice-hash REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(cxxopts REQUIRED)
 find_package(rdf4cpp REQUIRED)
-find_package(serd REQUIRED)
 
 add_executable(deduplicated_nt
         src/dice/tools/deduplicated_nt/DeduplicatedNT.cpp
@@ -19,7 +18,6 @@ target_link_libraries(deduplicated_nt PRIVATE
         dice-hash::dice-hash
         spdlog::spdlog
         cxxopts::cxxopts
-        serd::serd
         tentris::rdf-tensor
         )
 
