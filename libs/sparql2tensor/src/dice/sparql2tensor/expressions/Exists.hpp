@@ -7,7 +7,7 @@ namespace dice::sparql2tensor::expressions {
 
 	class Exists : public SPARQLExpression {
 	private:
-		rdf_tensor::Query sub_query_;
+		mutable rdf_tensor::Query sub_query_;
 		bool not_exists_;
 		std::chrono::steady_clock::time_point timeout_;
 		std::vector<rdf4cpp::rdf::query::Variable> variables_;

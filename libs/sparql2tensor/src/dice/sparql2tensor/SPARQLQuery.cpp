@@ -51,8 +51,7 @@ namespace dice::sparql2tensor {
 	}
 
 	rdf_tensor::operand_desc SPARQLQuery::add_inline_data(const rdf4cpp::rdf::query::Variable &var,
-														  const std::vector<rdf4cpp::rdf::Node> &data,
-														  const triple_store::TripleStore &triple_store) {
+														  const std::vector<rdf4cpp::rdf::Node> &data) {
 		rdf_tensor::BoolHypertrie data_ht{1, raw_query_.context()};
 		for (auto const &node : data) {
 			data_ht.set({node}, true);

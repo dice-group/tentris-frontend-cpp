@@ -56,8 +56,7 @@ namespace dice::sparql2tensor {
 																  dice::triple_store::TripleStore const &triple_store);
 
 		[[nodiscard]] rdf_tensor::operand_desc add_inline_data(const rdf4cpp::rdf::query::Variable &var,
-															   const std::vector<rdf4cpp::rdf::Node> &data,
-															   const triple_store::TripleStore &triple_store);
+															   const std::vector<rdf4cpp::rdf::Node> &data);
 
 		[[nodiscard]] rdf_tensor::operand_desc add_filter_expr(std::unique_ptr<expressions::SPARQLExpression> expression,
 															   dice::triple_store::TripleStore const &triple_store);

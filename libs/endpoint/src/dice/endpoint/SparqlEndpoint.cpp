@@ -49,7 +49,8 @@ namespace dice::endpoint {
 				}
 				try {
 					if (sparql_query->ask()) {
-						auto generator_iter = rdf_tensor::QueryEvaluation::evaluate(sparql_query->raw_query(), timeout);
+						auto raw_query = sparql_query->raw_query();
+						auto generator_iter = rdf_tensor::QueryEvaluation::evaluate(raw_query, timeout);
 						bool ask_res = false;
 						if (generator_iter.begin() != generator_iter.end() and (*generator_iter.begin()).value() > 0)
 							ask_res = true;
@@ -60,8 +61,8 @@ namespace dice::endpoint {
 								.done();
 					} else {
 						endpoint::SparqlJsonResultSAXWriter json_writer{sparql_query->projected_variables(), 100'000};
-
-						for (auto const &entry : rdf_tensor::QueryEvaluation::evaluate(sparql_query->raw_query(), timeout)) {
+						auto raw_query = sparql_query->raw_query();
+						for (auto const &entry : rdf_tensor::QueryEvaluation::evaluate(raw_query, timeout)) {
 							json_writer.add(entry);
 						}
 						json_writer.close();

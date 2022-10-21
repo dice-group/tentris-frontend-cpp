@@ -172,7 +172,7 @@ namespace dice::sparql2tensor::parser::visitors {
 			else
 				values.emplace_back(rdf4cpp::rdf::Node{});
 		}
-		auto operand_desc = query->add_inline_data(var, values, triple_store);
+		auto operand_desc = query->add_inline_data(var, values);
 		// odg dependencies (join)
 		for (auto desc : group_patterns.back()) {
 			query->add_dependency(operand_desc, desc);
