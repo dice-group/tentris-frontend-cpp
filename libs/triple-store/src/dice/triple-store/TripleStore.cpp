@@ -1,7 +1,8 @@
 #include "TripleStore.hpp"
 
-#include <fstream>
+#include <rdf4cpp/rdf.hpp>
 
+#include <fstream>
 
 namespace dice::triple_store {
 	TripleStore::TripleStore(TripleStore::BoolHypertrie &hypertrie) : hypertrie_(hypertrie), inserter_(hypertrie_) {}

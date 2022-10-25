@@ -64,10 +64,6 @@ int main(int argc, char *argv[]) {
 
 	// write TSV to std::cout
 	{
-		// we want to write ID triples
-		using IDTriple = std::tuple<uint64_t, uint64_t, uint64_t>;
-		static dice::hash::DiceHashxxh3<IDTriple> hasher{};
-
 		// terminate when the limit is reached
 		auto terminate_at_limit = [&count, &limit] {
 			if (++count > limit) {
@@ -89,10 +85,10 @@ int main(int argc, char *argv[]) {
 		for (rdf4cpp::rdf::parser::IStreamQuadIterator qit{ifs}; qit != rdf4cpp::rdf::parser::IStreamQuadIterator{}; ++qit) {
 			if (qit->has_value()) {
 				auto const &quad = qit->value();
-				IDTriple id_triple = std::make_tuple(quad.subject().backend_handle().raw(),
-													 quad.predicate().backend_handle().raw(),
-													 quad.object().backend_handle().raw());
-				auto hash = hasher(id_triple);
+				auto const hash = hash::dice_hash_templates<hash::Policies::xxh3>::dice_hash(std::array<uint64_t, 3>{
+						quad.subject().backend_handle().raw(),
+						quad.predicate().backend_handle().raw(),
+						quad.object().backend_handle().raw()});
 				if (not deduplication.contains(hash)) {
 					terminate_at_limit();
 					std::cout << fmt::format("{} {} {} . \n", std::string(quad.subject()), std::string(quad.predicate()), std::string(quad.object()));
