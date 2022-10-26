@@ -1,5 +1,5 @@
 FROM alpine:edge AS builder
-# todo: fix version as soon as clang-14 is available outside of edge
+# todo: fix version as soon as clang15 is available outside of edge
 ARG MARCH="x86-64-v3"
 ARG CONAN_USER="none"
 ARG CONAN_PW="none"
@@ -9,7 +9,7 @@ RUN apk update && \
     apk add \
     make cmake autoconf automake pkgconfig \
     gcc g++ gdb \
-    clang clang-dev clang-libs clang-extra-tools clang-static lldb llvm14 llvm14-dev\
+    clang15 clang15-dev clang15-libs clang15-extra-tools clang15-static lldb llvm15 llvm15-dev\
     openjdk11-jdk \
     pythonispython3 py3-pip \
     bash git libtool util-linux-dev linux-headers \
