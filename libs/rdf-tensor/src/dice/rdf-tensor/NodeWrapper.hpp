@@ -34,23 +34,7 @@ namespace dice::rdf_tensor {
 		};
 
 		explicit operator bool() const noexcept {
-			// unbound values, error values and non-literals are evaluated to false
-			if (null() or not handle_.is_literal())
-				return false;
-			auto literal = Literal(*this);
-			// boolean literal
-			if (literal.datatype().identifier() == "http://www.w3.org/2001/XMLSchema#boolean") {
-				if (literal.lexical_form() == "1" or literal.lexical_form() == "true") return true;
-				else return false;
-			}
-			// plain literal / string literal
-			else if (literal.datatype().identifier() == "http://www.w3.org/2001/XMLSchema#string") {
-				if (not literal.lexical_form().empty()) return true;
-				else return false;
-			}
-			// TODO: numeric literals
-			// everything else is considered false
-			return false;
+			return bool(ebv());
 		}
 
 	};

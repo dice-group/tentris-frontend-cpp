@@ -167,6 +167,20 @@ namespace dice::sparql2tensor::expressions {
 		[[nodiscard]] StrLang *clone_impl() const override;
 	};
 
+	/* https://www.w3.org/TR/sparql11-query/#func-bound */
+	class Bound : public SPARQLExpression {
+	private:
+		std::unique_ptr<SPARQLExpression> op_expr_;
+
+	public:
+		explicit Bound(std::unique_ptr<SPARQLExpression> op_expr_);
+		void update_value(rdf_tensor::Entry const &entry) override;
+		[[nodiscard]] rdf_tensor::NodeWrapper evaluate() const override;
+		[[nodiscard]] std::vector<rdf4cpp::rdf::query::Variable> variables() const override;
+	protected:
+		[[nodiscard]] Bound *clone_impl() const override;
+	};
+
 }//namespace dice::sparql2tensor::expressions
 
 #endif//DICE_SPARQL_BUILTINCALLS_HPP

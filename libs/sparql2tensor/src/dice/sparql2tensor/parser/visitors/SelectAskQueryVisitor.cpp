@@ -531,6 +531,8 @@ namespace dice::sparql2tensor::parser::visitors {
 			expr = std::move(visitConditionalOrExpression(or_ctx).as<std::unique_ptr<SPARQLExpression>>());
 		} else if (auto relational_ctx = dynamic_cast<SparqlParser::RelationalExpressionContext *>(ctx); relational_ctx) {
 			expr = std::move(visitRelationalExpression(relational_ctx).as<std::unique_ptr<SPARQLExpression>>());
+		} else if (auto unary_neg_ctx = dynamic_cast<SparqlParser::UnaryNegationExpressionContext *>(ctx); unary_neg_ctx) {
+			expr = std::move(visitUnaryNegationExpression(unary_neg_ctx).as<std::unique_ptr<SPARQLExpression>>());
 		} else {
 			throw std::runtime_error("Unsupported Expression: " + ctx->getText());
 		}
@@ -575,6 +577,12 @@ namespace dice::sparql2tensor::parser::visitors {
 			expression = std::make_unique<LessEqualsExpression>(std::move(lhs_op), std::move(rhs_op));
 		else
 			throw std::runtime_error("Expression not supported: " + ctx->getText());
+		return expression;
+	}
+
+	antlrcpp::Any SelectAskQueryVisitor::visitUnaryNegationExpression(SparqlParser::UnaryNegationExpressionContext *ctx) {
+		std::unique_ptr<SPARQLExpression> expression = std::make_unique<NotExpression>(
+				std::move(visitExpression(ctx->expression()).as<std::unique_ptr<SPARQLExpression>>()));
 		return expression;
 	}
 
@@ -651,6 +659,11 @@ namespace dice::sparql2tensor::parser::visitors {
 		} else if (ctx->LANGMATCHES()) {
 			expr = std::make_unique<LangMatches>(std::move(visitExpression(ctx->expression(0)).as<std::unique_ptr<SPARQLExpression>>()),
 												 std::move(visitExpression(ctx->expression(1)).as<std::unique_ptr<SPARQLExpression>>()));
+		} else if (ctx->BOUND()) {
+			auto var = visitVar(ctx->var()).as<rdf4cpp::rdf::query::Variable>();
+			query->register_variable(var);
+			query->track_variable(var);
+			expr = std::make_unique<Bound>(std::make_unique<PrimaryVarExpression>(var, query->tracked_variable_position(var)));
 		} else {
 			throw std::runtime_error("Unsupported built-in function: " + ctx->getText());
 		}

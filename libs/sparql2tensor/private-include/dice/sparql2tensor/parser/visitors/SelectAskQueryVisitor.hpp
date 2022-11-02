@@ -109,6 +109,8 @@ namespace dice::sparql2tensor::parser::visitors {
 
 		antlrcpp::Any visitRelationalExpression(SparqlParser::RelationalExpressionContext *ctx) override;
 
+		antlrcpp::Any visitUnaryNegationExpression(SparqlParser::UnaryNegationExpressionContext *ctx) override;
+
 		antlrcpp::Any visitBuiltInCall(SparqlParser::BuiltInCallContext *ctx) override;
 
 		antlrcpp::Any visitAggregate(SparqlParser::AggregateContext *ctx) override;

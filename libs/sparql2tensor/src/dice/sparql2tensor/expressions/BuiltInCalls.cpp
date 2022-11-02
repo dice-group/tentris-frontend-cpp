@@ -355,4 +355,27 @@ namespace dice::sparql2tensor::expressions {
 		return vars_1;
 	}
 
+	/* Bound Expression */
+	Bound::Bound(std::unique_ptr<SPARQLExpression> op_expr)
+		: op_expr_(std::move(op_expr)) {}
+
+	void Bound::update_value(const rdf_tensor::Entry &entry) {
+		op_expr_->update_value(entry);
+	}
+
+	rdf_tensor::NodeWrapper Bound::evaluate() const {
+		auto expr_result = op_expr_->evaluate();
+		if (expr_result.null()) return FalseLiteral::instance();
+		return TrueLiteral::instance();
+	}
+
+	Bound *Bound::clone_impl() const {
+		return new Bound(op_expr_->clone());
+	}
+
+	std::vector<Variable> Bound::variables() const {
+		return op_expr_->variables();
+	}
+
+
 }// namespace dice::sparql2tensor::expressions
