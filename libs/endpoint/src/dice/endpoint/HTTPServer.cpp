@@ -23,8 +23,9 @@ namespace dice::endpoint {
 
 	void HTTPServer::operator()() {
 		spdlog::info("Available endpoints:");
-		router_->http_get(R"(/sparql)",
-						  SPARQLEndpoint{executor_, triplestore_, sparql_query_cache_, cfg_.timeout_duration});
+		router_->add_handler(restinio::router::any_of_methods(restinio::http_method_get(), restinio::http_method_post()),
+							 R"(/sparql)",
+							 SPARQLEndpoint{executor_, triplestore_, sparql_query_cache_, cfg_.timeout_duration});
 		spdlog::info("  GET /sparql?query= for normal queries");
 
 		router_->http_get(R"(/stream)",
