@@ -32,8 +32,8 @@ namespace dice::endpoint {
 		auto content_type_value = http_field_parsers::content_type_value_t::try_parse(*content_type);
 		if (not content_type_value.has_value() or
 			content_type_value.value().media_type.type != "application" or
-			content_type_value.value().media_type.subtype != "sparql-query" or
-			content_type_value.value().media_type.subtype != "x-www-form-urlencoded") {
+			(content_type_value.value().media_type.subtype != "sparql-query" and
+			content_type_value.value().media_type.subtype != "x-www-form-urlencoded")) {
 			static auto const message = "Expected content-type: application/sparql-query or application/x-www-form-urlencoded";
 			spdlog::warn("HTTP response {}: {}", status_bad_request(), message);
 			req->create_response(status_bad_request()).set_body(message).done();
