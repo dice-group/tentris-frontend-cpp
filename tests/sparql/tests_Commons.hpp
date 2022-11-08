@@ -12,26 +12,26 @@
 
 namespace dice::tests::sparql {
 
-#define GENERATE_SPARQL_TEST_CASE(const_url, data, query, result, static_data)            \
-	TEST_CASE(query) {                                                                    \
-		const std::string data_url = (const_url) + (data);                                \
-		const std::string query_url = (const_url) + (query);                              \
-		const std::string result_url = (const_url) + (result);                            \
-		const std::string rdf_data = static_data ? data : read_file_from_url(data_url);   \
-		create_metall_db(db_path);                                                        \
-		rdf_tensor::metall_manager storage_manager{metall::open_only, db_path.c_str()};   \
-		auto *store = init_stores(storage_manager, rdf_data);                             \
-		auto sparql_str = read_file_from_url(query_url);                                  \
-		auto expected_results = parse_sparql_result_file(read_file_from_url(result_url)); \
-		auto actual_results = eval_sparql_query(sparql_str, *store);                      \
-		CHECK(compare_results(actual_results, expected_results));                         \
+#define GENERATE_SPARQL_TEST_CASE(const_url, data, query, result, static_data)              \
+	TEST_CASE(query) {                                                                      \
+		const std::string data_url = (const_url) + (data);                                  \
+		const std::string query_url = (const_url) + (query);                                \
+		const std::string result_url = (const_url) + (result);                              \
+		const std::string rdf_data = (static_data) ? (data) : read_file_from_url(data_url); \
+		create_metall_db(db_path);                                                          \
+		rdf_tensor::metall_manager storage_manager{metall::open_only, db_path.c_str()};     \
+		auto *store = init_stores(storage_manager, rdf_data);                               \
+		auto sparql_str = read_file_from_url(query_url);                                    \
+		auto expected_results = parse_sparql_result_file(read_file_from_url(result_url));   \
+		auto actual_results = eval_sparql_query(sparql_str, *store);                        \
+		CHECK(compare_results(actual_results, expected_results));                           \
 	}
 
 #define GENERATE_SPARQL_TEST_CASE_PARSE_EXCEPTION(const_url, data, query, exception, static_data) \
 	TEST_CASE(query) {                                                                            \
 		const std::string data_url = (const_url) + (data);                                        \
 		const std::string query_url = (const_url) + (query);                                      \
-		const std::string rdf_data = static_data ? data : read_file_from_url(data_url);           \
+		const std::string rdf_data = (static_data) ? (data) : read_file_from_url(data_url);       \
 		create_metall_db(db_path);                                                                \
 		rdf_tensor::metall_manager storage_manager{metall::open_only, db_path.c_str()};           \
 		auto *store = init_stores(storage_manager, rdf_data);                                     \
@@ -77,7 +77,8 @@ namespace dice::tests::sparql {
 		auto sparql_query = dice::sparql2tensor::parser::SPARQLParser::parse_query(query_str, store);
 		// evaluate sparql query
 		std::vector<std::map<rdf4cpp::rdf::query::Variable, rdf_tensor::NodeWrapper>> actual_results{};
-		for (auto const &entry : rdf_tensor::QueryEvaluation::evaluate(sparql_query.raw_query())) {
+		auto raw_query = sparql_query.raw_query();
+		for (auto const &entry : rdf_tensor::QueryEvaluation::evaluate(raw_query)) {
 			for (size_t i = 0; i < entry.value(); i++) {
 				std::map<rdf4cpp::rdf::query::Variable, rdf_tensor::NodeWrapper> result{};
 				for (size_t j = 0; j < entry.key().size(); j++) {
