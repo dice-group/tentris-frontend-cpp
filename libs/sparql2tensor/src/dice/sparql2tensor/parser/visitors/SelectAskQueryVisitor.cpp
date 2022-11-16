@@ -33,6 +33,8 @@ namespace dice::sparql2tensor::parser::visitors {
 			throw std::runtime_error("Query does not contain a WHERE clause");
 		if (auto group_clause_ctx = ctx->solutionModifier()->groupClause(); group_clause_ctx)
 			visitGroupClause(group_clause_ctx);
+		if (auto limit_offset_ctx = ctx->solutionModifier()->limitOffsetClauses(); limit_offset_ctx)
+			visitLimitOffsetClauses(limit_offset_ctx);
 		visitSelectClause(ctx->selectClause());
 		return nullptr;
 	}
@@ -515,6 +517,16 @@ namespace dice::sparql2tensor::parser::visitors {
 			} else {
 				throw std::runtime_error("Unsupported GroupCondition");
 			}
+		}
+		return nullptr;
+	}
+
+	antlrcpp::Any SelectAskQueryVisitor::visitLimitOffsetClauses(SparqlParser::LimitOffsetClausesContext *ctx) {
+		if (auto limit_ctx = ctx->limitClause(); limit_ctx) {
+			query->set_limit(std::stoi(limit_ctx->INTEGER()->getText()));
+		}
+		if (auto offset_ctx = ctx->offsetClause(); offset_ctx) {
+			query->set_offset(std::stoi(offset_ctx->INTEGER()->getText()));
 		}
 		return nullptr;
 	}

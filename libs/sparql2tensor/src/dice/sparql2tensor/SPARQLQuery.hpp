@@ -83,6 +83,10 @@ namespace dice::sparql2tensor {
 
 		void set_aggregates();
 
+		void set_limit(size_t limit);
+
+		void set_offset(size_t offset);
+
 		[[nodiscard]] bool contains_aggregates() const;
 	};
 

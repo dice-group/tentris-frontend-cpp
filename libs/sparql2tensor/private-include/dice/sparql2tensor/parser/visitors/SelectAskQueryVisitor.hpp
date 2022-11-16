@@ -53,6 +53,8 @@ namespace dice::sparql2tensor::parser::visitors {
 
 		antlrcpp::Any visitWhereClause(SparqlParser::WhereClauseContext *) override;
 
+		antlrcpp::Any visitLimitOffsetClauses(SparqlParser::LimitOffsetClausesContext *ctx) override;
+
 		antlrcpp::Any visitGroupGraphPattern(SparqlParser::GroupGraphPatternContext *) override;
 
 		antlrcpp::Any visitSubSelect(SparqlParser::SubSelectContext *ctx) override;

@@ -30,6 +30,8 @@ namespace dice::endpoint {
 				using namespace restinio;
 				// parse request
 				std::string sparql_query_str = parse_sparql_query_param(req);
+				std::replace(sparql_query_str.begin(), sparql_query_str.end(), '\n', ' ');
+				spdlog::info("Query: {}", sparql_query_str);
 				if (sparql_query_str.empty()) {
 					static auto const message = "Query parameter 'query' is missing.";
 					spdlog::warn("HTTP response {}: {}", status_bad_request(), message);

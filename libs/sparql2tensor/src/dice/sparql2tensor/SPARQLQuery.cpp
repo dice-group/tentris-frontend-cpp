@@ -61,13 +61,14 @@ namespace dice::sparql2tensor {
 
 	rdf_tensor::operand_desc SPARQLQuery::add_filter_expr(std::unique_ptr<expressions::SPARQLExpression> expression,
 														  const triple_store::TripleStore &triple_store) {
+		bool is_equality = dynamic_cast<expressions::EqualsExpression *>(expression.get()) == nullptr ? false : true;
 		auto variables = expression->variables();
 		std::vector<char> vars_ids{};
 		for (auto var : variables) {
 			assert(var_to_id_.contains(var));
 			vars_ids.push_back(var_to_id_[var]);
 		}
-		return raw_query_.add_filter(vars_ids, std::move(expression), triple_store.get_true_scalar());
+		return raw_query_.add_filter(vars_ids, std::move(expression), triple_store.get_true_scalar(), is_equality);
 	}
 
 	rdf_tensor::operand_desc SPARQLQuery::add_subquery(SPARQLQuery subquery) {
@@ -117,6 +118,10 @@ namespace dice::sparql2tensor {
 	void SPARQLQuery::set_distinct() { raw_query_.set_distinct(); }
 
 	void SPARQLQuery::set_aggregates() { raw_query_.set_aggregates(); }
+
+	void SPARQLQuery::set_limit(size_t limit) { raw_query_.set_limit(limit); }
+
+	void SPARQLQuery::set_offset(size_t offset) { raw_query_.set_offset(offset); }
 
 	bool SPARQLQuery::contains_aggregates() const { return raw_query_.contains_aggregates(); }
 
