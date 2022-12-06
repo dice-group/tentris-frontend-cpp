@@ -5,22 +5,18 @@ find_package(dice-hash REQUIRED)
 find_package(serd REQUIRED VERSION EXACT 0)
 
 # Define the library
-add_library(triple-store
-        src/dice/triple-store/SerdLoad.cpp
-        )
+add_library(triple-store INTERFACE)
 
 add_library(tentris::triple-store ALIAS triple-store)
 
-target_include_directories(triple-store PUBLIC
+target_include_directories(triple-store INTERFACE
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
         )
 
-target_link_libraries(triple-store PUBLIC
+target_link_libraries(triple-store INTERFACE
         tentris::sparql2tensor
         tentris::rdf-tensor
-        PRIVATE
-        serd::serd
         )
 
 ## Packaging and exporting the target
@@ -34,4 +30,4 @@ set_target_properties(triple-store PROPERTIES
         )
 
 include(${PROJECT_SOURCE_DIR}/cmake/install_library.cmake)
-install_component(triple-store src)
+install_interface_component(triple-store src)

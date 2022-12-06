@@ -12,14 +12,14 @@ namespace dice::sparql2tensor::parser::visitors {
 
 	antlrcpp::Any UpdateQueryVisitor::visitUpdate(SparqlParser::UpdateContext *ctx) {
 		if (not ctx->deleteData())
-			throw std::runtime_error("Only the DELETE DATA update is currently supported.");
+			throw std::runtime_error("Only DELETE DATA and INSERT DATA are currently supported.");
 		visitDeleteData(ctx->deleteData());
 		return nullptr;
 	}
 
 	antlrcpp::Any UpdateQueryVisitor::visitDeleteData(SparqlParser::DeleteDataContext *ctx) {
 		auto quad_data = visitQuadData(ctx->quadData()).as<std::vector<rdf_tensor::NonZeroEntry>>();
-		query->entries_for_removal = std::move(quad_data);
+		assert(false); // this should not be called
 		return nullptr;
 	}
 
@@ -110,7 +110,7 @@ namespace dice::sparql2tensor::parser::visitors {
 		std::string predicate = ctx->prefixedName()->PNAME_LN()->getText();
 		std::size_t split = predicate.find(':');
 		try {
-			return rdf4cpp::rdf::IRI(query->prefixes_.at(predicate.substr(0, split)) + predicate.substr(split + 1));
+			return rdf4cpp::rdf::IRI(query->prefixes.at(predicate.substr(0, split)) + predicate.substr(split + 1));
 		} catch (...) {
 			throw std::out_of_range("Prefix " + predicate.substr(0, split) + " not declared.");
 		}

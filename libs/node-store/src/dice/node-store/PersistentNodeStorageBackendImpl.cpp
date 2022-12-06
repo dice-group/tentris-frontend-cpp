@@ -14,12 +14,12 @@ namespace dice::node_store {
 		  variable_storage_(allocator) {
 		// some iri's like xsd:string are there by default
 
-		for (const auto &[id, iri] : NodeID::predefined_iris) {
+		for (const auto &[iri, id] : rdf4cpp::rdf::datatypes::registry::reserved_datatype_ids) {
 			auto mem = iri_storage_.backend_allocator.allocate(1);
 			iri_storage_.backend_allocator.construct(mem, iri, allocator);
-			auto [iter, inserted_successfully] = iri_storage_.data2id.emplace(mem, id.value());
+			auto [iter, inserted_successfully] = iri_storage_.data2id.emplace(mem, id.to_underlying());
 			assert(inserted_successfully);
-			iri_storage_.id2data.emplace(id.value(), iter->first);
+			iri_storage_.id2data.emplace(id.to_underlying(), iter->first);
 		}
 	}
 
@@ -70,8 +70,8 @@ namespace dice::node_store {
 		return lookup_or_insert_impl<MetallLiteralBackend, true>(
 				view, literal_storage_,
 				[this]([[maybe_unused]] view::LiteralBackendView const &literal_view) {
-					// TODO: actually use LiteralType (therefore, we will need literal_view)
-					return identifier::NodeID{next_literal_id++, identifier::LiteralType::OTHER};
+					return identifier::NodeID{next_literal_id++,
+											  identifier::iri_node_id_to_literal_type(literal_view.datatype_id)};
 				});
 	}
 

@@ -6,8 +6,6 @@
 
 #include <dice/sparql2tensor/SPARQLQuery.hpp>
 
-#include <dice/triple-store/SerdLoad.hpp>
-
 #ifndef BOOST_BIND_GLOBAL_PLACEHOLDERS
 #define BOOST_BIND_GLOBAL_PLACEHOLDERS
 #endif
@@ -44,14 +42,31 @@ namespace dice::triple_store {
 		void load_ttl(
 				const std::string &file_path,
 				uint32_t bulk_size = 1'000'000,
-				HypertrieBulkInserter::BulkInserted_callback const &call_back = [](size_t, size_t, size_t) -> void {}) {
+				HypertrieBulkInserter::BulkProcessed_callback const &call_back = [](size_t, size_t, size_t) -> void {},
+				std::function<void(rdf_tensor::parser::ParsingError const &)> const &error_callback = [](rdf_tensor::parser::ParsingError const &) -> void {}) {
 			HypertrieBulkInserter bulk_inserter{hypertrie_, bulk_size, call_back};
-			AddTripleCallback_function add_entry_callback =
-					[&bulk_inserter](rdf4cpp::rdf::Node subj, rdf4cpp::rdf::Node pred, rdf4cpp::rdf::Node obj) noexcept -> void {
-						hypertrie::internal::raw::SingleEntry<3, htt_t> entry{{subj, pred, obj}};
-						bulk_inserter.add(entry);
-					};
-			serd_load(file_path, add_entry_callback);
+
+			std::ifstream ifs{file_path};
+			if (!ifs.is_open()) {
+				throw std::runtime_error{"cannot open file for reading"};
+			}
+
+			for (rdf_tensor::parser::IStreamQuadIterator qit{ifs}; qit != rdf_tensor::parser::IStreamQuadIterator{}; ++qit) {
+				if (qit->has_value()) {
+					auto const &triple = **qit;
+					bulk_inserter.add(hypertrie::internal::raw::SingleEntry<3, htt_t>{{triple.subject(), triple.predicate(), triple.object()}});
+				} else {
+					error_callback(qit->error());
+				}
+			}
+		}
+
+		HypertrieBulkRemover bulk_remove(uint32_t bulk_size = 1'000'000) noexcept {
+			return HypertrieBulkRemover{hypertrie_, bulk_size};
+		}
+
+		HypertrieBulkInserter bulk_insert(uint32_t bulk_size = 1'000'000) noexcept {
+			return HypertrieBulkInserter{hypertrie_, bulk_size};
 		}
 
 		void remove(std::vector<rdf_tensor::NonZeroEntry> const &entries, uint32_t bulk_size = 1'000'000) {
@@ -62,15 +77,12 @@ namespace dice::triple_store {
 			}
 		}
 
-		void remove_parse(std::string_view query, uint32_t bulk_size = 1'000'000) {
-			HypertrieBulkRemover bulk_remover{hypertrie_, bulk_size};
+		void insert(std::vector<rdf_tensor::NonZeroEntry> const &entries, uint32_t bulk_size = 1'000'000) {
+			HypertrieBulkInserter bulk_inserter{hypertrie_, bulk_size};
 
-			AddTripleCallback_function add_entry_callback = [&](rdf4cpp::rdf::Node subj, rdf4cpp::rdf::Node pred, rdf4cpp::rdf::Node obj) noexcept {
-				bulk_remover.add(hypertrie::internal::raw::SingleEntry<3, htt_t>{{subj, pred, obj}});
-				//hypertrie_.set(Key{subj, pred, obj}, false);
-			};
-
-			serd_load_delete_data_triples_from_string(query, add_entry_callback);
+			for (auto const &e : entries) {
+				bulk_inserter.add(e);
+			}
 		}
 
 		void add_statement(const rdf4cpp::rdf::Statement &statement) {

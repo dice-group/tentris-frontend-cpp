@@ -22,8 +22,9 @@ int main(int argc, char *argv[]) {
 	cxxopts::Options options("tentris-loader",
 							 fmt::format("{}\nA tensor-based triple store.", version));
 	options.add_options()                                                                                                                                                                                                                //
-			("s,storage", "Location where the index is stored.", cxxopts::value<std::string>()->default_value(fs::current_path().string()))("f,file", "A N-Triples or Turtle file.", cxxopts::value<std::string>())                      //
-			("b,bulksize", "Bulk-size for loading RDF files. A larger value results in a higher memory consumption during loading RDF data but may result in shorter loading times.", cxxopts::value<size_t>()->default_value("1000000"))//
+			("s,storage", "Location where the index is stored.", cxxopts::value<std::string>()->default_value(fs::current_path().string()))
+			("f,file", "A N-Triples or Turtle file.", cxxopts::value<std::string>())                      //
+			("b,bulksize", "Bulk-size for loading RDF files. A larger value results in a higher memory consumption during loading RDF data but may result in shorter loading times.", cxxopts::value<uint32_t>()->default_value("1000000"))//
 			("l,loglevel", fmt::format("Details of logging. Available values are: [{}, {}, {}, {}, {}, {}, {}]",                                                                                                                         //
 									   spdlog::level::to_string_view(spdlog::level::trace),                                                                                                                                              //
 									   spdlog::level::to_string_view(spdlog::level::debug),                                                                                                                                              //
@@ -109,11 +110,12 @@ int main(int argc, char *argv[]) {
 	size_t total_processed_entries = 0;
 	size_t total_inserted_entries = 0;
 	size_t final_hypertrie_size_after = 0;
+
 	triplestore.load_ttl(parsed_args["file"].as<std::string>(),
-						 parsed_args["bulksize"].as<size_t>(),
+						 parsed_args["bulksize"].as<uint32_t>(),
 						 [&](size_t processed_entries,
 							 size_t inserted_entries,
-							 size_t hypertrie_size_after) -> void {
+							 size_t hypertrie_size_after) noexcept {
 							 std::chrono::duration<double> batch_duration = batch_loading_time.elapsed();
 							 spdlog::info("batch: {:>10.3} mio triples processed, {:>10.3} mio triples added, {} elapsed, {:>10.3} mio triples in storage.",
 										  (double(processed_entries) / 1'000'000),
@@ -124,6 +126,11 @@ int main(int argc, char *argv[]) {
 							 total_inserted_entries = inserted_entries;
 							 final_hypertrie_size_after = hypertrie_size_after;
 							 batch_loading_time.reset();
+						 },
+						 [](rdf_tensor::parser::ParsingError const &error) noexcept {
+						 	 std::ostringstream oss;
+							 oss << error;
+							 spdlog::warn(oss.str()); // spdlog does not want to use the ostream operator for ParsingError
 						 });
 	spdlog::info("loading finished: {} triples processed, {} triples added, {} elapsed, {} triples in storage.",
 				 total_processed_entries, total_inserted_entries, std::chrono::duration<double>(loading_time.elapsed()).count(), final_hypertrie_size_after);

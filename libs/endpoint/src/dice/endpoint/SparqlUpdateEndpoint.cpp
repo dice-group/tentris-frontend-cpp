@@ -9,6 +9,16 @@
 
 namespace dice::endpoint {
 
+	// TODO move that somewhere more fitting
+	template<typename ...Fs>
+	struct Overloaded : Fs... {
+		using Fs::operator()...;
+	};
+
+	template<typename ...Fs>
+	Overloaded(Fs...) -> Overloaded<Fs...>;
+
+
 	SPARQLUpdateEndpoint::SPARQLUpdateEndpoint(tf::Executor &executor,
 											   triple_store::TripleStore &triplestore)
 		: executor_(executor),
@@ -23,35 +33,76 @@ namespace dice::endpoint {
 				using namespace restinio;
 
 				try {
-					//auto const update_query = parse_sparql_update_param(req);
-					auto const update_query = extract_sparql_update_param(req);
+					auto update_query = parse_sparql_update_param(req);
 
-					//spdlog::debug("to remove size: {}", update_query.entries_for_removal.size());
-					spdlog::debug("hypertrie size: {}", triplestore_.size());
+					std::visit(Overloaded{
+								  [&](UPDATEDATAQueryData &&update_data) noexcept {
+									  spdlog::debug("Incoming {} DATA", update_data.is_delete ? "DELETE" : "INSERT");
+									  spdlog::debug("Triple data size: {}MB", update_data.raw_entry_data.size() / 1000.0 / 1000.0);
+									  spdlog::debug("hypertrie size: {}", triplestore_.size());
 
-					size_t const size_before = triplestore_.size();
-					//triplestore_.remove(update_query.entries_for_removal);
-					triplestore_.remove_parse(update_query);
-					size_t const mutation_count = size_before - triplestore_.size();
+									  size_t const size_before = triplestore_.size();
 
-					spdlog::debug("hypertrie size after: {}", triplestore_.size());
+									  rdf_tensor::parser::IStreamQuadIterator::prefix_storage_type prefixes;
+									  for (auto &&[prefix, expanded] : update_query.prefixes) {
+										  prefixes.emplace(prefix, std::move(expanded));
+									  }
 
-					rapidjson::StringBuffer buf;
-					{
-						rapidjson::Writer<rapidjson::StringBuffer> jw{buf};
+									  std::istringstream iss{std::move(update_data.raw_entry_data)};
+									  rdf_tensor::parser::IStreamQuadIterator qit{iss,
+																				  rdf_tensor::parser::ParsingFlag::NoParsePrefix,
+																				  prefixes};
 
-						jw.StartObject();
-						jw.Key("mutation_count");
-						jw.Uint64(mutation_count);
-						jw.EndObject();
-					}
+									  auto const commit = [&qit](auto &bulk_updater) noexcept {
+										  for (; qit != rdf_tensor::parser::IStreamQuadIterator{}; ++qit) {
+											  if (qit->has_value()) {
+												  auto const &quad = **qit;
+												  bulk_updater.add(rdf_tensor::NonZeroEntry{{quad.subject(), quad.predicate(), quad.object()}});
+											  } else {
+												  std::ostringstream oss;
+												  oss << qit->error();
+												  spdlog::warn(oss.str()); // spdlog does not want to use the ostream operator for ParsingError
+											  }
+										  }
+									  };
 
-					req->create_response(status_ok())
-							.append_header(http_field::content_type, "application/json")
-							.set_body(std::string{buf.GetString(), buf.GetSize()})
-							.done();
+									  if (update_data.is_delete) {
+										  auto bulk_remover = triplestore_.bulk_remove();
+										  commit(bulk_remover);
+									  } else {
+										  auto bulk_inserter = triplestore_.bulk_insert();
+										  commit(bulk_inserter);
+									  }
 
-					spdlog::info("HTTP response {}, mutation_count: {}", status_ok(), mutation_count);
+									  spdlog::debug("hypertrie size after: {}", triplestore_.size());
+									  size_t const mutation_count = update_data.is_delete
+																			? size_before - triplestore_.size()
+																			: triplestore_.size() - size_before;
+
+									  rapidjson::StringBuffer buf;
+									  {
+										  rapidjson::Writer<rapidjson::StringBuffer> jw{buf};
+
+										  jw.StartObject();
+										  jw.Key("mutation_count");
+										  jw.Uint64(mutation_count);
+										  jw.EndObject();
+									  }
+
+									  req->create_response(status_ok())
+											  .append_header(http_field::content_type, "application/json")
+											  .set_body(std::string{buf.GetString(), buf.GetSize()})
+											  .done();
+
+									  spdlog::info("HTTP response {}, mutation_count: {}", status_ok(), mutation_count);
+								  },
+								  [&](auto const &) noexcept {
+									  spdlog::warn("Received currently unsupported query type");
+									  req->create_response(status_bad_request())
+											  .set_body("Request error: received query type is currently unsupported")
+											  .done();
+								  }},
+							   std::move(update_query.query_data));
 				} catch (std::runtime_error const &e) {
 					static constexpr auto message = "Request error";
 
