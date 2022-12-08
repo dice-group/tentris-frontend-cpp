@@ -19,34 +19,33 @@ class Recipe(ConanFile):
         "shared": False,
         "fPIC": True,
         "with_exec_deps": False,
-        "boost:header_only": True,  # override hypertrie settings # TODO: remove in hypertrie and here
         "restinio:asio": "boost",
     }
 
     def requirements(self):
         public_reqs = [
-            "boost/1.79.0",
+            "boost/1.80.0",
             "fmt/8.1.1",
-            "restinio/0.6.15",
-            "expected-lite/0.6.0",  # overrides restinio dependency
+            "restinio/0.6.17",
+            "expected-lite/0.6.2",  # overrides restinio dependency
             "hypertrie/0.9.3@dice-group/entry-removal",
-            "metall/0.20",
+            "metall/0.21",
             "rdf4cpp/0.0.8@dice-group/parser-set-prefixes",
             "dice-hash/0.4.0",
             "robin-hood-hashing/3.11.5",
             "cxxopts/2.2.1",
-            "sparql-parser-base/0.2.2@dice-group/stable",
-            "taskflow/3.3.0",
+            "sparql-parser-base/0.3.0",
+            "taskflow/3.4.0",
             "cppitertools/2.1",
             "spdlog/1.10.0",
-            "rapidjson/cci.20211112",
+            "rapidjson/cci.20220822",
         ]
 
         private_reqs = [
         ]
 
         exec_reqs = [
-            "nlohmann_json/3.10.5",
+            "nlohmann_json/3.11.2",
             "vincentlaucsb-csv-parser/2.1.3",
         ]
         for req in public_reqs:
@@ -155,7 +154,6 @@ class Recipe(ConanFile):
         self.cpp_info.components["triple-store"].requires = [
             "sparql2tensor",
             "rdf-tensor",
-            "serd::serd"
         ]
         self.cpp_info.components["endpoint"].requires = [
             "rdf-tensor",

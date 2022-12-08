@@ -109,7 +109,7 @@ int main(int argc, char *argv[]) {
 			spdlog::info("Reconstructed index at {}.", storage_path.string());
 		} else {
 			spdlog::info("No snapshot found. Exiting.");
-			std::cout << "No snapshot found. Please create a new index using tentris-loader." << std::endl;
+			std::cout << "No snapshot found. Please create a new index using tentris_loader." << std::endl;
 			exit(0);
 		}
 	} else {
@@ -127,19 +127,29 @@ int main(int argc, char *argv[]) {
 	}
 
 	// setup triple store
-	auto &triplestore = *storage_manager.find_or_construct<triple_store::TripleStore>("triple-store")(storage_manager.get_allocator());
-	// initialize task runners
-	tf::Executor executor(endpoint_cfg.threads);
-	// setup and configure endpoints
-	endpoint::HTTPServer http_server{executor, triplestore, endpoint_cfg};
-	const auto cards = triplestore.get_hypertrie().get_cards({0, 1, 2});
-	spdlog::info("Storage stats: {} triples ({} distinct subjects, {} distinct predicates, {} distinct objects)",
-				 triplestore.size(), cards[0], cards[1], cards[2]);
-	spdlog::info("SPARQL endpoint serving sparkling linked data treasures on {} threads at http://0.0.0.0:{}/ with {} request timeout.",
-				 endpoint_cfg.threads, endpoint_cfg.port, endpoint_cfg.timeout_duration);
+	auto &rdf_tensor = [&storage_manager]() -> rdf_tensor::BoolHypertrie & {
+		auto [ptr, cnt] = storage_manager.find<rdf_tensor::BoolHypertrie>("rdf-tensor");
+		if (cnt != 1UL) {
+			spdlog::error("Storage is readable but contains no rdf-tensor with index data. Please create a new index using tentris_loader.");
+			exit(0);
+		}
+		return *ptr;
+	}();
+	{
+		triple_store::TripleStore triplestore{rdf_tensor};
+		// initialize task runners
+		tf::Executor executor(endpoint_cfg.threads);
+		// setup and configure endpoints
+		endpoint::HTTPServer http_server{executor, triplestore, endpoint_cfg};
+		const auto cards = triplestore.get_hypertrie().get_cards({0, 1, 2});
+		spdlog::info("Storage stats: {} triples ({} distinct subjects, {} distinct predicates, {} distinct objects)",
+					 triplestore.size(), cards[0], cards[1], cards[2]);
+		spdlog::info("SPARQL endpoint serving sparkling linked data treasures on {} threads at http://0.0.0.0:{}/ with {} request timeout.",
+					 endpoint_cfg.threads, endpoint_cfg.port, endpoint_cfg.timeout_duration);
 
-	// start http server
-	http_server();
+		// start http server
+		http_server();
+	}
 
 	// warping up node storage
 	spdlog::info("Shutdown successful.");

@@ -17,7 +17,7 @@ namespace dice::sparql2tensor {
 
 		std::vector<rdf4cpp::rdf::query::Variable> projected_variables_;
 
-		robin_hood::unordered_map<rdf4cpp::rdf::query::Variable, char, dice::hash::DiceHashxxh3<rdf4cpp::rdf::query::Variable>> var_to_id_;
+		robin_hood::unordered_map<rdf4cpp::rdf::query::Variable, char, dice::hash::DiceHashwyhash<rdf4cpp::rdf::query::Variable>> var_to_id_;
 
 		std::vector<rdf4cpp::rdf::query::TriplePattern> triple_patterns_;
 

@@ -1,77 +1,119 @@
-name: release
+name: Create release
 
 on:
   push:
-    tags:
-      - '*'
+    branches: [ main ]
+
+env:
+  os: ubuntu-22.04
+  compiler: gcc-12
 
 jobs:
-  main:
-    runs-on: ubuntu-latest
+  create_release:
+    name: Creates a release with static binaries and uploads the library to the artifactory conan.dice-research.org
+    runs-on: ubuntu-22.04
     steps:
+      # cmake and conan to extract the version
+      - name: Get minimum cmake version
+        uses: lukka/get-cmake@v3.18.3
+      - name: Install compiler
+        id: install_cc
+        uses: rlalik/setup-cpp-compiler@v1.1
+        with:
+          compiler: ${{ env.compiler }}
+      - uses: rui314/setup-mold@v1
+      - name: Install conan
+        shell: bash
+        run: |
+          pip3 install conan
+          conan profile new --detect default
+          conan profile update settings.compiler.libcxx=libstdc++11 default
+          conan profile update env.CXX="${CXX}" default
+          conan profile update env.CC="${CC}" default
+          conan remote add -f dice-group https://conan.dice-research.org/artifactory/api/conan/tentris
+          conan remote add tentris-private https://conan.dice-research.org/artifactory/api/conan/tentris-private
+          conan user -p "$CONAN_PW" -r tentris-private "$CONAN_USER"
+        env:
+          CONAN_PW: ${{ secrets.CONAN_PW }}
+          CONAN_USER: ${{ secrets.CONAN_USER }}
+          CC: ${{ steps.install_cc.outputs.cc }}
+          CXX: ${{ steps.install_cc.outputs.cxx }}
+      - name: Cache conan data
+        id: cache-conan
+        uses: actions/cache@v3
+        with:
+          path: ~/.conan/data
+          key: ${{ env.os }}-${{ env.compiler }}-conan
+
       - name: Checkout
-        uses: actions/checkout@v1
-      - name: Get the Ref
-        id: get-ref
-        uses: ankitvgupta/ref-to-tag-action@master
+        uses: actions/checkout@v3
+
+      # extract the version
+      - name: Extract asset version
+        id: extract_asset_version
+        shell: bash
+        run: |
+          echo "asset_version=$(conan inspect . --raw version)" >> $GITHUB_ENV
+
+      - name: Extract Tag
+        uses: mukunku/tag-exists-action@v1.0.0
+        id: checkTag
         with:
-          ref: ${{ github.ref }}
-          head_ref: ${{ github.head_ref }}
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
-      - name: Cache Docker layers
-        uses: actions/cache@v2
+          tag: v${{ env.asset_version }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check if tag exists already
+        if: steps.checkTag.outputs.exists == 'true'
+        uses: actions/github-script@v6
         with:
-          path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-buildx-
-      - name: Login to Docker registry
-        uses: docker/login-action@v1
+          result-encoding: string
+          script: |
+            core.setFailed('There is already a tag for this version. Dump the version in CMakeLists.txt and try again.')
+
+      - name: Build Dockerfile
+        id: build-docker
+        uses: docker/build-push-action@v3
         with:
-          username: ${{ secrets.DOCKER_REGISTRY_USER }}
-          password: ${{ secrets.DOCKER_REGISTRY_PASSWORD }}
-      - name: Build and load image
-        id: docker_build
-        uses: docker/build-push-action@v2
-        with:
-          load: true # We can't load and push at the same time...
-          tags: |
-            dicegroup/tentris_server:current_build
-            dicegroup/tentris_server:${{ steps.get-ref.outputs.tag }}
-          cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache
+          context: .
+          tags: tentris_server:latest
+          cache-from: type=gha
           build-args: |
             "CONAN_USER=${{ secrets.CONAN_USER }}"
             "CONAN_PW=${{ secrets.CONAN_PW }}"
-      - name: Push image
-        run: |
-          docker push dicegroup/tentris_server:${{ steps.get-ref.outputs.tag }}
-      - name: Extract binaries
-        run: |
-          container_id=$(docker create dicegroup/tentris_server:current_build)
-          docker cp ${container_id}:/tentris_server ./tentris_server
-          docker cp ${container_id}:/tentris_loader ./tentris_loader
-          docker cp ${container_id}:/rdf2ids ./rdf2ids
-          docker cp ${container_id}:/deduplicated_nt ./deduplicated_nt
-          zip tentris_clang14_libstdcxx11.zip tentris_server tentris_loader rdf2ids deduplicated_nt
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
+
+      - name: Build conan package (library) on Ubuntu
+        shell: bash
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CC: ${{ steps.install_cc.outputs.cc }}
+          CXX: ${{ steps.install_cc.outputs.cxx }}
+        run: |
+          (conan remove -f "$(conan inspect . --raw name)/$(conan inspect . --raw version)@" || true)
+          conan create . "$(conan inspect . --raw name)/$(conan inspect . --raw version)@" --build missing -o boost:header_only=True -pr:b=default -pr:h=default
+
+      - uses: shrink/actions-docker-extract@v1
+        id: extract
         with:
-          tag_name: ${{ steps.get-ref.outputs.tag }}
-          release_name: ${{ steps.get-ref.outputs.tag }}
+          image: tentris_server:latest
+          path: /.
+
+      - name: zip assets
+        shell: bash
+        env:
+          asset_version: ${{ env.asset_version }}
+          asset_dir: ${{ steps.extract.outputs.destination }}
+        run: zip "tentris_${asset_version}_clang14_libstdcxx12.zip" -j ${asset_dir}/*
+
+      - name: Upload to artifactory
+        shell: bash
+        run: |
+          conan upload "$(conan inspect . --raw name)/$(conan inspect . --raw version)@" --force --all -r tentris-private
+          (conan remove -f "$(conan inspect . --raw name)/$(conan inspect . --raw version)@" || true)
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            tentris_${{ env.asset_version }}_clang14_libstdcxx12.zip
+          tag_name: "v${{ env.asset_version }}"
           draft: true
-          prerelease: false
-      - name: Upload tentris
-        id: upload-tentris-asset 
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: tentris_clang14_libstdcxx11.zip
-          asset_name: tentris_${{ steps.get-ref.outputs.tag }}_clang14_libstdcxx11.zip
-          asset_content_type: application/zip

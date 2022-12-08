@@ -9,7 +9,7 @@
 
 namespace dice::sparql2tensor::parser::visitors {
 
-	using namespace Dice::sparql_parser::base;
+	using namespace dice::sparql_parser::base;
 
 	class UpdateQueryVisitor : public SparqlParserBaseVisitor {
 	private:
@@ -18,37 +18,37 @@ namespace dice::sparql2tensor::parser::visitors {
 	public:
 		UpdateQueryVisitor() = delete;
 
-		explicit UpdateQueryVisitor(UPDATEQuery *q) : query{q} {}
+		explicit UpdateQueryVisitor(UPDATEQuery &q) : query{&q} {}
 
-		antlrcpp::Any visitUpdateCommand(SparqlParser::UpdateCommandContext *ctx) override;
+		std::any visitUpdateCommand(SparqlParser::UpdateCommandContext *ctx) override;
 
-		antlrcpp::Any visitUpdate(SparqlParser::UpdateContext *ctx) override;
+		std::any visitUpdate(SparqlParser::UpdateContext *ctx) override;
 
-		antlrcpp::Any visitDeleteData(SparqlParser::DeleteDataContext *ctx) override;
+		std::any visitDeleteData(SparqlParser::DeleteDataContext *ctx) override;
 
-		antlrcpp::Any visitQuadData(SparqlParser::QuadDataContext *ctx) override;
+		std::any visitQuadData(SparqlParser::QuadDataContext *ctx) override;
 
-		antlrcpp::Any visitTriplesTemplate(SparqlParser::TriplesTemplateContext *ctx, bool allow_vars = true);
+		std::any visitTriplesTemplate(SparqlParser::TriplesTemplateContext *ctx, bool allow_vars = true);
 
-		antlrcpp::Any visitTriplesSameSubject(SparqlParser::TriplesSameSubjectContext *ctx, bool allow_vars = true);
+		std::any visitTriplesSameSubject(SparqlParser::TriplesSameSubjectContext *ctx, bool allow_vars = true);
 
-		antlrcpp::Any visitVarOrTerm(SparqlParser::VarOrTermContext *) override;
+		std::any visitVarOrTerm(SparqlParser::VarOrTermContext *) override;
 
-		antlrcpp::Any visitVerb(SparqlParser::VerbContext *ctx) override;
+		std::any visitVerb(SparqlParser::VerbContext *ctx) override;
 
-		antlrcpp::Any visitIri(SparqlParser::IriContext *) override;
+		std::any visitIri(SparqlParser::IriContext *) override;
 
-		antlrcpp::Any visitBlankNode(SparqlParser::BlankNodeContext *) override;
+		std::any visitBlankNode(SparqlParser::BlankNodeContext *) override;
 
-		antlrcpp::Any visitVar(SparqlParser::VarContext *) override;
+		std::any visitVar(SparqlParser::VarContext *) override;
 
-		antlrcpp::Any visitRdfLiteral(SparqlParser::RdfLiteralContext *) override;
+		std::any visitRdfLiteral(SparqlParser::RdfLiteralContext *) override;
 
-		antlrcpp::Any visitNumericLiteral(SparqlParser::NumericLiteralContext *) override;
+		std::any visitNumericLiteral(SparqlParser::NumericLiteralContext *) override;
 
-		antlrcpp::Any visitBooleanLiteral(SparqlParser::BooleanLiteralContext *) override;
+		std::any visitBooleanLiteral(SparqlParser::BooleanLiteralContext *) override;
 
-		antlrcpp::Any visitString(SparqlParser::StringContext *) override;
+		std::any visitString(SparqlParser::StringContext *) override;
 	};
 
 }// namespace dice::sparql2tensor::parser::visitors

@@ -28,7 +28,7 @@ namespace dice::sparql2tensor {
 		std::variant<UPDATEDATAQueryData, UPDATEQUERYQueryData, LOADQueryData, CLEARQueryData> query_data;
 
 		UPDATEQuery() = default;
-		static UPDATEQuery parse(std::string const &sparql_update_str);
+		static UPDATEQuery parse(std::string_view sparql_update_str);
 	};
 }
 

@@ -1,20 +1,18 @@
 # Find cmake packages
 find_package(dice-hash REQUIRED)
 
-# Find external libraries
-find_package(serd REQUIRED VERSION EXACT 0)
-
 # Define the library
-add_library(triple-store INTERFACE)
+add_library(triple-store
+        src/dice/triple-store/TripleStore.cpp
+        )
 
 add_library(tentris::triple-store ALIAS triple-store)
 
-target_include_directories(triple-store INTERFACE
+target_include_directories(triple-store PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
-        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
         )
 
-target_link_libraries(triple-store INTERFACE
+target_link_libraries(triple-store PUBLIC
         tentris::sparql2tensor
         tentris::rdf-tensor
         )

@@ -10,18 +10,18 @@
 
 namespace dice::sparql2tensor::parser::visitors {
 
-	using namespace Dice::sparql_parser::base;
+	using namespace dice::sparql_parser::base;
 
 	class PrologueVisitor : public SparqlParserBaseVisitor {
 
 		robin_hood::unordered_map<std::string, std::string> prefixes_;
 
 	public:
-		antlrcpp::Any visitPrologue(SparqlParser::PrologueContext *) override;
+		std::any visitPrologue(SparqlParser::PrologueContext *) override;
 
-		antlrcpp::Any visitBaseDecl(SparqlParser::BaseDeclContext *) override;
+		std::any visitBaseDecl(SparqlParser::BaseDeclContext *) override;
 
-		antlrcpp::Any visitPrefixDecl(SparqlParser::PrefixDeclContext *) override;
+		std::any visitPrefixDecl(SparqlParser::PrefixDeclContext *) override;
 	};
 
 }// namespace dice::sparql2tensor::parser::visitors

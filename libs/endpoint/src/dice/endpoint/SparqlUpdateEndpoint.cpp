@@ -68,10 +68,10 @@ namespace dice::endpoint {
 
 									  if (update_data.is_delete) {
 										  auto bulk_remover = triplestore_.bulk_remove();
-										  commit(bulk_remover);
+										  commit(*bulk_remover);
 									  } else {
 										  auto bulk_inserter = triplestore_.bulk_insert();
-										  commit(bulk_inserter);
+										  commit(*bulk_inserter);
 									  }
 
 									  spdlog::debug("hypertrie size after: {}", triplestore_.size());

@@ -79,7 +79,7 @@ namespace dice::sparql2tensor {
 		return prologue;
 	}
 
-	UPDATEQuery UPDATEQuery::parse(std::string const &sparql_update_str) {
+	UPDATEQuery UPDATEQuery::parse(std::string_view const sparql_update_str) {
 		std::string_view rest_mut = sparql_update_str;
 		auto const prologue = read_prologue(rest_mut);
 
@@ -106,10 +106,10 @@ namespace dice::sparql2tensor {
 
 			{ // prologue
 				parser::exception::SPARQLErrorListener error_listener{};
-				antlr4::ANTLRInputStream input{std::string{prologue}};
-				Dice::sparql_parser::base::SparqlLexer lexer{&input};
+				antlr4::ANTLRInputStream input{prologue};
+				dice::sparql_parser::base::SparqlLexer lexer{&input};
 				antlr4::CommonTokenStream tokens{&lexer};
-				Dice::sparql_parser::base::SparqlParser parser{&tokens};
+				dice::sparql_parser::base::SparqlParser parser{&tokens};
 				parser.removeErrorListeners();
 				parser.addErrorListener(&error_listener);
 
@@ -118,7 +118,7 @@ namespace dice::sparql2tensor {
 				{ // prologue
 					parser::visitors::PrologueVisitor p_visitor{};
 					for (auto prefix_ctx : update_ctx->prologue()) {
-						auto cur_prefixes = p_visitor.visitPrologue(prefix_ctx).as<robin_hood::unordered_map<std::string, std::string>>();
+						auto cur_prefixes = std::any_cast<robin_hood::unordered_map<std::string, std::string>>(p_visitor.visitPrologue(prefix_ctx));
 						update_query.prefixes.insert(cur_prefixes.begin(), cur_prefixes.end());
 					}
 				}
@@ -131,9 +131,9 @@ namespace dice::sparql2tensor {
 			// parse whole input with antlr
 			parser::exception::SPARQLErrorListener error_listener{};
 			antlr4::ANTLRInputStream input{sparql_update_str};
-			Dice::sparql_parser::base::SparqlLexer lexer{&input};
+			dice::sparql_parser::base::SparqlLexer lexer{&input};
 			antlr4::CommonTokenStream tokens{&lexer};
-			Dice::sparql_parser::base::SparqlParser parser{&tokens};
+			dice::sparql_parser::base::SparqlParser parser{&tokens};
 			parser.removeErrorListeners();
 			parser.addErrorListener(&error_listener);
 
@@ -142,12 +142,12 @@ namespace dice::sparql2tensor {
 			{ // prologue
 				parser::visitors::PrologueVisitor p_visitor{};
 				for (auto prefix_ctx : update_ctx->prologue()) {
-					auto cur_prefixes = p_visitor.visitPrologue(prefix_ctx).as<robin_hood::unordered_map<std::string, std::string>>();
+					auto cur_prefixes = std::any_cast<robin_hood::unordered_map<std::string, std::string>>(p_visitor.visitPrologue(prefix_ctx));
 					update_query.prefixes.insert(cur_prefixes.begin(), cur_prefixes.end());
 				}
 			}
 
-			parser::visitors::UpdateQueryVisitor update_query_visitor{&update_query};
+			parser::visitors::UpdateQueryVisitor update_query_visitor{update_query};
 			update_query_visitor.visitUpdateCommand(update_ctx);
 		}
 

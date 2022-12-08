@@ -1,14 +1,19 @@
 FROM alpine:edge AS builder
-# todo: fix version as soon as clang-14 is available outside of edge
+# todo: fix version as soon as clang15 is available outside of edge
 ARG MARCH="x86-64-v3"
 ARG CONAN_USER="none"
 ARG CONAN_PW="none"
 
 
 RUN apk update && \
-    apk add git make cmake boost-build pythonispython3 py3-pip autoconf automake gcc g++ clang \
-    clang-dev clang-libs clang-extra-tools clang-static llvm14 llvm14-dev lld pkgconfig libuuid \
-    libtool util-linux-dev linux-headers openjdk11-jdk && \
+    apk add \
+    make cmake autoconf automake pkgconfig \
+    gcc g++ gdb \
+    clang15 clang15-dev clang15-libs clang15-extra-tools clang15-static lldb llvm15 llvm15-dev\
+    openjdk11-jdk \
+    pythonispython3 py3-pip \
+    bash git libtool util-linux-dev linux-headers \
+    && \
     apk add mold --repository=https://mirrors.edge.kernel.org/alpine/edge/testing
 
 ARG CC="clang"
@@ -36,10 +41,15 @@ RUN pip3 install conan && \
     conan profile new --detect default && \
     conan profile update settings.compiler=clang default && \
     conan profile update settings.compiler.libcxx=libstdc++11 default && \
+    conan profile update settings.compiler.cppstd=20 default && \
     conan profile update env.CXXFLAGS="${CXXFLAGS}" default && \
     conan profile update env.CXX="${CXX}" default && \
     conan profile update env.CC="${CC}" default && \
-    conan profile update options.boost:extra_b2_flags="cxxflags=\\\"${CXXFLAGS}\\\"" default
+    conan profile update options.boost:extra_b2_flags="cxxflags=\\\"${CXXFLAGS}\\\"" default && \
+    conan profile update options.boost:header_only=True default && \
+    conan profile update options.restinio:asio=boost default
+# note: the conan package for boost (as of 1.79.x/1.80.0) does not build properly on alpine. Therefore, we use only the header_only parts
+# todo: remove header_only as soon as build works on alpine
 
 # add conan repositories
 RUN conan remote add dice-group https://conan.dice-research.org/artifactory/api/conan/tentris
@@ -50,7 +60,7 @@ RUN conan user ${CONAN_USER} -p ${CONAN_PW} -r tentris-private
 WORKDIR /conan_cache
 COPY conanfile.py .
 COPY CMakeLists.txt .
-RUN conan install . --build=missing --profile default
+RUN conan install . --build=* --profile default
 # import project files
 WORKDIR /tentris
 COPY libs libs
