@@ -8,7 +8,7 @@ namespace dice::sparql2tensor {
 
 	struct UPDATEDATAQueryData {
 		bool is_delete; // is this query DELETE DATA? (otherwise is INSERT DATA)
-		std::string raw_entry_data; // raw, unparsed triple data to avoid 1 unnecessary copy for every entry
+		std::vector<rdf_tensor::NonZeroEntry> entries;
 	};
 
 	struct UPDATEQUERYQueryData {
@@ -24,7 +24,7 @@ namespace dice::sparql2tensor {
 	};
 
 	struct UPDATEQuery {
-		robin_hood::unordered_map<std::string, std::string> prefixes;
+		rdf_tensor::parser::IStreamQuadIterator::prefix_storage_type prefixes;
 		std::variant<UPDATEDATAQueryData, UPDATEQUERYQueryData, LOADQueryData, CLEARQueryData> query_data;
 
 		UPDATEQuery() = default;

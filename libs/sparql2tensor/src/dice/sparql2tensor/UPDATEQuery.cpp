@@ -104,6 +104,8 @@ namespace dice::sparql2tensor {
 				throw std::runtime_error{"syntax error: expected '}' at end of query"};
 			}
 
+			using namespace rdf_tensor::parser;
+
 			{ // prologue
 				parser::exception::SPARQLErrorListener error_listener{};
 				antlr4::ANTLRInputStream input{prologue};
@@ -118,15 +120,28 @@ namespace dice::sparql2tensor {
 				{ // prologue
 					parser::visitors::PrologueVisitor p_visitor{};
 					for (auto prefix_ctx : update_ctx->prologue()) {
-						auto cur_prefixes = std::any_cast<robin_hood::unordered_map<std::string, std::string>>(p_visitor.visitPrologue(prefix_ctx));
+						auto cur_prefixes = std::any_cast<IStreamQuadIterator::prefix_storage_type>(p_visitor.visitPrologue(prefix_ctx));
 						update_query.prefixes.insert(cur_prefixes.begin(), cur_prefixes.end());
 					}
 				}
 			}
 
+			std::vector<rdf_tensor::NonZeroEntry> entries;
+			std::istringstream iss{std::string{rest_mut}};
+			for (IStreamQuadIterator qit{iss, ParsingFlag::NoParsePrefix, update_query.prefixes}; qit != IStreamQuadIterator{}; ++qit) {
+				if (qit->has_value()) {
+					auto const &quad = **qit;
+					entries.push_back(rdf_tensor::NonZeroEntry{{quad.subject(), quad.predicate(), quad.object()}});
+				} else {
+					std::ostringstream oss;
+					oss << qit->error();
+					throw std::runtime_error{oss.str()};
+				}
+			}
+
 			update_query.query_data = UPDATEDATAQueryData{
 					.is_delete = is_delete,
-					.raw_entry_data = std::string{rest_mut}};
+					.entries = std::move(entries)};
 		} else {
 			// parse whole input with antlr
 			parser::exception::SPARQLErrorListener error_listener{};
@@ -142,7 +157,7 @@ namespace dice::sparql2tensor {
 			{ // prologue
 				parser::visitors::PrologueVisitor p_visitor{};
 				for (auto prefix_ctx : update_ctx->prologue()) {
-					auto cur_prefixes = std::any_cast<robin_hood::unordered_map<std::string, std::string>>(p_visitor.visitPrologue(prefix_ctx));
+					auto cur_prefixes = std::any_cast<rdf_tensor::parser::IStreamQuadIterator::prefix_storage_type>(p_visitor.visitPrologue(prefix_ctx));
 					update_query.prefixes.insert(cur_prefixes.begin(), cur_prefixes.end());
 				}
 			}

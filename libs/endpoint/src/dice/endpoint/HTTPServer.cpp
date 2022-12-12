@@ -29,6 +29,10 @@ namespace dice::endpoint {
 						  SPARQLEndpoint{executor_, triplestore_, sparql_query_cache_, cfg_.timeout_duration});
 		spdlog::info("  GET /sparql?query= for normal queries");
 
+		router_->http_post(R"(/sparql)",
+						   SPARQLUpdateEndpoint{executor_, triplestore_});
+		spdlog::info("  POST  /sparql for update queries");
+
 		router_->http_get(R"(/stream)",
 						  SPARQLStreamingEndpoint{executor_, triplestore_, sparql_query_cache_, cfg_.timeout_duration});
 		spdlog::info("  GET  /stream?query= for queries with huge results");
@@ -36,10 +40,6 @@ namespace dice::endpoint {
 		router_->http_get(R"(/count)",
 						  CountEndpoint{executor_, triplestore_, sparql_query_cache_, cfg_.timeout_duration});
 		spdlog::info("  GET  /count?query= as a workaround for count");
-
-		router_->http_post(R"(/sparql-update)",
-						   SPARQLUpdateEndpoint{executor_, triplestore_});
-		spdlog::info("  POST  /sparql-update for update queries");
 
 
 		router_->non_matched_request_handler(

@@ -38,40 +38,15 @@ namespace dice::endpoint {
 					std::visit(Overloaded{
 								  [&](UPDATEDATAQueryData &&update_data) noexcept {
 									  spdlog::debug("Incoming {} DATA", update_data.is_delete ? "DELETE" : "INSERT");
-									  spdlog::debug("Triple data size: {}MB", update_data.raw_entry_data.size() / 1000.0 / 1000.0);
+									  spdlog::debug("Number of triples: {}", update_data.entries.size());
 									  spdlog::debug("hypertrie size: {}", triplestore_.size());
 
 									  size_t const size_before = triplestore_.size();
 
-									  rdf_tensor::parser::IStreamQuadIterator::prefix_storage_type prefixes;
-									  for (auto &&[prefix, expanded] : update_query.prefixes) {
-										  prefixes.emplace(prefix, std::move(expanded));
-									  }
-
-									  std::istringstream iss{std::move(update_data.raw_entry_data)};
-									  rdf_tensor::parser::IStreamQuadIterator qit{iss,
-																				  rdf_tensor::parser::ParsingFlag::NoParsePrefix,
-																				  prefixes};
-
-									  auto const commit = [&qit](auto &bulk_updater) noexcept {
-										  for (; qit != rdf_tensor::parser::IStreamQuadIterator{}; ++qit) {
-											  if (qit->has_value()) {
-												  auto const &quad = **qit;
-												  bulk_updater.add(rdf_tensor::NonZeroEntry{{quad.subject(), quad.predicate(), quad.object()}});
-											  } else {
-												  std::ostringstream oss;
-												  oss << qit->error();
-												  spdlog::warn(oss.str()); // spdlog does not want to use the ostream operator for ParsingError
-											  }
-										  }
-									  };
-
 									  if (update_data.is_delete) {
-										  auto bulk_remover = triplestore_.bulk_remove();
-										  commit(*bulk_remover);
+										  triplestore_.remove(update_data.entries);
 									  } else {
-										  auto bulk_inserter = triplestore_.bulk_insert();
-										  commit(*bulk_inserter);
+										  triplestore_.insert(update_data.entries);
 									  }
 
 									  spdlog::debug("hypertrie size after: {}", triplestore_.size());

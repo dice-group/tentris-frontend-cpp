@@ -61,16 +61,6 @@ namespace dice::triple_store {
 		inserter_.add(entry);
 	}
 
-	UniqueLockGuard<TripleStore::HypertrieBulkRemover> TripleStore::bulk_remove(uint32_t bulk_size) {
-		flush();
-		return UniqueLockGuard<HypertrieBulkRemover>{mutex_, hypertrie_, bulk_size};
-	}
-
-	UniqueLockGuard<TripleStore::HypertrieBulkInserter> TripleStore::bulk_insert(uint32_t bulk_size) {
-		flush();
-		return UniqueLockGuard<HypertrieBulkInserter>{mutex_, hypertrie_, bulk_size};
-	}
-
 	bool TripleStore::is_rdf_list(rdf4cpp::rdf::Node list) const noexcept {
 		flush();
 		std::shared_lock<std::shared_mutex> reader_lock{mutex_};
