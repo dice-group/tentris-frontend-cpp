@@ -1,5 +1,6 @@
 #include "dice/sparql2tensor/parser/visitors/UpdateQueryVisitor.hpp"
 
+// TODO: implement visitors for non DATA updates
 namespace dice::sparql2tensor::parser::visitors {
 
 	std::any UpdateQueryVisitor::visitUpdateCommand(SparqlParser::UpdateCommandContext *ctx) {

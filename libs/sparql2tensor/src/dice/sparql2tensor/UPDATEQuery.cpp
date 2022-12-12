@@ -79,34 +79,73 @@ namespace dice::sparql2tensor {
 		return prologue;
 	}
 
+	enum struct QueryType {
+		INSERT_DATA,
+		DELETE_DATA,
+		UNKNOWN,
+	};
+
+	/**
+	 * @brief reads the beginning of the actual query (after prologue) and tries to recognize the query type
+	 * @param s the whole query without the prologue, will be modified to not include the query type
+	 * @return the extracted query type
+	 *
+	 * @example
+	 * @code
+	 * 		std::string_view s = "DELETE DATA { ... }";
+	 * 		QueryType const query_type = read_query_type(s);
+	 *
+	 * 		assert(query_type == QueryType::DELETE_DATA);
+	 * 		assert(s == " { ... }");
+	 * @endcode
+	 */
+	static QueryType read_query_type(std::string_view &s) noexcept {
+		auto const first_word = read_word(s, is_alpha);
+		auto const second_word = read_word(s, is_alpha);
+
+		if (second_word != "DATA") {
+			return QueryType::UNKNOWN;
+		}
+
+		if (first_word == "DELETE") {
+			return QueryType::DELETE_DATA;
+		} else if (first_word == "INSERT") {
+			return QueryType::INSERT_DATA;
+		}
+
+		return QueryType::UNKNOWN;
+	}
+
 	UPDATEQuery UPDATEQuery::parse(std::string_view const sparql_update_str) {
 		std::string_view rest_mut = sparql_update_str;
 		auto const prologue = read_prologue(rest_mut);
 
 		UPDATEQuery update_query;
 
-		auto const first_word = read_word(rest_mut, is_alpha);
-		auto const second_word = read_word(rest_mut, is_alpha);
+		// expected structure for fast path: 'prologue... (DELETE|INSERT) DATA { triples... }'
+		auto const query_type = read_query_type(rest_mut);
 		auto const third_word = read_word(rest_mut, [](char const ch) noexcept { return ch == '{'; });
 
-		if (bool is_delete; ((is_delete = first_word == "DELETE") || first_word == "INSERT") && second_word == "DATA") {
+		if (query_type != QueryType::UNKNOWN) {
 			// fast path for DELETE DATA / INSERT DATA
 
 			if (third_word != "{") {
+				// missing (or too many) '{' after '(DELETE|INSERT) DATA'
 				std::ostringstream err;
-				err << "syntax error: expected '{' after " << first_word << " " << second_word;
+				err << "syntax error: expected '{' after " << (query_type == QueryType::DELETE_DATA ? "DELETE DATA" : "INSERT DATA");
 				throw std::runtime_error{err.str()};
 			}
 
 			auto const last_word = read_word_rev(rest_mut, [](char const ch) noexcept { return ch == '}'; });
 
 			if (last_word != "}") {
+				// closing brace is missing from query
 				throw std::runtime_error{"syntax error: expected '}' at end of query"};
 			}
 
 			using namespace rdf_tensor::parser;
 
-			{ // prologue
+			{ // parse only prologue using antlr
 				parser::exception::SPARQLErrorListener error_listener{};
 				antlr4::ANTLRInputStream input{prologue};
 				dice::sparql_parser::base::SparqlLexer lexer{&input};
@@ -117,7 +156,7 @@ namespace dice::sparql2tensor {
 
 				auto update_ctx = parser.updateCommand();
 
-				{ // prologue
+				{ // visit prologue and store prefixes
 					parser::visitors::PrologueVisitor p_visitor{};
 					for (auto prefix_ctx : update_ctx->prologue()) {
 						auto cur_prefixes = std::any_cast<IStreamQuadIterator::prefix_storage_type>(p_visitor.visitPrologue(prefix_ctx));
@@ -127,22 +166,26 @@ namespace dice::sparql2tensor {
 			}
 
 			std::vector<rdf_tensor::NonZeroEntry> entries;
-			std::istringstream iss{std::string{rest_mut}};
-			for (IStreamQuadIterator qit{iss, ParsingFlag::NoParsePrefix, update_query.prefixes}; qit != IStreamQuadIterator{}; ++qit) {
-				if (qit->has_value()) {
-					auto const &quad = **qit;
-					entries.push_back(rdf_tensor::NonZeroEntry{{quad.subject(), quad.predicate(), quad.object()}});
-				} else {
-					std::ostringstream oss;
-					oss << qit->error();
-					throw std::runtime_error{oss.str()};
+
+			{ // try to parse all triples between '{' and '}' with rdf4cpp and then store them in 'entries'
+				std::istringstream iss{std::string{rest_mut}};
+				for (IStreamQuadIterator qit{iss, ParsingFlag::NoParsePrefix, update_query.prefixes}; qit != IStreamQuadIterator{}; ++qit) {
+					if (qit->has_value()) {
+						auto const &quad = **qit;
+						entries.push_back(rdf_tensor::NonZeroEntry{{quad.subject(), quad.predicate(), quad.object()}});
+					} else {
+						std::ostringstream oss;
+						oss << qit->error();
+						throw std::runtime_error{oss.str()};
+					}
 				}
 			}
 
 			update_query.query_data = UPDATEDATAQueryData{
-					.is_delete = is_delete,
+					.is_delete = query_type == QueryType::DELETE_DATA,
 					.entries = std::move(entries)};
 		} else {
+			// slow path for general queries
 			// parse whole input with antlr
 			parser::exception::SPARQLErrorListener error_listener{};
 			antlr4::ANTLRInputStream input{sparql_update_str};
@@ -154,7 +197,7 @@ namespace dice::sparql2tensor {
 
 			auto update_ctx = parser.updateCommand();
 
-			{ // prologue
+			{ // visit prologue and store prefixes
 				parser::visitors::PrologueVisitor p_visitor{};
 				for (auto prefix_ctx : update_ctx->prologue()) {
 					auto cur_prefixes = std::any_cast<rdf_tensor::parser::IStreamQuadIterator::prefix_storage_type>(p_visitor.visitPrologue(prefix_ctx));
@@ -162,6 +205,7 @@ namespace dice::sparql2tensor {
 				}
 			}
 
+			// visit body of query
 			parser::visitors::UpdateQueryVisitor update_query_visitor{update_query};
 			update_query_visitor.visitUpdateCommand(update_ctx);
 		}

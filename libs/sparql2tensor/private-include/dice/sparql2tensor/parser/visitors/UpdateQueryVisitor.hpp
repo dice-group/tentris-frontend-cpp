@@ -11,6 +11,7 @@ namespace dice::sparql2tensor::parser::visitors {
 
 	using namespace dice::sparql_parser::base;
 
+	// TODO: implement visitors for non DATA updates
 	class UpdateQueryVisitor : public SparqlParserBaseVisitor {
 	private:
 		UPDATEQuery *const query;
