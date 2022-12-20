@@ -12,6 +12,7 @@ namespace dice::sparql2tensor::parser::visitors {
 	using namespace dice::sparql_parser::base;
 
 	// TODO: implement visitors for non DATA updates
+	// NOTE: currently unused, will be later used to support non DATA updates
 	class UpdateQueryVisitor : public SparqlParserBaseVisitor {
 	private:
 		UPDATEQuery *const query;
@@ -29,9 +30,11 @@ namespace dice::sparql2tensor::parser::visitors {
 
 		std::any visitQuadData(SparqlParser::QuadDataContext *ctx) override;
 
-		std::any visitTriplesTemplate(SparqlParser::TriplesTemplateContext *ctx, bool allow_vars = true);
+		std::any visitTriplesTemplate(SparqlParser::TriplesTemplateContext *ctx) override;
+		std::any visitTriplesTemplate(SparqlParser::TriplesTemplateContext *ctx, bool allow_vars);
 
-		std::any visitTriplesSameSubject(SparqlParser::TriplesSameSubjectContext *ctx, bool allow_vars = true);
+		std::any visitTriplesSameSubject(SparqlParser::TriplesSameSubjectContext *ctx) override;
+		std::any visitTriplesSameSubject(SparqlParser::TriplesSameSubjectContext *ctx, bool allow_vars);
 
 		std::any visitVarOrTerm(SparqlParser::VarOrTermContext *) override;
 

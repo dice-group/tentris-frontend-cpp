@@ -1,6 +1,7 @@
 #include "dice/sparql2tensor/parser/visitors/UpdateQueryVisitor.hpp"
 
 // TODO: implement visitors for non DATA updates
+// NOTE: currently unused, will be later used to support non DATA updates
 namespace dice::sparql2tensor::parser::visitors {
 
 	std::any UpdateQueryVisitor::visitUpdateCommand(SparqlParser::UpdateCommandContext *ctx) {
@@ -41,6 +42,10 @@ namespace dice::sparql2tensor::parser::visitors {
 		return entries;
 	}
 
+	std::any UpdateQueryVisitor::visitTriplesTemplate(SparqlParser::TriplesTemplateContext *ctx) {
+		return visitTriplesTemplate(ctx, true);
+	}
+
 	std::any UpdateQueryVisitor::visitTriplesTemplate(SparqlParser::TriplesTemplateContext *ctx, bool allow_vars) {
 		std::vector<rdf4cpp::rdf::query::TriplePattern> triple_patterns{};
 		for (auto triples_same_subject_ctx : ctx->triplesSameSubject()) {
@@ -48,6 +53,10 @@ namespace dice::sparql2tensor::parser::visitors {
 			triple_patterns.insert(triple_patterns.end(), triples_same_subject.begin(), triples_same_subject.end());
 		}
 		return triple_patterns;
+	}
+
+	std::any UpdateQueryVisitor::visitTriplesSameSubject(SparqlParser::TriplesSameSubjectContext *ctx) {
+		return visitTriplesSameSubject(ctx, true);
 	}
 
 	std::any UpdateQueryVisitor::visitTriplesSameSubject(SparqlParser::TriplesSameSubjectContext *ctx, bool allow_vars) {

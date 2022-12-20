@@ -185,9 +185,12 @@ namespace dice::sparql2tensor {
 					.is_delete = query_type == QueryType::DELETE_DATA,
 					.entries = std::move(entries)};
 		} else {
+			throw std::runtime_error{"Currently only DELETE DATA and INSERT DATA updates are supported"};
+
+			// TODO: use when other query types implemented
 			// slow path for general queries
 			// parse whole input with antlr
-			parser::exception::SPARQLErrorListener error_listener{};
+			/*parser::exception::SPARQLErrorListener error_listener{};
 			antlr4::ANTLRInputStream input{sparql_update_str};
 			dice::sparql_parser::base::SparqlLexer lexer{&input};
 			antlr4::CommonTokenStream tokens{&lexer};
@@ -207,7 +210,7 @@ namespace dice::sparql2tensor {
 
 			// visit body of query
 			parser::visitors::UpdateQueryVisitor update_query_visitor{update_query};
-			update_query_visitor.visitUpdateCommand(update_ctx);
+			update_query_visitor.visitUpdateCommand(update_ctx);*/
 		}
 
 		return update_query;

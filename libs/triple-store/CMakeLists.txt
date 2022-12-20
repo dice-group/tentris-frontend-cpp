@@ -28,4 +28,4 @@ set_target_properties(triple-store PROPERTIES
         )
 
 include(${PROJECT_SOURCE_DIR}/cmake/install_library.cmake)
-install_interface_component(triple-store src)
+install_component(triple-store src)
