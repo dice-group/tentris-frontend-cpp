@@ -13,8 +13,7 @@ namespace dice::sparql2tensor::parser::visitors {
 	using namespace dice::sparql_parser::base;
 
 	class PrologueVisitor : public SparqlParserBaseVisitor {
-
-		robin_hood::unordered_map<std::string, std::string> prefixes_;
+		rdf4cpp::rdf::parser::IStreamQuadIterator::prefix_storage_type prefixes_;
 
 	public:
 		std::any visitPrologue(SparqlParser::PrologueContext *) override;

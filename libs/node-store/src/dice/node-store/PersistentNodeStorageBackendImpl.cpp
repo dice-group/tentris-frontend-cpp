@@ -14,14 +14,12 @@ namespace dice::node_store {
 		  variable_storage_(allocator) {
 		// some iri's like xsd:string are there by default
 		using namespace rdf4cpp::rdf;
-		for (const auto &[iri, literal_type] : datatypes::registry::reserved_datatype_ids) {
-			auto const id = literal_type.to_underlying();
-
+		for (const auto &[iri, id] : rdf4cpp::rdf::datatypes::registry::reserved_datatype_ids) {
 			auto mem = iri_storage_.backend_allocator.allocate(1);
 			iri_storage_.backend_allocator.construct(mem, iri, allocator);
-			auto [iter, inserted_successfully] = iri_storage_.data2id.emplace(mem, id);
+			auto [iter, inserted_successfully] = iri_storage_.data2id.emplace(mem, id.to_underlying());
 			assert(inserted_successfully);
-			iri_storage_.id2data.emplace(id, iter->first.get());
+			iri_storage_.id2data.emplace(id.to_underlying(), iter->first);
 		}
 	}
 

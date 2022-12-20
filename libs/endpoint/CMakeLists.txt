@@ -9,6 +9,7 @@ add_library(endpoint
         src/dice/endpoint/SparqlEndpoint.cpp
         src/dice/endpoint/CountEndpoint.cpp
         src/dice/endpoint/SparqlStreamingEndpoint.cpp
+        src/dice/endpoint/SparqlUpdateEndpoint.cpp
         src/dice/endpoint/SparqlQueryCache.cpp
         )
 add_library(tentris::endpoint ALIAS endpoint)

@@ -15,17 +15,18 @@
 
 namespace dice::triple_store {
 	class TripleStore {
-
 		using HypertrieContext = rdf_tensor::HypertrieContext;
 		using HypertrieContext_ptr = rdf_tensor::HypertrieContext_ptr;
-		using HypertrieBulkInserter = rdf_tensor::HypertrieBulkInserter;
 		using HypertrieSyncBulkInserter = rdf_tensor::HypertrieSyncBulkInserter;
+		using HypertrieSyncBulkRemvoer = rdf_tensor::HypertrieSyncBulkRemover;
 		using BoolHypertrie = rdf_tensor::BoolHypertrie;
 		using const_BoolHypertrie = rdf_tensor::const_BoolHypertrie;
 		using Key = rdf_tensor::Key;
 		using htt_t = rdf_tensor::htt_t;
 
 	public:
+		using HypertrieBulkInserter = rdf_tensor::HypertrieBulkInserter;
+		using HypertrieBulkRemover = rdf_tensor::HypertrieBulkRemover;
 		using allocator_type = rdf_tensor::allocator_type;
 
 	private:
@@ -62,10 +63,34 @@ namespace dice::triple_store {
 		 */
 		std::vector<rdf4cpp::rdf::Node> get_rdf_list(rdf4cpp::rdf::Node list) const;
 
+		/**
+		 * @brief Loads a turtle file into this triplestore
+		 * @param file_path path to the file
+		 * @param bulk_size number of entries to insert at once
+		 * @param call_back function to call when a bulk is inserted
+		 * @param error_callback function to call when an error is encountered in the file
+		 */
 		void load_ttl(
-				const std::string &file_path,
+				std::string const &file_path,
 				uint32_t bulk_size = 1'000'000,
-				HypertrieBulkInserter::BulkInserted_callback const &call_back = [](size_t, size_t, size_t) -> void {});
+				HypertrieBulkInserter::BulkProcessed_callback const &call_back = [](size_t, size_t, size_t) -> void {},
+				std::function<void(rdf_tensor::parser::ParsingError const &)> const &error_callback = [](rdf_tensor::parser::ParsingError const &) -> void {});
+
+		/**
+		 * @brief Removes the given set of entries from the triplestore
+		 * @note function blocks other readers and writers
+		 * @param entries the entries to remove
+		 * @param bulk_size the number of entries to remove at once
+		 */
+		void remove(std::vector<rdf_tensor::NonZeroEntry> const &entries, uint32_t bulk_size = 1'000'000);
+
+		/**
+		 * @brief Inserts the given set of entries to the triplestore
+		 * @note function blocks other readers and writers
+		 * @param entries the entries to remove
+		 * @param bulk_size the number of entries to insert at once
+		 */
+		void insert(std::vector<rdf_tensor::NonZeroEntry> const &entries, uint32_t bulk_size = 1'000'000);
 
 		void add_statement(const rdf4cpp::rdf::Statement &statement);
 

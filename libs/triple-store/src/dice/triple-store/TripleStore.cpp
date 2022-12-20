@@ -12,7 +12,9 @@ namespace dice::triple_store {
 		inserter_.flush();
 	}
 
-	void TripleStore::load_ttl(const std::string &file_path, uint32_t bulk_size, const rdf_tensor::HypertrieBulkInserter::BulkInserted_callback &call_back) {
+	void TripleStore::load_ttl(std::string const &file_path, uint32_t bulk_size,
+							   rdf_tensor::HypertrieBulkInserter::BulkProcessed_callback const &call_back,
+							   std::function<void(rdf_tensor::parser::ParsingError const &)> const &error_callback) {
 		std::ifstream ifs{file_path};
 
 		if (!ifs.is_open()) {
@@ -28,10 +30,31 @@ namespace dice::triple_store {
 				bulk_inserter.add(
 						hypertrie::internal::raw::SingleEntry<3, htt_t>{{quad.subject(), quad.predicate(), quad.object()}});
 			} else {
-				std::cerr << qit->error() << '\n';
+				error_callback(qit->error());
 			}
 		}
 	}
+
+	void TripleStore::remove(std::vector<rdf_tensor::NonZeroEntry> const &entries, uint32_t const bulk_size) {
+		flush();
+		std::unique_lock<std::shared_mutex> writer_lock{mutex_};
+		HypertrieBulkRemover bulk_remover{hypertrie_, bulk_size};
+
+		for (auto const &e : entries) {
+			bulk_remover.add(e);
+		}
+	}
+
+	void TripleStore::insert(std::vector<rdf_tensor::NonZeroEntry> const &entries, uint32_t const bulk_size) {
+		flush();
+		std::unique_lock<std::shared_mutex> writer_lock{mutex_};
+		HypertrieBulkInserter bulk_inserter{hypertrie_, bulk_size};
+
+		for (auto const &e : entries) {
+			bulk_inserter.add(e);
+		}
+	}
+
 	void TripleStore::add_statement(const rdf4cpp::rdf::Statement &statement) {
 		std::unique_lock<std::shared_mutex> writer_lock{mutex_};
 		hypertrie::internal::raw::SingleEntry<3, htt_t> entry{{statement.subject(), statement.predicate(), statement.object()}};
