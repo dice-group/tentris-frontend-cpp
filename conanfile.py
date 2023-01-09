@@ -24,21 +24,21 @@ class Recipe(ConanFile):
 
     def requirements(self):
         public_reqs = [
+            "hypertrie/0.11.0",
             "boost/1.80.0",
             "fmt/8.1.1",
             "restinio/0.6.17",
             "expected-lite/0.6.2",  # overrides restinio dependency
-            "hypertrie/0.9.3",
             "metall/0.21",
-            "rdf4cpp/0.0.6",
+            "rdf4cpp/0.0.8",
             "dice-hash/0.4.0",
             "robin-hood-hashing/3.11.5",
             "cxxopts/2.2.1",
-            "sparql-parser-base/0.3.0",
             "taskflow/3.4.0",
             "cppitertools/2.1",
             "spdlog/1.10.0",
             "rapidjson/cci.20220822",
+            "tentris-query/0.0.1@dice-group/integate_limit",
         ]
 
         private_reqs = [
@@ -107,7 +107,7 @@ class Recipe(ConanFile):
         self.cpp_info.components["global"].libdirs = []
         self.cpp_info.set_property("cmake_file_name", "tentris")
         self.cpp_info.components["global"].requires = [
-            "node-store", "rdf-tensor", "sparql2tensor", "triple-store", "endpoint",
+            "node-store", "rdf-tensor", "triple-store", "endpoint",
             "boost::boost",
             "fmt::fmt",
             "restinio::restinio",
@@ -123,14 +123,15 @@ class Recipe(ConanFile):
             "taskflow::taskflow",
             "cppitertools::cppitertools",
             "spdlog::spdlog",
+            "tentris-query::tentris-query",
         ]
 
-        for component in ["node-store", "rdf-tensor", "sparql2tensor", "triple-store", "endpoint"]:
+        for component in ["node-store", "rdf-tensor", "triple-store", "endpoint"]:
             self.cpp_info.components[f"{component}"].names["cmake_find_package_multi"] = f"{component}"
             self.cpp_info.components[f"{component}"].names["cmake_find_package"] = f"{component}"
             self.cpp_info.components[f"{component}"].includedirs = [f"include/tentris/{component}"]
 
-        for component in ["node-store", "sparql2tensor", "triple-store", "endpoint"]:
+        for component in ["node-store", "triple-store", "endpoint"]:
             self.cpp_info.components[f"{component}"].libdirs = [f"lib/tentris/{component}"]
             self.cpp_info.components[f"{component}"].libs = [f"{component}"]
 
@@ -139,20 +140,14 @@ class Recipe(ConanFile):
             "hypertrie::hypertrie",
             "boost::boost",
             "metall::metall",
+            "tentris-query::tentris-query"
         ]
 
         self.cpp_info.components["node-store"].requires = [
             "rdf-tensor",
         ]
 
-        self.cpp_info.components["sparql2tensor"].requires = [
-            "node-store",
-            "robin-hood-hashing::robin-hood-hashing",
-            "sparql-parser-base::sparql-parser-base",
-        ]
-
         self.cpp_info.components["triple-store"].requires = [
-            "sparql2tensor",
             "rdf-tensor",
         ]
         self.cpp_info.components["endpoint"].requires = [
@@ -162,6 +157,8 @@ class Recipe(ConanFile):
             "cppitertools::cppitertools",
             "spdlog::spdlog",
             "rapidjson::rapidjson",
+            "zlib::zlib",
+            "bzip:bzip"
         ]
         if self.options.get_safe("with_exec_deps"):
             self.cpp_info.components["global"].requires += [

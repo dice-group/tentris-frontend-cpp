@@ -45,7 +45,7 @@
 
 #include <dice/hash/DiceHash.hpp>
 
-namespace dice::endpoint {
+namespace dice::triple_store {
 	template<class Key, class Value>
 	class SyncedLRUCache {
 
@@ -139,7 +139,7 @@ namespace dice::endpoint {
 		}
 	};
 
-}// namespace dice::endpoint
+}// namespace dice::triple_store
 
 
 #endif//TENTRIS_SYNCEDLRUCACHE_HPP

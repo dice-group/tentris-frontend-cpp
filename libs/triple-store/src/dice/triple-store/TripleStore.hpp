@@ -2,9 +2,7 @@
 #define TENTRIS_STORE_TRIPLESTORE
 
 #include <dice/rdf-tensor/Query.hpp>
-#include <dice/rdf-tensor/RDFTensor.hpp>
-
-#include <dice/sparql2tensor/SPARQLQuery.hpp>
+#include <dice/triple-store/SyncedLRUCache.hpp>
 
 #ifndef BOOST_BIND_GLOBAL_PLACEHOLDERS
 #define BOOST_BIND_GLOBAL_PLACEHOLDERS
@@ -14,6 +12,7 @@
 #include <shared_mutex>
 
 namespace dice::triple_store {
+
 	class TripleStore {
 
 		using HypertrieContext = rdf_tensor::HypertrieContext;
@@ -24,14 +23,17 @@ namespace dice::triple_store {
 		using const_BoolHypertrie = rdf_tensor::const_BoolHypertrie;
 		using Key = rdf_tensor::Key;
 		using htt_t = rdf_tensor::htt_t;
+		using SPARQLQueryCache = SyncedLRUCache<std::string, rdf_tensor::SPARQLQuery>;
 
 	public:
 		using allocator_type = rdf_tensor::allocator_type;
+		using QueryResult = std::variant <bool, std::pair<std::vector<rdf4cpp::rdf::query::Variable>, std::generator<rdf_tensor::SolutionMapping const &>>>;
 
 	private:
 		BoolHypertrie &hypertrie_;
 		mutable std::shared_mutex mutex_;
 		mutable HypertrieSyncBulkInserter inserter_;
+		mutable SPARQLQueryCache sparql_cache_;
 
 
 	public:
@@ -65,31 +67,18 @@ namespace dice::triple_store {
 		void load_ttl(
 				const std::string &file_path,
 				uint32_t bulk_size = 1'000'000,
-				HypertrieBulkInserter::BulkInserted_callback const &call_back = [](size_t, size_t, size_t) -> void {});
+				HypertrieBulkInserter::BulkProcessed_callback const &call_back = [](size_t, size_t, size_t) -> void {});
 
 		void add_statement(const rdf4cpp::rdf::Statement &statement);
 
 		/**
-		 * @brief Evaluation of SPARQL SELECT queries.
-		 * @param query The parsed SPARQL query.
+		 * @brief Evaluation of SPARQL queries.
+		 * @param query The SPARQL query string.
 		 * @param endtime The timeout value
-		 * @return A generator yielding the solutions of the query
+		 * @return A generator yielding the solutions of the query or bool (for ASK)
 		 */
-		std::generator<rdf_tensor::Entry const &>
-		eval_select(const sparql2tensor::SPARQLQuery &query,
-					std::chrono::steady_clock::time_point endtime = std::chrono::steady_clock::time_point::max()) const;
-
-		/**
-		 * @brief Evaluation of SPARQL ASK queries.
-		 * @param query The parsed SPARQL query.
-		 * @param endtime The timeout value
-		 * @return The result of the ask query (true or false).
-		 */
-		bool eval_ask(const sparql2tensor::SPARQLQuery &query,
-					  std::chrono::steady_clock::time_point endtime = std::chrono::steady_clock::time_point::max()) const;
-
-		size_t count(const sparql2tensor::SPARQLQuery &query,
-					 std::chrono::steady_clock::time_point endtime = std::chrono::steady_clock::time_point::max()) const;
+		QueryResult eval_query(std::string const &query_str,
+							   std::chrono::steady_clock::time_point endtime = std::chrono::steady_clock::time_point::max()) const;
 
 		bool contains(const rdf4cpp::rdf::Statement &statement) const;
 

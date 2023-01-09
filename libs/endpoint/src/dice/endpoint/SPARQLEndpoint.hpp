@@ -7,8 +7,6 @@
 #include <dice/node-store/metall_manager.hpp>
 #include <dice/triple-store/TripleStore.hpp>
 
-#include <dice/endpoint/SparqlQueryCache.hpp>
-
 namespace dice::endpoint {
 
 	class SPARQLEndpoint {
@@ -17,15 +15,13 @@ namespace dice::endpoint {
 
 		triple_store::TripleStore &triplestore_;
 
-		SparqlQueryCache &sparql_query_cache_;
-
 		std::chrono::seconds timeout_duration_;
 
 	public:
-		SPARQLEndpoint(tf::Executor &executor, triple_store::TripleStore &triplestore, SparqlQueryCache &sparql_query_cache, std::chrono::seconds timeoutDuration);
+		SPARQLEndpoint(tf::Executor &executor, triple_store::TripleStore &triplestore, std::chrono::seconds timeoutDuration);
 
 		restinio::request_handling_status_t operator()(
-				restinio::request_handle_t req,
+				const restinio::request_handle_t& req,
 				restinio::router::route_params_t params);
 	};
 

@@ -1,5 +1,7 @@
 # Find cmake packages
 find_package(dice-hash REQUIRED)
+find_package(spdlog REQUIRED)
+find_package(tentris-query REQUIRED COMPONENTS sparql)
 
 # Define the library
 add_library(triple-store
@@ -10,11 +12,15 @@ add_library(tentris::triple-store ALIAS triple-store)
 
 target_include_directories(triple-store PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
+        PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/private-include
         )
 
 target_link_libraries(triple-store PUBLIC
-        tentris::sparql2tensor
         tentris::rdf-tensor
+        tentris-query::sparql
+        PRIVATE
+        spdlog::spdlog
         )
 
 ## Packaging and exporting the target

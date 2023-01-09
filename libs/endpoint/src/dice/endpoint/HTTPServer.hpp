@@ -7,8 +7,6 @@
 #include <dice/node-store/metall_manager.hpp>
 #include <dice/triple-store/TripleStore.hpp>
 
-#include <dice/endpoint/SparqlQueryCache.hpp>
-
 
 namespace dice::endpoint {
 
@@ -21,7 +19,6 @@ namespace dice::endpoint {
 	class HTTPServer {
 		tf::Executor &executor_;
 		triple_store::TripleStore &triplestore_;
-		SparqlQueryCache sparql_query_cache_;
 		std::unique_ptr<restinio::router::express_router_t<>> router_;
 		EndpointCfg cfg_;
 

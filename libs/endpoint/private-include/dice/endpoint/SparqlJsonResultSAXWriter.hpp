@@ -24,7 +24,7 @@ namespace dice::endpoint {
 		using IRI = rdf4cpp::rdf::IRI;
 		using BlankNode = rdf4cpp::rdf::BlankNode;
 		using Variable = rdf4cpp::rdf::query::Variable;
-		using Entry = dice::rdf_tensor::Entry;
+		using SolutionMapping = dice::rdf_tensor::SolutionMapping;
 
 		std::size_t number_of_solutions_ = 0;
 		std::size_t number_of_bindings_ = 0;
@@ -71,11 +71,11 @@ namespace dice::endpoint {
 			writer.EndObject();
 		}
 
-		void add(Entry const &entry) {
+		void add(SolutionMapping const &solution_mapping) {
 
-			for (size_t i = 0; i < size_t(entry.value()); ++i) {
+			for (size_t i = 0; i < size_t(solution_mapping.value()); ++i) {
 				writer.StartObject();
-				for (const auto &[term, var] : iter::zip(entry.key(), variables_)) {
+				for (const auto &[term, var] : iter::zip(solution_mapping.key(), variables_)) {
 					if (term.null())
 						continue;
 					writer.Key(to_rapidjson(var));
@@ -121,7 +121,7 @@ namespace dice::endpoint {
 				writer.EndObject();
 			}
 
-			number_of_solutions_ += entry.value();
+			number_of_solutions_ += solution_mapping.value();
 		}
 
 		[[nodiscard]] std::size_t size() const {

@@ -4,11 +4,13 @@ find_package(hypertrie REQUIRED)
 find_package(Metall REQUIRED)
 find_package(rdf4cpp REQUIRED)
 find_package(dice-hash REQUIRED)
+find_package(tentris-query REQUIRED)
 
 # Define the library
 add_library(rdf-tensor INTERFACE)
 add_library(tentris::rdf-tensor ALIAS rdf-tensor)
 target_link_libraries(rdf-tensor INTERFACE
+        tentris-query::tentris-query
         rdf4cpp::rdf4cpp
         hypertrie::hypertrie
         Metall::Metall
