@@ -22,13 +22,15 @@ namespace dice::endpoint {
 
 	void HTTPServer::operator()() {
 		spdlog::info("Available endpoints:");
-		router_->http_get(R"(/sparql)",
-						  SPARQLEndpoint{executor_, triplestore_, cfg_.timeout_duration});
-		spdlog::info("  GET /sparql?query= for SPARQL queries");
+		router_->add_handler(restinio::router::any_of_methods(restinio::http_method_get(), restinio::http_method_post()),
+							 R"(/sparql)",
+							 SPARQLEndpoint{executor_, triplestore_, cfg_.timeout_duration});
+		spdlog::info("  GET, POST application/sparql-query or POST application/x-www-form-urlencoded /sparql?query= for SPARQL queries");
 
-		router_->http_get(R"(/stream)",
-						  SPARQLStreamEndpoint{executor_, triplestore_, cfg_.timeout_duration});
-		spdlog::info("  GET /stream?query= for SPARQL SELECT queries with big result sets");
+		router_->add_handler(restinio::router::any_of_methods(restinio::http_method_get(), restinio::http_method_post()),
+							 R"(/stream)",
+							 SPARQLStreamEndpoint{executor_, triplestore_, cfg_.timeout_duration});
+		spdlog::info("  GET, POST application/sparql-query or POST application/x-www-form-urlencoded /stream?query= for SPARQL SELECT queries with big result sets");
 
 		router_->non_matched_request_handler(
 				[](auto req) -> restinio::request_handling_status_t {
