@@ -128,18 +128,23 @@ namespace dice::triple_store {
 		return operands;
 	}
 
-	TripleStore::QueryResult TripleStore::eval_query(std::string const &query_str,
-													 std::chrono::steady_clock::time_point endtime) const {
+	TripleStore::SolutionMappingGenerator
+	TripleStore::eval_sparql_query(rdf_tensor::SPARQLQuery const &sparql_query,
+								   std::chrono::steady_clock::time_point endtime) const {
 		flush();
 		std::shared_lock<std::shared_mutex> reader_lock{mutex_};
-		auto query = dice::sparql::parser::SPARQLParser::parse_query(query_str, hypertrie_, endtime);
-		auto raw_query = query.raw_query();
-		auto generator = rdf_tensor::QueryEvalaution::evaluate(raw_query, endtime);
-		if (query.ask())
-			return generator.begin() != generator.end();
-		auto proj_vars = query.projected_variables();
-		return std::make_pair<std::vector<rdf4cpp::rdf::query::Variable>,
-							  std::generator<rdf_tensor::SolutionMapping const &>>(std::move(proj_vars), std::move(generator));
+		auto raw_query = sparql_query.raw_query();
+		co_yield std::elements_of(rdf_tensor::QueryEvalaution::evaluate(raw_query, endtime));
+	}
+
+	std::shared_ptr<const rdf_tensor::SPARQLQuery>
+	TripleStore::parse_sparql_query(std::string const &sparql_query_str,
+									std::chrono::steady_clock::time_point endtime) const {
+		using SPARQLParser = dice::sparql::parser::SPARQLParser;
+		auto sparql_query = sparql_cache_[sparql_query_str];
+		if (not sparql_query)
+			sparql_query = sparql_cache_.insert(sparql_query_str, SPARQLParser::parse_query(sparql_query_str, hypertrie_, endtime));
+		return sparql_query;
 	}
 
 	bool TripleStore::contains(const rdf4cpp::rdf::Statement &statement) const {

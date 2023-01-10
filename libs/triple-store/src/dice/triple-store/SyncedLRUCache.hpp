@@ -53,7 +53,7 @@ namespace dice::triple_store {
 			Key key;
 			std::shared_ptr<Value const> value;
 
-			node_type(Key key) : key(std::move(key)), value(std::make_shared<Value>(this->key)) {}
+			node_type(Key key, Value value) : key(std::move(key)), value(std::make_shared<Value>(value)) {}
 		};
 
 		using list_type = std::list<node_type>;
@@ -101,19 +101,23 @@ namespace dice::triple_store {
 			lru_list_.clear();
 		}
 
-		[[nodiscard]] std::shared_ptr<Value const> operator[](Key const &key) noexcept(std::is_nothrow_constructible_v<Value, Key>) {
+		std::shared_ptr<Value const> insert(Key const &key, Value value) noexcept(std::is_nothrow_constructible_v<Value, Key>) {
 			std::lock_guard<std::mutex> g(lock_);
 			spdlog::trace("Query cache entries: {}/{} (elastic: {})", cache_.size(), max_size(), max_allowed_size());
+			auto &key_value = lru_list_.emplace_front(key, std::move(value));
+			cache_[key] = lru_list_.begin();
+			prune();
+			return key_value.value;
+		}
+
+		[[nodiscard]] std::shared_ptr<Value const> operator[](Key const &key) noexcept {
+			std::lock_guard<std::mutex> g(lock_);
 			const auto iter = cache_.find(key);
 			if (iter == cache_.end()) {
-				auto &key_value = lru_list_.emplace_front(key);
-				cache_[key] = lru_list_.begin();
-				prune();
-				return key_value.value;
-			} else {
-				lru_list_.splice(lru_list_.begin(), lru_list_, iter->second);
-				return iter->second->value;
+				return nullptr;
 			}
+			lru_list_.splice(lru_list_.begin(), lru_list_, iter->second);
+			return iter->second->value;
 		}
 
 		[[nodiscard]] size_t max_size() const noexcept { return max_size_; }

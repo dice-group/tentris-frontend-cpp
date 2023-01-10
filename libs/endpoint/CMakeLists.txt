@@ -7,6 +7,7 @@ find_package(RapidJSON REQUIRED)
 add_library(endpoint
         src/dice/endpoint/HTTPServer.cpp
         src/dice/endpoint/SPARQLEndpoint.cpp
+        src/dice/endpoint/SPARQLStreamEndpoint.cpp
         )
 add_library(tentris::endpoint ALIAS endpoint)
 

@@ -27,7 +27,7 @@ namespace dice::triple_store {
 
 	public:
 		using allocator_type = rdf_tensor::allocator_type;
-		using QueryResult = std::variant <bool, std::pair<std::vector<rdf4cpp::rdf::query::Variable>, std::generator<rdf_tensor::SolutionMapping const &>>>;
+		using SolutionMappingGenerator = std::generator<rdf_tensor::SolutionMapping const &>;
 
 	private:
 		BoolHypertrie &hypertrie_;
@@ -73,12 +73,23 @@ namespace dice::triple_store {
 
 		/**
 		 * @brief Evaluation of SPARQL queries.
-		 * @param query The SPARQL query string.
+		 * @param query The SPARQL query.
 		 * @param endtime The timeout value
 		 * @return A generator yielding the solutions of the query or bool (for ASK)
 		 */
-		QueryResult eval_query(std::string const &query_str,
-							   std::chrono::steady_clock::time_point endtime = std::chrono::steady_clock::time_point::max()) const;
+		SolutionMappingGenerator
+		eval_sparql_query(rdf_tensor::SPARQLQuery const &sparql_query,
+						  std::chrono::steady_clock::time_point endtime = std::chrono::steady_clock::time_point::max()) const;
+
+		/**
+		 * @brief Parsing of SPARQL queries. Makes use of caching.
+		 * @param query The SPARQL query string.
+		 * @param endtime The timeout value
+		 * @return A SPARQL query
+		 */
+		std::shared_ptr<const rdf_tensor::SPARQLQuery>
+		parse_sparql_query(std::string const &sparql_query_str,
+						   std::chrono::steady_clock::time_point endtime = std::chrono::steady_clock::time_point::max()) const;
 
 		bool contains(const rdf4cpp::rdf::Statement &statement) const;
 

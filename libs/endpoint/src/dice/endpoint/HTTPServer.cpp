@@ -1,6 +1,7 @@
 #include "HTTPServer.hpp"
 
 #include "dice/endpoint/SPARQLEndpoint.hpp"
+#include "dice/endpoint/SPARQLStreamEndpoint.hpp"
 
 #include <spdlog/spdlog.h>
 
@@ -23,7 +24,11 @@ namespace dice::endpoint {
 		spdlog::info("Available endpoints:");
 		router_->http_get(R"(/sparql)",
 						  SPARQLEndpoint{executor_, triplestore_, cfg_.timeout_duration});
-		spdlog::info("  GET /sparql?query= for normal queries");
+		spdlog::info("  GET /sparql?query= for SPARQL queries");
+
+		router_->http_get(R"(/stream)",
+						  SPARQLStreamEndpoint{executor_, triplestore_, cfg_.timeout_duration});
+		spdlog::info("  GET /stream?query= for SPARQL SELECT queries with big result sets");
 
 		router_->non_matched_request_handler(
 				[](auto req) -> restinio::request_handling_status_t {

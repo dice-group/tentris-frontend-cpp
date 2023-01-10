@@ -1,4 +1,4 @@
-#include "SPARQLEndpoint.hpp"
+#include "SPARQLStreamEndpoint.hpp"
 
 #include <spdlog/spdlog.h>
 
@@ -7,14 +7,14 @@
 
 namespace dice::endpoint {
 
-	SPARQLEndpoint::SPARQLEndpoint(tf::Executor &executor,
-								   triple_store::TripleStore &triplestore,
-								   std::chrono::seconds timeoutDuration)
+	SPARQLStreamEndpoint::SPARQLStreamEndpoint(tf::Executor &executor,
+											   triple_store::TripleStore &triplestore,
+											   std::chrono::seconds timeoutDuration)
 		: executor_(executor),
 		  triplestore_(triplestore),
 		  timeout_duration_(timeoutDuration) {}
 
-	restinio::request_handling_status_t SPARQLEndpoint::operator()(
+	restinio::request_handling_status_t SPARQLStreamEndpoint::operator()(
 			restinio::request_handle_t const &req,
 			[[maybe_unused]] restinio::router::route_params_t params) {
 		auto timeout = (timeout_duration_.count()) ? std::chrono::steady_clock::now() + this->timeout_duration_ : std::chrono::steady_clock::time_point::max();
@@ -39,16 +39,27 @@ namespace dice::endpoint {
 								.done();
 					} else {
 						endpoint::SparqlJsonResultSAXWriter json_writer{sparql_query->projected_variables(), 100'000};
-						auto raw_query = sparql_query->raw_query();
+
+						bool asio_write_failed = false;
+						response_builder_t<chunked_output_t> resp = req->template create_response<chunked_output_t>();
+						resp.append_header(http_field::content_type, "application/sparql-results+json");
+
 						for (auto const &entry : result_generator) {
 							json_writer.add(entry);
+							if (json_writer.full()) {
+								resp.append_chunk(std::string{json_writer.string_view()});
+								resp.flush([&](auto const &status) { asio_write_failed = status.failed(); });
+								if (asio_write_failed) {
+									spdlog::warn("Writing chunked HTTP response failed.");
+									return;
+								}
+								json_writer.clear();
+							}
 						}
 						json_writer.close();
+						resp.append_chunk(std::string{json_writer.string_view()});
+						resp.done();
 
-						req->create_response(status_ok())
-								.append_header(http_field::content_type, "application/sparql-results+json")
-								.set_body(std::string{json_writer.string_view()})
-								.done();
 						spdlog::info("HTTP response {}: {} variables, {} solutions, {} bindings",
 									 status_ok(),
 									 sparql_query->projected_variables().size(),

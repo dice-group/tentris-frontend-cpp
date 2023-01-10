@@ -1,5 +1,5 @@
-#ifndef TENTRIS_SPARQLENDPOINT_HPP
-#define TENTRIS_SPARQLENDPOINT_HPP
+#ifndef TENTRIS_SPARQLSTREAMENDPOINT_HPP
+#define TENTRIS_SPARQLSTREAMENDPOINT_HPP
 
 #include <restinio/all.hpp>
 #include <taskflow/taskflow.hpp>
@@ -9,7 +9,7 @@
 
 namespace dice::endpoint {
 
-	class SPARQLEndpoint {
+	class SPARQLStreamEndpoint {
 
 		tf::Executor &executor_;
 
@@ -18,7 +18,7 @@ namespace dice::endpoint {
 		std::chrono::seconds timeout_duration_;
 
 	public:
-		SPARQLEndpoint(tf::Executor &executor, triple_store::TripleStore &triplestore, std::chrono::seconds timeoutDuration);
+		SPARQLStreamEndpoint(tf::Executor &executor, triple_store::TripleStore &triplestore, std::chrono::seconds timeoutDuration);
 
 		restinio::request_handling_status_t operator()(
 				restinio::request_handle_t const &req,
@@ -26,4 +26,5 @@ namespace dice::endpoint {
 	};
 
 }// namespace dice::endpoint
-#endif//TENTRIS_SPARQLENDPOINT_HPP
+
+#endif//TENTRIS_SPARQLSTREAMENDPOINT_HPP
