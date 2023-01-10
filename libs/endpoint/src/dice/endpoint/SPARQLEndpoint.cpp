@@ -38,22 +38,22 @@ namespace dice::endpoint {
 								.set_body(R"({ "head" : {}, "boolean" : )" + ask_res_str + " }")
 								.done();
 					} else {
-						endpoint::SparqlJsonResultSAXWriter json_writer{sparql_query->projected_variables(), 100'000};
+						std::unique_ptr<SPARQLResultWriter> json_writer = std::make_unique<SparqlJsonResultSAXWriter>(sparql_query->projected_variables(), 100'000);
 						auto raw_query = sparql_query->raw_query();
 						for (auto const &entry : result_generator) {
-							json_writer.add(entry);
+							json_writer->add(entry);
 						}
-						json_writer.close();
+						json_writer->close();
 
 						req->create_response(status_ok())
 								.append_header(http_field::content_type, "application/sparql-results+json")
-								.set_body(std::string{json_writer.string_view()})
+								.set_body(std::string{json_writer->string_view()})
 								.done();
 						spdlog::info("HTTP response {}: {} variables, {} solutions, {} bindings",
 									 status_ok(),
 									 sparql_query->projected_variables().size(),
-									 json_writer.number_of_written_solutions(),
-									 json_writer.number_of_written_bindings());
+									 json_writer->number_of_written_solutions(),
+									 json_writer->number_of_written_bindings());
 					}
 				}
 				// todo: different types of exceptions (e.g., parsing exception and timeout exception)

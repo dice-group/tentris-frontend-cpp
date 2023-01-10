@@ -1,5 +1,6 @@
 #ifndef TENTRIS_SPARQLJSONRESULTSAXWRITER_HPP
 #define TENTRIS_SPARQLJSONRESULTSAXWRITER_HPP
+#include "SPARQLResultWriter.hpp"
 
 #include <utility>
 
@@ -18,7 +19,7 @@
 
 namespace dice::endpoint {
 
-	class SparqlJsonResultSAXWriter {
+	class SparqlJsonResultSAXWriter : public SPARQLResultWriter {
 		using Node = rdf4cpp::rdf::Node;
 		using Literal = rdf4cpp::rdf::Literal;
 		using IRI = rdf4cpp::rdf::IRI;
@@ -26,8 +27,8 @@ namespace dice::endpoint {
 		using Variable = rdf4cpp::rdf::query::Variable;
 		using SolutionMapping = dice::rdf_tensor::SolutionMapping;
 
-		std::size_t number_of_solutions_ = 0;
-		std::size_t number_of_bindings_ = 0;
+		//std::size_t number_of_solutions_ = 0;
+		//std::size_t number_of_bindings_ = 0;
 
 		size_t buffer_size;
 		rapidjson::StringBuffer buffer;
@@ -65,13 +66,13 @@ namespace dice::endpoint {
 			writer.StartArray();
 		}
 
-		void close() {
+		void close() override {
 			writer.EndArray();
 			writer.EndObject();
 			writer.EndObject();
 		}
 
-		void add(SolutionMapping const &solution_mapping) {
+		void add(SolutionMapping const &solution_mapping) override {
 
 			for (size_t i = 0; i < size_t(solution_mapping.value()); ++i) {
 				writer.StartObject();
@@ -124,28 +125,20 @@ namespace dice::endpoint {
 			number_of_solutions_ += solution_mapping.value();
 		}
 
-		[[nodiscard]] std::size_t size() const {
+		[[nodiscard]] std::size_t size() const override {
 			return buffer.GetSize();
 		}
 
-		[[nodiscard]] std::size_t number_of_written_solutions() const {
-			return number_of_solutions_;
-		}
-
-		[[nodiscard]] std::size_t number_of_written_bindings() const {
-			return number_of_bindings_;
-		}
-
-		[[nodiscard]] bool full() const {
+		[[nodiscard]] bool full() const override {
 			return buffer.GetSize() > this->buffer_size;
 		};
 
-		std::string_view string_view() {
+		std::string_view string_view() override {
 			writer.Flush();
 			return {buffer.GetString(), buffer.GetSize()};
 		}
 
-		void clear() {
+		void clear() override {
 			this->buffer.Clear();
 		}
 	};
