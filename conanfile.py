@@ -38,6 +38,7 @@ class Recipe(ConanFile):
             "cppitertools/2.1",
             "spdlog/1.10.0",
             "rapidjson/cci.20220822",
+            "pugixml/1.13",
             "tentris-query/0.0.1@dice-group/integate_limit",
         ]
 
@@ -158,7 +159,8 @@ class Recipe(ConanFile):
             "spdlog::spdlog",
             "rapidjson::rapidjson",
             "zlib::zlib",
-            "bzip:bzip"
+            "bzip:bzip",
+            "pugixml::pugixml"
         ]
         if self.options.get_safe("with_exec_deps"):
             self.cpp_info.components["global"].requires += [

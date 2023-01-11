@@ -3,6 +3,7 @@ find_package(restinio REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(cppitertools REQUIRED)
 find_package(RapidJSON REQUIRED)
+find_package(pugixml REQUIRED)
 
 add_library(endpoint
         src/dice/endpoint/HTTPServer.cpp
@@ -34,6 +35,7 @@ target_link_libraries(endpoint PUBLIC
         spdlog::spdlog
         cppitertools::cppitertools
         RapidJSON::RapidJSON
+        pugixml::pugixml
         )
 
 include(${PROJECT_SOURCE_DIR}/cmake/install_library.cmake)

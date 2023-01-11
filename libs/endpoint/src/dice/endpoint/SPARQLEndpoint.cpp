@@ -4,6 +4,7 @@
 
 #include <dice/endpoint/ParseSPARQLQueryParam.hpp>
 #include <dice/endpoint/SparqlJsonResultSAXWriter.hpp>
+#include <dice/endpoint/XMLResultWriter.hpp>
 
 namespace dice::endpoint {
 
@@ -38,7 +39,7 @@ namespace dice::endpoint {
 								.set_body(R"({ "head" : {}, "boolean" : )" + ask_res_str + " }")
 								.done();
 					} else {
-						std::unique_ptr<SPARQLResultWriter> json_writer = std::make_unique<SparqlJsonResultSAXWriter>(sparql_query->projected_variables(), 100'000);
+						std::unique_ptr<SPARQLResultWriter> json_writer = std::make_unique<XMLResultWriter>(sparql_query->projected_variables());
 						auto raw_query = sparql_query->raw_query();
 						for (auto const &entry : result_generator) {
 							json_writer->add(entry);
