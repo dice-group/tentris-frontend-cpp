@@ -22,7 +22,6 @@ namespace dice::endpoint {
 			auto accept_header = req->header().opt_value_of(http_field::accept);
 			if (accept_header.has_value()) {
 				auto const &accept_header_value = accept_header.value();
-				std::cout << accept_header_value << std::endl;
 				// default (*/*) to JSON
 				if (accept_header_value == "*/*" or accept_header_value == "application/sparql-results+json")
 					*format = ResultFormat::JSON;
