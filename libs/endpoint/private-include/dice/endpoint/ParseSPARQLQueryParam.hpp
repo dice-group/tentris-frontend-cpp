@@ -9,8 +9,29 @@
 
 namespace dice::endpoint {
 
-	inline std::string parse_sparql_query_param(restinio::request_handle_t &req) {
+	enum ResultFormat {
+		JSON = 0,
+		XML,
+		CSV,
+		TSV
+	};
+
+	inline std::string parse_sparql_query_param(restinio::request_handle_t &req, ResultFormat *format = nullptr) {
 		using namespace restinio;
+		if (format != nullptr) {
+			auto accept_header = req->header().opt_value_of(http_field::accept);
+			if (accept_header.has_value()) {
+				auto const &accept_header_value = accept_header.value();
+				std::cout << accept_header_value << std::endl;
+				// default (*/*) to JSON
+				if (accept_header_value == "*/*" or accept_header_value == "application/sparql-results+json")
+					*format = ResultFormat::JSON;
+				else if (accept_header_value == "application/sparql-results+xml")
+					*format = ResultFormat::XML;
+				else
+					throw std::runtime_error("The requested result format is not supported. Currently only XML and JSON formats are supported");
+			}
+		}
 		// get request
 		if (req->header().method() == http_method_get()) {
 			const auto qp = parse_query<restinio::parse_query_traits::javascript_compatible>(req->header().query());

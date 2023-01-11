@@ -25,12 +25,12 @@ namespace dice::endpoint {
 		router_->add_handler(restinio::router::any_of_methods(restinio::http_method_get(), restinio::http_method_post()),
 							 R"(/sparql)",
 							 SPARQLEndpoint{executor_, triplestore_, cfg_.timeout_duration});
-		spdlog::info("  GET (/sparql?query=), POST application/sparql-query (/sparql) or POST application/x-www-form-urlencoded (/sparql) for SPARQL queries");
+		spdlog::info("  GET (/sparql?query=), POST application/sparql-query (/sparql) or POST application/x-www-form-urlencoded (/sparql) for SPARQL queries. Supported result formats: XML and JSON (default: JSON; choose using the request header \"Accept\").");
 
 		router_->add_handler(restinio::router::any_of_methods(restinio::http_method_get(), restinio::http_method_post()),
 							 R"(/stream)",
 							 SPARQLStreamEndpoint{executor_, triplestore_, cfg_.timeout_duration});
-		spdlog::info("  GET (/stream?query=), POST application/sparql-query (/stream) or POST application/x-www-form-urlencoded (/stream) for SPARQL SELECT queries with big result sets");
+		spdlog::info("  GET (/stream?query=), POST application/sparql-query (/stream) or POST application/x-www-form-urlencoded (/stream) for SPARQL SELECT queries with big result sets (only JSON results)");
 
 		router_->non_matched_request_handler(
 				[](auto req) -> restinio::request_handling_status_t {

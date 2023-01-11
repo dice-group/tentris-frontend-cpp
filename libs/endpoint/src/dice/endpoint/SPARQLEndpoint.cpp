@@ -22,7 +22,9 @@ namespace dice::endpoint {
 		if (executor_.num_topologies() < executor_.num_workers()) {
 			executor_.silent_async([this, timeout](restinio::request_handle_t req) {
 				using namespace restinio;
-				auto sparql_query_str = parse_sparql_query_param(req);
+				// parse request
+				auto results_format = ResultFormat::JSON;
+				auto sparql_query_str = parse_sparql_query_param(req, &results_format);
 				if (sparql_query_str.empty())
 					return;
 				// replace new lines with single spaces (better logging)
@@ -30,31 +32,37 @@ namespace dice::endpoint {
 				spdlog::info("SPARQL Query: {}", sparql_query_str);
 				try {
 					auto sparql_query = triplestore_.parse_sparql_query(sparql_query_str, timeout);
+					// instantiate writer
+					std::unique_ptr<SPARQLResultWriter> result_writer;
+					if (results_format == ResultFormat::JSON)
+						result_writer = std::make_unique<SparqlJsonResultSAXWriter>(sparql_query->projected_variables(), 100'000);
+					else if (results_format == ResultFormat::XML)
+						result_writer = std::make_unique<XMLResultWriter>(sparql_query->projected_variables());
+					else
+						assert(false);
+					// start the query evaluation
 					auto result_generator = triplestore_.eval_sparql_query(*sparql_query, timeout);
 					if (sparql_query->ask()) {
 						bool ask_res = result_generator.begin() != result_generator.end();
-						std::string ask_res_str = ask_res ? "true" : "false";
 						req->create_response(status_ok())
-								.append_header(http_field::content_type, "application/sparql-results+json")
-								.set_body(R"({ "head" : {}, "boolean" : )" + ask_res_str + " }")
+								.append_header(http_field::content_type, result_writer->content_type())
+								.set_body(result_writer->ask_query_result(ask_res))
 								.done();
 					} else {
-						std::unique_ptr<SPARQLResultWriter> json_writer = std::make_unique<XMLResultWriter>(sparql_query->projected_variables());
-						auto raw_query = sparql_query->raw_query();
 						for (auto const &entry : result_generator) {
-							json_writer->add(entry);
+							result_writer->add(entry);
 						}
-						json_writer->close();
+						result_writer->close();
 
 						req->create_response(status_ok())
-								.append_header(http_field::content_type, "application/sparql-results+json")
-								.set_body(std::string{json_writer->string_view()})
+								.append_header(http_field::content_type, result_writer->content_type())
+								.set_body(std::string{result_writer->string_view()})
 								.done();
 						spdlog::info("HTTP response {}: {} variables, {} solutions, {} bindings",
 									 status_ok(),
 									 sparql_query->projected_variables().size(),
-									 json_writer->number_of_written_solutions(),
-									 json_writer->number_of_written_bindings());
+									 result_writer->number_of_written_solutions(),
+									 result_writer->number_of_written_bindings());
 					}
 				}
 				// todo: different types of exceptions (e.g., parsing exception and timeout exception)

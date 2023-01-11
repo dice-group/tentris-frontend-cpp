@@ -33,6 +33,15 @@ namespace dice::endpoint {
 			result_section_ = sparql_document_element.append_child("results");
 		}
 
+		[[nodiscard]] std::string ask_query_result(bool result) override {
+			std::string ask_res_str = result ? "true" : "false";
+			return "<?xml version=\"1.0\"?>\n"
+				   "<sparql xmlns=\"http://www.w3.org/2005/sparql-results#\">\n"
+				   "  <head></head>\n"
+				   "  <boolean>"+ask_res_str+"</boolean>\n"
+				   "</sparql>";
+		}
+
 		void close() override {
 			std::stringstream str_stream;
 			xml_results_.save(str_stream);
@@ -78,14 +87,12 @@ namespace dice::endpoint {
 			number_of_solutions_ += solution_mapping.value();
 		}
 
-		[[nodiscard]] std::size_t size() const override {
-			// does nothing
+		[[nodiscard]] std::string_view string_view() override {
+			return {xml_results_str_};
 		}
 
-		[[nodiscard]] bool full() const override {};
-
-		std::string_view string_view() override {
-			return {xml_results_str_};
+		[[nodiscard]] std::string content_type() override {
+			return "application/sparql-results+xml";
 		}
 
 		void clear() override {

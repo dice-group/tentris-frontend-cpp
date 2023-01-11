@@ -29,16 +29,15 @@ namespace dice::endpoint {
 				spdlog::info("SPARQL Query: {}", sparql_query_str);
 				try {
 					auto sparql_query = triplestore_.parse_sparql_query(sparql_query_str, timeout);
+					endpoint::SparqlJsonResultSAXWriter json_writer{sparql_query->projected_variables(), 100'000};
 					auto result_generator = triplestore_.eval_sparql_query(*sparql_query, timeout);
 					if (sparql_query->ask()) {
 						bool ask_res = result_generator.begin() != result_generator.end();
-						std::string ask_res_str = ask_res ? "true" : "false";
 						req->create_response(status_ok())
-								.append_header(http_field::content_type, "application/sparql-results+json")
-								.set_body(R"({ "head" : {}, "boolean" : )" + ask_res_str + " }")
+								.append_header(http_field::content_type, json_writer.content_type())
+								.set_body(json_writer.ask_query_result(ask_res))
 								.done();
 					} else {
-						endpoint::SparqlJsonResultSAXWriter json_writer{sparql_query->projected_variables(), 100'000};
 
 						bool asio_write_failed = false;
 						response_builder_t<chunked_output_t> resp = req->template create_response<chunked_output_t>();

@@ -66,6 +66,11 @@ namespace dice::endpoint {
 			writer.StartArray();
 		}
 
+		[[nodiscard]] std::string ask_query_result(bool result) override {
+			std::string ask_res_str = result ? "true" : "false";
+			return R"({ "head" : {}, "boolean" : )" + ask_res_str + " }";
+		}
+
 		void close() override {
 			writer.EndArray();
 			writer.EndObject();
@@ -125,17 +130,21 @@ namespace dice::endpoint {
 			number_of_solutions_ += solution_mapping.value();
 		}
 
-		[[nodiscard]] std::size_t size() const override {
+		[[nodiscard]] std::size_t size() const {
 			return buffer.GetSize();
 		}
 
-		[[nodiscard]] bool full() const override {
+		[[nodiscard]] bool full() const {
 			return buffer.GetSize() > this->buffer_size;
 		};
 
-		std::string_view string_view() override {
+		[[nodiscard]] std::string_view string_view() override {
 			writer.Flush();
 			return {buffer.GetString(), buffer.GetSize()};
+		}
+
+		[[nodiscard]] std::string content_type() override {
+			return "application/sparql-results+json";
 		}
 
 		void clear() override {

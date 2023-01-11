@@ -16,9 +16,9 @@ namespace dice::endpoint {
 	public:
 		virtual ~SPARQLResultWriter() = default;
 
-		virtual void add(rdf_tensor::SolutionMapping const &solution_mapping) = 0;
+		[[nodiscard]] virtual std::string ask_query_result(bool result) = 0;
 
-		[[nodiscard]] virtual std::size_t size() const = 0;
+		virtual void add(rdf_tensor::SolutionMapping const &solution_mapping) = 0;
 
 		[[nodiscard]] virtual std::size_t number_of_written_solutions() const {
 			return number_of_solutions_;
@@ -28,9 +28,9 @@ namespace dice::endpoint {
 			return number_of_bindings_;
 		}
 
-		[[nodiscard]] virtual bool full() const = 0;
-
 		[[nodiscard]] virtual std::string_view string_view() = 0;
+
+		[[nodiscard]] virtual std::string content_type() = 0;
 
 		virtual void clear() = 0;
 
