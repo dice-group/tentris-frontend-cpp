@@ -23,24 +23,35 @@ namespace dice::endpoint {
 			if (accept_header.has_value()) {
 				auto const &accept_header_value = accept_header.value();
 				// default (*/*) to JSON
-				if (accept_header_value == "*/*" or accept_header_value == "application/sparql-results+json")
+				if (accept_header_value == "*/*" or accept_header_value == "application/sparql-results+json") {
 					*format = ResultFormat::JSON;
-				else if (accept_header_value == "application/sparql-results+xml")
+				} else if (accept_header_value == "application/sparql-results+xml") {
 					*format = ResultFormat::XML;
-				else
-					throw std::runtime_error("The requested result format is not supported. Currently only XML and JSON formats are supported");
+				} else {
+					static auto const message = "The requested result format is not supported. Currently only XML and JSON formats are supported";
+					spdlog::warn("HTTP response {}: {}", status_bad_request(), message);
+					req->create_response(status_bad_request()).set_body(message).done();
+					return {};
+				}
 			}
 		}
 		// get request
 		if (req->header().method() == http_method_get()) {
-			const auto qp = parse_query<restinio::parse_query_traits::javascript_compatible>(req->header().query());
-			if (not qp.has("query")) {
-				static auto const message = "Query parameter 'query' is missing from GET request.";
+			try {
+				const auto qp = parse_query<restinio::parse_query_traits::javascript_compatible>(req->header().query());
+				if (not qp.has("query")) {
+					static auto const message = "Query parameter 'query' is missing from GET request.";
+					spdlog::warn("HTTP response {}: {}", status_bad_request(), message);
+					req->create_response(status_bad_request()).set_body(message).done();
+					return {};
+				}
+				return std::string{qp["query"]};
+			} catch (std::exception &e) {
+				static auto const message = e.what();
 				spdlog::warn("HTTP response {}: {}", status_bad_request(), message);
 				req->create_response(status_bad_request()).set_body(message).done();
 				return {};
 			}
-			return std::string{qp["query"]};
 		}
 		// post request
 		auto content_type = req->header().opt_value_of(http_field::content_type);
@@ -66,14 +77,21 @@ namespace dice::endpoint {
 			return req->body();
 		}
 		// post application/x-www-form-urlencoded
-		const auto parsed_body = restinio::parse_query<restinio::parse_query_traits::x_www_form_urlencoded>(req->body());
-		if (not parsed_body.has("query")) {
-			static auto const message = "Query parameter 'query' is missing from POST (application/x-www-form-urlencoded) request.";
+		try {
+			const auto parsed_body = restinio::parse_query<restinio::parse_query_traits::x_www_form_urlencoded>(req->body());
+			if (not parsed_body.has("query")) {
+				static auto const message = "Query parameter 'query' is missing from POST (application/x-www-form-urlencoded) request.";
+				spdlog::warn("HTTP response {}: {}", status_bad_request(), message);
+				req->create_response(status_bad_request()).set_body(message).done();
+				return {};
+			}
+			return std::string{parsed_body["query"]};
+		} catch (std::exception &e) {
+			static auto const message = e.what();
 			spdlog::warn("HTTP response {}: {}", status_bad_request(), message);
 			req->create_response(status_bad_request()).set_body(message).done();
 			return {};
 		}
-		return std::string{parsed_body["query"]};
 	}
 }// namespace dice::endpoint
 #endif//TENTRIS_PARSESPARQLQUERYPARAM_HPP
