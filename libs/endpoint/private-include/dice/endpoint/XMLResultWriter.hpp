@@ -73,7 +73,7 @@ namespace dice::endpoint {
 								literal_node.append_attribute("datatype").set_value(datatype.identifier().data(), datatype.identifier().size());
 							}
 						}
-						auto const &lexical_form = literal.lexical_form();
+						auto const &lexical_form = literal.lexical_form().view();
 						literal_node.append_child(pugi::node_pcdata).set_value(lexical_form.data(), lexical_form.size());
 					} else if (term.is_blank_node()) {
 						auto const &identifier = ((BlankNode) term).identifier();

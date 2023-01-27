@@ -30,7 +30,7 @@ class Recipe(ConanFile):
             "restinio/0.6.17",
             "expected-lite/0.6.2",  # overrides restinio dependency
             "metall/0.21",
-            "rdf4cpp/0.0.8",
+            "rdf4cpp/0.0.8@dice-group/develop",
             "dice-hash/0.4.0",
             "robin-hood-hashing/3.11.5",
             "cxxopts/2.2.1",
