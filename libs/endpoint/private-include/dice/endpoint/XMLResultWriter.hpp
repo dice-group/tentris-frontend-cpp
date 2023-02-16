@@ -58,11 +58,11 @@ namespace dice::endpoint {
 					auto binding = result.append_child("binding");
 					binding.append_attribute("name").set_value(var.c_str());
 					if (term.is_iri()) {
-						auto const &identifier = ((IRI) term).identifier();
+						auto const &identifier = term.as_iri().identifier();
 						binding.append_child("uri").append_child(pugi::node_pcdata).set_value(identifier.data(), identifier.size());
 					} else if (term.is_literal()) {
 						auto literal_node = binding.append_child("literal");
-						auto literal = (Literal) term;
+						auto literal = term.as_literal();
 						static const IRI xsd_str{"http://www.w3.org/2001/XMLSchema#string"};
 						auto datatype = literal.datatype();
 						if (datatype != xsd_str) {
@@ -76,7 +76,7 @@ namespace dice::endpoint {
 						auto const &lexical_form = literal.lexical_form().view();
 						literal_node.append_child(pugi::node_pcdata).set_value(lexical_form.data(), lexical_form.size());
 					} else if (term.is_blank_node()) {
-						auto const &identifier = ((BlankNode) term).identifier();
+						auto const &identifier = term.as_blank_node().identifier();
 						binding.append_child("bnode").append_child(pugi::node_pcdata).set_value(identifier.data(), identifier.size());
 					} else {
 						throw std::runtime_error("Node with incorrect type (none of Literal, BNode, URI) detected.");

@@ -79,7 +79,7 @@ namespace dice::triple_store {
 		 */
 		SolutionMappingGenerator
 		eval_sparql_query(rdf_tensor::SPARQLQuery const &sparql_query,
-						  std::chrono::steady_clock::time_point endtime = std::chrono::steady_clock::time_point::max()) const;
+						  rdf_tensor::QueryEvaluationContext &eval_ctx) const;
 
 		/**
 		 * @brief Parsing of SPARQL queries. Makes use of caching.
@@ -89,7 +89,9 @@ namespace dice::triple_store {
 		 */
 		std::shared_ptr<const rdf_tensor::SPARQLQuery>
 		parse_sparql_query(std::string const &sparql_query_str,
-						   std::chrono::steady_clock::time_point endtime = std::chrono::steady_clock::time_point::max()) const;
+						   rdf_tensor::QueryEvaluationContext &eval_ctx) const;
+
+		rdf_tensor::QueryEvaluationContext create_evaluation_context(std::chrono::steady_clock::time_point endtime) const;
 
 		bool contains(const rdf4cpp::rdf::Statement &statement) const;
 

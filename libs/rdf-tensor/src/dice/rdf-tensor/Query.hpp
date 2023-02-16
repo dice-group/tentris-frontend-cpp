@@ -11,6 +11,7 @@ namespace dice::rdf_tensor {
 	using metall_manager = dice::sparql::detail::metall_manager;
 	using SolutionMapping = dice::query::CountedEntry<htt_t>;
 	using QueryEvalaution = dice::query::Evaluation;
+	using QueryEvaluationContext = dice::query::EvaluationContext<htt_t , allocator_type>;
 	using Query = dice::query::Query<htt_t, allocator_type>;
 	using SPARQLQuery = dice::sparql::SPARQLQuery;
 	using HypertrieContext = dice::hypertrie::HypertrieContext<htt_t, allocator_type>;

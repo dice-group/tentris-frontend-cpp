@@ -30,7 +30,7 @@ class Recipe(ConanFile):
             "restinio/0.6.17",
             "expected-lite/0.6.2",  # overrides restinio dependency
             "metall/0.21",
-            "rdf4cpp/0.0.8@dice-group/develop",
+            "rdf4cpp/0.0.11",
             "dice-hash/0.4.0",
             "robin-hood-hashing/3.11.5",
             "cxxopts/2.2.1",
@@ -39,7 +39,7 @@ class Recipe(ConanFile):
             "spdlog/1.10.0",
             "rapidjson/cci.20220822",
             "pugixml/1.13",
-            "tentris-query/0.0.1@dice-group/integate_limit",
+            "tentris-query/0.0.1@dice-group/refactor_parsing",
         ]
 
         private_reqs = [

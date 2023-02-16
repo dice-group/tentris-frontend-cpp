@@ -130,21 +130,26 @@ namespace dice::triple_store {
 
 	TripleStore::SolutionMappingGenerator
 	TripleStore::eval_sparql_query(rdf_tensor::SPARQLQuery const &sparql_query,
-								   std::chrono::steady_clock::time_point endtime) const {
+								   rdf_tensor::QueryEvaluationContext &eval_ctx) const {
 		flush();
 		std::shared_lock<std::shared_mutex> reader_lock{mutex_};
 		auto raw_query = sparql_query.raw_query();
-		co_yield std::elements_of(rdf_tensor::QueryEvalaution::evaluate(raw_query, endtime));
+		co_yield std::elements_of(rdf_tensor::QueryEvalaution::evaluate(raw_query, eval_ctx));
 	}
 
 	std::shared_ptr<const rdf_tensor::SPARQLQuery>
 	TripleStore::parse_sparql_query(std::string const &sparql_query_str,
-									std::chrono::steady_clock::time_point endtime) const {
+									rdf_tensor::QueryEvaluationContext &eval_ctx) const {
 		using SPARQLParser = dice::sparql::parser::SPARQLParser;
+		auto sparql_query_ptr = sparql_cache_[sparql_query_str];
 		auto sparql_query = sparql_cache_[sparql_query_str];
 		if (not sparql_query)
-			sparql_query = sparql_cache_.insert(sparql_query_str, SPARQLParser::parse_query(sparql_query_str, hypertrie_, endtime));
+			sparql_query = sparql_cache_.insert(sparql_query_str, SPARQLParser::parse_query(sparql_query_str, eval_ctx));
 		return sparql_query;
+	}
+
+	rdf_tensor::QueryEvaluationContext TripleStore::create_evaluation_context(std::chrono::steady_clock::time_point endtime) const {
+		return rdf_tensor::QueryEvaluationContext{hypertrie_, endtime};
 	}
 
 	bool TripleStore::contains(const rdf4cpp::rdf::Statement &statement) const {

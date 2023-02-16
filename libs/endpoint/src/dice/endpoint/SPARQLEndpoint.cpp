@@ -31,7 +31,8 @@ namespace dice::endpoint {
 				std::replace(sparql_query_str.begin(), sparql_query_str.end(), '\n', ' ');
 				spdlog::info("SPARQL Query: {}", sparql_query_str);
 				try {
-					auto sparql_query = triplestore_.parse_sparql_query(sparql_query_str, timeout);
+					auto evaluation_context = triplestore_.create_evaluation_context(timeout);
+					auto sparql_query = triplestore_.parse_sparql_query(sparql_query_str, evaluation_context);
 					// instantiate writer
 					std::unique_ptr<SPARQLResultWriter> result_writer;
 					if (results_format == ResultFormat::JSON)
@@ -41,8 +42,8 @@ namespace dice::endpoint {
 					else
 						assert(false);
 					// start the query evaluation
-					auto result_generator = triplestore_.eval_sparql_query(*sparql_query, timeout);
-					if (sparql_query->ask()) {
+					auto result_generator = triplestore_.eval_sparql_query(*sparql_query, evaluation_context);
+					if (sparql_query->query_type() == rdf_tensor::SPARQLQuery::QueryType::ASK) {
 						bool ask_res = result_generator.begin() != result_generator.end();
 						req->create_response(status_ok())
 								.append_header(http_field::content_type, result_writer->content_type())
