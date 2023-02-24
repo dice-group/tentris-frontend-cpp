@@ -4,8 +4,8 @@
 #include <restinio/all.hpp>
 #include <taskflow/taskflow.hpp>
 
-#include <dice/node-store/metall_manager.hpp>
-#include <dice/triple-store/TripleStore.hpp>
+#include <dice/tentris/param_allocator.hpp>
+#include <dice/triplestore/TripleStore.hpp>
 
 namespace dice::endpoint {
 
@@ -13,12 +13,12 @@ namespace dice::endpoint {
 
 		tf::Executor &executor_;
 
-		triple_store::TripleStore &triplestore_;
+		triplestore::TripleStore &triplestore_;
 
 		std::chrono::seconds timeout_duration_;
 
 	public:
-		SPARQLEndpoint(tf::Executor &executor, triple_store::TripleStore &triplestore, std::chrono::seconds timeoutDuration);
+		SPARQLEndpoint(tf::Executor &executor, triplestore::TripleStore &triplestore, std::chrono::seconds timeoutDuration);
 
 		restinio::request_handling_status_t operator()(
 				restinio::request_handle_t const &req,

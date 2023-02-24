@@ -9,16 +9,15 @@
 #include <spdlog/spdlog.h>
 #include <spdlog/stopwatch.h>
 
-#include <dice/node-store/PersistentNodeStorageBackend.hpp>
-#include <dice/triple-store/TripleStore.hpp>
+#include <dice/metall-node-storage/MetallNodeStorageBackend.hpp>
+#include <dice/triplestore/TripleStore.hpp>
 
-#include <dice/tentris/tentris_version.hpp>
 
 int main(int argc, char *argv[]) {
 	using namespace dice;
 	namespace fs = std::filesystem;
 
-	std::string version = fmt::format("tentris-loader v{} is using hypertrie v{} and rdf4cpp {}.", dice::tentris::version, hypertrie::version, dice::tentris::rdf4cpp_version);
+	std::string version = fmt::format("tentris-loader v{} is using hypertrie v{} and rdf4cpp {}.", 1, 1, 1);
 	cxxopts::Options options("tentris-loader",
 							 fmt::format("{}\nA tensor-based triple store.", version));
 	options.add_options()                                                                                                                                                                                                                //
@@ -54,7 +53,7 @@ int main(int argc, char *argv[]) {
 		exit(0);
 	}
 
-	using metall_manager = rdf_tensor::metall_manager;
+	using metall_manager = dice::tentris::defs::metall_manager;
 
 	auto const storage_path = fs::absolute(fs::path{parsed_args["storage"].as<std::string>()}).append("tentris_data");
 	if (fs::exists(storage_path)) {
@@ -94,15 +93,15 @@ int main(int argc, char *argv[]) {
 	// set up node store
 	{
 		using namespace rdf4cpp::rdf::storage::node;
-		using namespace dice::node_store;
-		auto *nodestore_backend = storage_manager.find_or_construct<PersistentNodeStorageBackendImpl>("node-store")(storage_manager.get_allocator());
+		using namespace dice::metall_node_storage;
+		auto *nodestore_backend = storage_manager.find_or_construct<MetallNodeStorageBackendImpl>("node-store")(storage_manager.get_allocator());
 		NodeStorage::default_instance(
-				NodeStorage::new_instance<PersistentNodeStorageBackend>(nodestore_backend));
+				NodeStorage::new_instance<MetallNodeStorageBackend>(nodestore_backend));
 	}
 	// setup triple store
-	auto &ht_context = *storage_manager.find_or_construct<rdf_tensor::HypertrieContext>("hypertrie-context")(storage_manager.get_allocator());
-	auto &rdf_tensor = *storage_manager.find_or_construct<rdf_tensor::BoolHypertrie>("rdf-tensor")(3, rdf_tensor::HypertrieContext_ptr{&ht_context});
-	triple_store::TripleStore triplestore{rdf_tensor};
+	auto &ht_context = *storage_manager.find_or_construct<dice::tentris::defs::HypertrieContext>("hypertrie-context")(storage_manager.get_allocator());
+	auto &rdf_tensor = *storage_manager.find_or_construct<dice::tentris::defs::BoolHypertrie>("rdf-tensor")(3, dice::tentris::defs::HypertrieContext_ptr{&ht_context});
+	triplestore::TripleStore triplestore{rdf_tensor};
 	fs::path ttl_file(parsed_args["file"].as<std::string>());
 	{// load data
 		spdlog::info("Loading triples from file {}.", fs::absolute(ttl_file).string());

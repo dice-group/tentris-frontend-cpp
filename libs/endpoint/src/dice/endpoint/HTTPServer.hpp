@@ -4,8 +4,8 @@
 #include <restinio/all.hpp>
 #include <taskflow/taskflow.hpp>
 
-#include <dice/node-store/metall_manager.hpp>
-#include <dice/triple-store/TripleStore.hpp>
+#include <dice/tentris/param_allocator.hpp>
+#include <dice/triplestore/TripleStore.hpp>
 
 
 namespace dice::endpoint {
@@ -18,12 +18,12 @@ namespace dice::endpoint {
 
 	class HTTPServer {
 		tf::Executor &executor_;
-		triple_store::TripleStore &triplestore_;
+		triplestore::TripleStore &triplestore_;
 		std::unique_ptr<restinio::router::express_router_t<>> router_;
 		EndpointCfg cfg_;
 
 	public:
-		HTTPServer(tf::Executor &executor, triple_store::TripleStore &triplestore, EndpointCfg const &cfg);
+		HTTPServer(tf::Executor &executor, triplestore::TripleStore &triplestore, EndpointCfg const &cfg);
 
 		restinio::router::express_router_t<> &router(){
 			return *router_;

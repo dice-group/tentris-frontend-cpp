@@ -4,6 +4,7 @@ find_package(spdlog REQUIRED)
 find_package(cppitertools REQUIRED)
 find_package(RapidJSON REQUIRED)
 find_package(pugixml REQUIRED)
+find_package(tentris REQUIRED)
 
 add_library(endpoint
         src/dice/endpoint/HTTPServer.cpp
@@ -27,8 +28,7 @@ set_target_properties(endpoint PROPERTIES
         )
 
 target_link_libraries(endpoint PUBLIC
-        tentris::triple-store
-        tentris::node-store
+        tentris::triplestore
         restinio::restinio
         Taskflow::Taskflow
         PRIVATE

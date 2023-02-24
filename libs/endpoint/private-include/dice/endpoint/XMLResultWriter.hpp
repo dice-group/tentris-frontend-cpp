@@ -13,7 +13,6 @@ namespace dice::endpoint {
 		using IRI = rdf4cpp::rdf::IRI;
 		using BlankNode = rdf4cpp::rdf::BlankNode;
 		using Variable = rdf4cpp::rdf::query::Variable;
-		using SolutionMapping = dice::rdf_tensor::SolutionMapping;
 
 		std::vector<std::string> variables_;
 		pugi::xml_document xml_results_;

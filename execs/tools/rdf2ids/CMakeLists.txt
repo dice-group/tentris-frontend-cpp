@@ -6,6 +6,7 @@ find_package(spdlog REQUIRED)
 find_package(cxxopts REQUIRED)
 find_package(vincentlaucsb-csv-parser REQUIRED)
 find_package(rdf4cpp REQUIRED)
+find_package(tentris REQUIRED)
 
 add_executable(rdf2ids
         src/dice/tools/rdf2ids/RDF2IDs.cpp
@@ -20,7 +21,7 @@ target_link_libraries(rdf2ids PRIVATE
         spdlog::spdlog
         cxxopts::cxxopts
         vincentlaucsb-csv-parser::vincentlaucsb-csv-parser
-        tentris::rdf-tensor
+        tentris::triplestore
         )
 
 target_include_directories(rdf2ids PRIVATE

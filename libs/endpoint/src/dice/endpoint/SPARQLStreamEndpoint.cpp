@@ -8,7 +8,7 @@
 namespace dice::endpoint {
 
 	SPARQLStreamEndpoint::SPARQLStreamEndpoint(tf::Executor &executor,
-											   triple_store::TripleStore &triplestore,
+											   triplestore::TripleStore &triplestore,
 											   std::chrono::seconds timeoutDuration)
 		: executor_(executor),
 		  triplestore_(triplestore),
@@ -32,7 +32,7 @@ namespace dice::endpoint {
 					auto sparql_query = triplestore_.parse_sparql_query(sparql_query_str, evaluation_context);
 					endpoint::SparqlJsonResultSAXWriter json_writer{sparql_query->projected_variables(), 100'000};
 					auto result_generator = triplestore_.eval_sparql_query(*sparql_query, evaluation_context);
-					if (sparql_query->query_type() == rdf_tensor::SPARQLQuery::QueryType::ASK) {
+					if (sparql_query->query_type() == dice::sparql::SPARQLQuery::QueryType::ASK) {
 						bool ask_res = result_generator.begin() != result_generator.end();
 						req->create_response(status_ok())
 								.append_header(http_field::content_type, json_writer.content_type())

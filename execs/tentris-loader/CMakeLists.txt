@@ -6,11 +6,11 @@ find_package(Threads REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(cxxopts REQUIRED)
 find_package(Metall REQUIRED)
+find_package(tentris REQUIRED)
 
 target_link_libraries(tentris_loader PRIVATE
         Threads::Threads
-        tentris::triple-store
-        tentris::node-store
+        tentris::triplestore
         spdlog::spdlog
         cxxopts::cxxopts
         Metall::Metall

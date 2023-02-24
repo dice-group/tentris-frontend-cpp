@@ -14,7 +14,7 @@ namespace dice::endpoint {
 		static constexpr bool use_connection_count_limiter = true;
 	};
 
-	HTTPServer::HTTPServer(tf::Executor &executor, triple_store::TripleStore &triplestore, EndpointCfg const &cfg)
+	HTTPServer::HTTPServer(tf::Executor &executor, triplestore::TripleStore &triplestore, EndpointCfg const &cfg)
 		: executor_(executor),
 		  triplestore_(triplestore),
 		  router_(std::make_unique<restinio::router::express_router_t<>>()),

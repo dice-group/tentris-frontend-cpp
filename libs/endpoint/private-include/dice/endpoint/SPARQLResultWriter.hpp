@@ -3,13 +3,14 @@
 
 #include <rdf4cpp/rdf.hpp>
 
-#include <dice/rdf-tensor/Query.hpp>
+#include <dice/query.hpp>
 
 namespace dice::endpoint {
 
 	class SPARQLResultWriter {
 
 	protected:
+		using SolutionMapping = dice::tentris::defs::Entry;
 		std::size_t number_of_solutions_ = 0;
 		std::size_t number_of_bindings_ = 0;
 
@@ -18,7 +19,7 @@ namespace dice::endpoint {
 
 		[[nodiscard]] virtual std::string ask_query_result(bool result) = 0;
 
-		virtual void add(rdf_tensor::SolutionMapping const &solution_mapping) = 0;
+		virtual void add(dice::tentris::defs::Entry const &solution_mapping) = 0;
 
 		[[nodiscard]] virtual std::size_t number_of_written_solutions() const {
 			return number_of_solutions_;

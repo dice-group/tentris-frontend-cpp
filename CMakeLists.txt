@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.18)
-project(tentris
+project(tentris-frontend
         VERSION 1.3.0
         DESCRIPTION "tensor-based triplestore")
 

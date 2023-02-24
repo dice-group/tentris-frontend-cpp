@@ -15,7 +15,7 @@
 #include <cppitertools/itertools.hpp>
 #include <rdf4cpp/rdf.hpp>
 
-#include <dice/rdf-tensor/Query.hpp>
+#include <dice/query.hpp>
 
 namespace dice::endpoint {
 
@@ -25,7 +25,6 @@ namespace dice::endpoint {
 		using IRI = rdf4cpp::rdf::IRI;
 		using BlankNode = rdf4cpp::rdf::BlankNode;
 		using Variable = rdf4cpp::rdf::query::Variable;
-		using SolutionMapping = dice::rdf_tensor::SolutionMapping;
 
 		//std::size_t number_of_solutions_ = 0;
 		//std::size_t number_of_bindings_ = 0;

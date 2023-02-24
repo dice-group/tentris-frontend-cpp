@@ -57,4 +57,4 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/.. ${CMAKE_CURRENT_BINARY_DIR}/libt
 
 add_subdirectory(tentris-server)
 add_subdirectory(tentris-loader)
-add_subdirectory(tools)
+# add_subdirectory(tools)

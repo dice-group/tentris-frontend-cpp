@@ -10,8 +10,8 @@ find_package(restinio REQUIRED)
 find_package(Metall REQUIRED)
 
 target_link_libraries(tentris_server PRIVATE
+        endpoint
         Threads::Threads
-        tentris::tentris
         restinio::restinio
         Taskflow::Taskflow
         spdlog::spdlog
