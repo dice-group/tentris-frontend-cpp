@@ -12,6 +12,7 @@ add_executable(deduplicated_nt
         )
 
 target_link_libraries(deduplicated_nt PRIVATE
+        versioning
         Threads::Threads
         rdf4cpp::rdf4cpp
         dice-sparse-map::dice-sparse-map

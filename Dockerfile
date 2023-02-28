@@ -1,4 +1,4 @@
-FROM alpine:edge AS builder
+FROM alpine:3.17 AS builder
 # todo: fix version as soon as clang15 is available outside of edge
 ARG MARCH="x86-64-v3"
 ARG CONAN_USER="none"
@@ -36,7 +36,7 @@ RUN ./configure \
 WORKDIR /
 
 # install and configure conan
-RUN pip3 install conan && \
+RUN pip3 install conan==1.59.0 && \
     conan user && \
     conan profile new --detect default && \
     conan profile update settings.compiler=clang default && \

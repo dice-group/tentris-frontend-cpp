@@ -11,6 +11,7 @@ find_package(Metall REQUIRED)
 
 target_link_libraries(tentris_server PRIVATE
         endpoint
+        versioning
         Threads::Threads
         restinio::restinio
         Taskflow::Taskflow

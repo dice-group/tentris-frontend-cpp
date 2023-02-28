@@ -24,11 +24,8 @@ class Recipe(ConanFile):
 
     def requirements(self):
         public_reqs = [
-            "tentris/0.0.1@dice-group/equality_filter_to_join",
+            "tentris/0.0.1@dice-group/develop",
             "boost/1.80.0",
-            "zlib/1.2.13",
-            "bzip2/1.0.8",
-            "libbacktrace/cci.20210118",
             "fmt/8.1.1",
             "restinio/0.6.17",
             "expected-lite/0.6.2",  # overrides restinio dependency

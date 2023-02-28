@@ -12,12 +12,14 @@
 #include <dice/metall-node-storage/MetallNodeStorageBackend.hpp>
 #include <dice/triplestore/TripleStore.hpp>
 
+#include <dice/versioning/version.hpp>
+
 
 int main(int argc, char *argv[]) {
 	using namespace dice;
 	namespace fs = std::filesystem;
 
-	std::string version = fmt::format("tentris-loader v{} is using hypertrie v{} and rdf4cpp {}.", 1, 1, 1);
+	std::string version = fmt::format("tentris-loader v{} is using hypertrie v{} and rdf4cpp {}.", dice::tentris::version, hypertrie::version, dice::tentris::rdf4cpp_version);
 	cxxopts::Options options("tentris-loader",
 							 fmt::format("{}\nA tensor-based triple store.", version));
 	options.add_options()                                                                                                                                                                                                                //

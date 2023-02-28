@@ -4,7 +4,7 @@
 
 #include <dice/hash/DiceHash.hpp>
 #include <dice/sparse-map/sparse_set.hpp>
-#include <dice/tentris/tentris_version.hpp>
+#include <dice/versioning/version.hpp>
 
 #include <cxxopts.hpp>
 #include <fmt/format.h>
