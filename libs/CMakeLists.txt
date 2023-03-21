@@ -1,3 +1,3 @@
 add_subdirectory(endpoint)
-add_subdirectory(versioning)
+add_subdirectory(tentris-frontend)
 install_package()

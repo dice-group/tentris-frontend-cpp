@@ -18,4 +18,4 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(tentris)
 add_executable(example example.cpp)
 # With FetchContent_Declare we don't need find_package
-target_link_libraries(example PRIVATE tentris::node-store)
+target_link_libraries(example PRIVATE tentris-frontend::tentris-frontend)
