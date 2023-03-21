@@ -7,11 +7,8 @@
 
 namespace dice::endpoint {
 
-	class XMLResultWriter : public SPARQLResultWriter {
-		using Node = rdf4cpp::rdf::Node;
-		using Literal = rdf4cpp::rdf::Literal;
+	class XMLResultDOMWriter : public SPARQLResultWriter {
 		using IRI = rdf4cpp::rdf::IRI;
-		using BlankNode = rdf4cpp::rdf::BlankNode;
 		using Variable = rdf4cpp::rdf::query::Variable;
 
 		std::vector<std::string> variables_;
@@ -20,7 +17,7 @@ namespace dice::endpoint {
 		std::string xml_results_str_;
 
 	public:
-		explicit XMLResultWriter(const std::vector<Variable>& variables) {
+		explicit XMLResultDOMWriter(const std::vector<Variable>& variables) {
 			auto sparql_document_element = xml_results_.append_child("sparql");
 			sparql_document_element.append_attribute("xmlns").set_value("http://www.w3.org/2005/sparql-results#");
 			auto head_section = sparql_document_element.append_child("head");

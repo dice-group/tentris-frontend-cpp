@@ -4,7 +4,7 @@
 
 #include <dice/endpoint/ParseSPARQLQueryParam.hpp>
 #include <dice/endpoint/SparqlJsonResultSAXWriter.hpp>
-#include <dice/endpoint/XMLResultWriter.hpp>
+#include <dice/endpoint/XMLResultDOMWriter.hpp>
 
 namespace dice::endpoint {
 
@@ -38,7 +38,7 @@ namespace dice::endpoint {
 					if (results_format == ResultFormat::JSON)
 						result_writer = std::make_unique<SparqlJsonResultSAXWriter>(sparql_query->projected_variables(), 100'000);
 					else if (results_format == ResultFormat::XML)
-						result_writer = std::make_unique<XMLResultWriter>(sparql_query->projected_variables());
+						result_writer = std::make_unique<XMLResultDOMWriter>(sparql_query->projected_variables());
 					else
 						assert(false);
 					// start the query evaluation
