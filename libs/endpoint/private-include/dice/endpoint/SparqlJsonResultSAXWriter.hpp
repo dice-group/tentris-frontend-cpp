@@ -20,14 +20,8 @@
 namespace dice::endpoint {
 
 	class SparqlJsonResultSAXWriter : public SPARQLResultWriter {
-		using Node = rdf4cpp::rdf::Node;
-		using Literal = rdf4cpp::rdf::Literal;
 		using IRI = rdf4cpp::rdf::IRI;
-		using BlankNode = rdf4cpp::rdf::BlankNode;
 		using Variable = rdf4cpp::rdf::query::Variable;
-
-		//std::size_t number_of_solutions_ = 0;
-		//std::size_t number_of_bindings_ = 0;
 
 		size_t buffer_size;
 		rapidjson::StringBuffer buffer;
@@ -41,7 +35,7 @@ namespace dice::endpoint {
 	public:
 		explicit SparqlJsonResultSAXWriter(const std::vector<Variable>& variables, size_t buffer_size)
 			: buffer_size(buffer_size),
-			  buffer(nullptr, size_t(buffer_size * 1.3)),
+			  buffer(nullptr, size_t(double(buffer_size) * 1.3)),
 			  writer(buffer) {
 			writer.StartObject();
 			writer.Key("head");
@@ -96,7 +90,7 @@ namespace dice::endpoint {
 
 						auto literal = term.as_literal();
 
-						static const IRI xsd_str{"http://www.w3.org/2001/XMLSchema#string"};
+						static const IRI xsd_str{rdf4cpp::rdf::datatypes::xsd::String::identifier};
 						auto datatype = literal.datatype();
 						if (datatype != xsd_str) {
 							auto const &lang = literal.language_tag();
