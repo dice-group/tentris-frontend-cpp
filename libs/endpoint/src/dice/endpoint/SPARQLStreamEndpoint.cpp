@@ -15,7 +15,7 @@ namespace dice::endpoint {
 		  timeout_duration_(timeoutDuration) {}
 
 	restinio::request_handling_status_t SPARQLStreamEndpoint::operator()(
-			restinio::request_handle_t const &req,
+			restinio::request_handle_t req,
 			[[maybe_unused]] restinio::router::route_params_t params) {
 		auto timeout = (timeout_duration_.count()) ? std::chrono::steady_clock::now() + this->timeout_duration_ : std::chrono::steady_clock::time_point::max();
 		if (executor_.num_topologies() < executor_.num_workers()) {
