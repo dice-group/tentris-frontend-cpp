@@ -1,11 +1,13 @@
 cmake_minimum_required(VERSION 3.21)
 set(lib "endpoint")
 
+find_package(tentris REQUIRED)
 find_package(Taskflow REQUIRED)
 find_package(restinio REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(cppitertools REQUIRED)
 find_package(RapidJSON REQUIRED)
+find_package(pugixml REQUIRED)
 
 # Workaround for poor conan package
 if (TARGET rapidjson)
@@ -13,10 +15,6 @@ if (TARGET rapidjson)
 else()
     set(rapidjson_target "RapidJSON::RapidJSON")
 endif()
-
-
-find_package(pugixml REQUIRED)
-find_package(tentris REQUIRED)
 
 add_library(${lib}
         src/dice/endpoint/HTTPServer.cpp

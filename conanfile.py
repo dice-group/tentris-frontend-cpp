@@ -19,17 +19,16 @@ class Recipe(ConanFile):
         "shared": False,
         "fPIC": True,
         "with_exec_deps": False,
-        "restinio:asio": "boost",
+        "restinio:asio": "boost",  # todo: that might not be the optimal spot here
     }
 
     def requirements(self):
         public_reqs = [
             "tentris/2.1.0",
-            "boost/1.80.0",
-            "fmt/8.1.1",
+            "boost/1.80.0",  # overrides for version conflict
+            "fmt/8.1.1",  # overrides for version conflict
             "restinio/0.6.17",
             "expected-lite/0.6.2",  # overrides restinio dependency
-            "robin-hood-hashing/3.11.5",
             "cxxopts/2.2.1",
             "taskflow/3.4.0",
             "cppitertools/2.1",
@@ -103,18 +102,8 @@ class Recipe(ConanFile):
         self.cpp_info.components["global"].names["cmake_find_package"] = f"{self.name}"
         self.cpp_info.components["global"].includedirs = [f"include/{self.name}/{self.name}"]
         self.cpp_info.components["global"].libdirs = []
-        self.cpp_info.components["global"].includedirs = [f"include/{self.name}/{self.name}"]
         self.cpp_info.components["global"].requires = [
             "endpoint",
-            "boost::boost",
-            "fmt::fmt",
-            "restinio::restinio",
-            "cxxopts::cxxopts",
-            "robin-hood-hashing::robin-hood-hashing",
-            "expected-lite::expected-lite",
-            "restinio::restinio",
-            "taskflow::taskflow",
-            "cppitertools::cppitertools",
         ]
 
         for component in ["endpoint"]:
@@ -124,10 +113,10 @@ class Recipe(ConanFile):
 
         self.cpp_info.components["endpoint"].requires = [
             "tentris::tentris",
-            "restinio::restinio",
             "taskflow::taskflow",
-            "cppitertools::cppitertools",
+            "restinio::restinio",
             "spdlog::spdlog",
+            "cppitertools::cppitertools",
             "rapidjson::rapidjson",
             "pugixml::pugixml"
         ]
