@@ -9,7 +9,6 @@ find_package(Metall REQUIRED)
 find_package(tentris REQUIRED)
 
 target_link_libraries(tentris_loader PRIVATE
-        versioning
         Threads::Threads
         tentris::triplestore
         spdlog::spdlog

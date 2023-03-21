@@ -10,8 +10,7 @@ find_package(restinio REQUIRED)
 find_package(Metall REQUIRED)
 
 target_link_libraries(tentris_server PRIVATE
-        endpoint
-        versioning
+        tentris-frontend::endpoint
         Threads::Threads
         restinio::restinio
         Taskflow::Taskflow
