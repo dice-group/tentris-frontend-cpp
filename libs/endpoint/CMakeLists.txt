@@ -51,5 +51,5 @@ set_target_properties(endpoint PROPERTIES
         )
 
 
-include(${CMAKE_CURRENT_SOURCE_DIR}/../../cmake/install_components.cmake)
+include(${PROJECT_SOURCE_DIR}/cmake/install_components.cmake)
 install_component(PUBLIC ${lib} src)

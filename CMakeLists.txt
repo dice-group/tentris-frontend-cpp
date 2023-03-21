@@ -6,11 +6,6 @@ project(tentris-frontend
 include(cmake/boilerplate_init.cmake)
 boilerplate_init()
 
-
-
-include(cmake/boilerplate_init.cmake)
-boilerplate_init()
-
 OPTION(USE_CONAN "If available, use conan to retrieve dependencies." ON)
 if (PROJECT_IS_TOP_LEVEL AND USE_CONAN)
     include(cmake/conan_cmake.cmake)
