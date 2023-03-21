@@ -1,10 +1,10 @@
-cmake_minimum_required(VERSION 3.18)
+cmake_minimum_required(VERSION 3.21)
 project(tentris-binaries)
 
 include(${CMAKE_SOURCE_DIR}/../cmake/boilerplate_init.cmake)
 
 boilerplate_init()
-if (NOT IS_TOP_LEVEL)
+if (NOT PROJECT_IS_TOP_LEVEL)
     message(FATAL_ERROR "Must only be used as CMake top-level project.")
 endif ()
 
@@ -53,7 +53,7 @@ endif ()
 include(${CMAKE_SOURCE_DIR}/../cmake/conan_cmake.cmake)
 install_packages_via_conan("${CMAKE_SOURCE_DIR}/../conanfile.py" "with_exec_deps=True ")
 
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/.. ${CMAKE_CURRENT_BINARY_DIR}/libtentris)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/.. ${CMAKE_CURRENT_BINARY_DIR}/tentris-frontend)
 
 add_subdirectory(tentris-server)
 add_subdirectory(tentris-loader)

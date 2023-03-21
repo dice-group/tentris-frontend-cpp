@@ -13,6 +13,7 @@
 #include <dice/metall-node-storage/MetallNodeStorageBackend.hpp>
 #include <dice/triplestore/TripleStore.hpp>
 
+#include <dice/tentris-frontend/tentris-frontend_version.hpp>
 #include <dice/tentris/tentris_version.hpp>
 
 int main(int argc, char *argv[]) {
@@ -22,7 +23,7 @@ int main(int argc, char *argv[]) {
 	/*
 	 * Parse Commandline Arguments
 	 */
-	std::string version = fmt::format("tentris-server v{} is based on hypertrie v{} and rdf4cpp {}.", dice::tentris::version, hypertrie::version, "todo");
+	std::string version = fmt::format("tentris-server v{} is using tentris v{}, hypertrie v{} and rdf4cpp {}.", dice::tentris_frontend::version, dice::tentris::version, hypertrie::version, "_todo_");// TODO
 
 	cxxopts::Options options("tentris-server",
 							 fmt::format("{}\nA tensor-based triple store.", version));

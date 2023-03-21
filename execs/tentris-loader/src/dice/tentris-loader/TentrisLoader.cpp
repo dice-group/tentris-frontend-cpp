@@ -13,12 +13,13 @@
 #include <dice/triplestore/TripleStore.hpp>
 
 #include <dice/tentris/tentris_version.hpp>
+#include <dice/tentris-frontend/tentris-frontend_version.hpp>
 
 int main(int argc, char *argv[]) {
 	using namespace dice;
 	namespace fs = std::filesystem;
 
-	std::string version = fmt::format("tentris-loader v{} is using hypertrie v{} and rdf4cpp {}.", dice::tentris::version, hypertrie::version, "");
+	std::string version = fmt::format("tentris-loader v{} is using tentris v{}, hypertrie v{} and rdf4cpp {}.", dice::tentris_frontend::version, dice::tentris::version, hypertrie::version, "_todo_"); // TODO
 	cxxopts::Options options("tentris-loader",
 							 fmt::format("{}\nA tensor-based triple store.", version));
 	options.add_options()                                                                                                                                                                                                                //
