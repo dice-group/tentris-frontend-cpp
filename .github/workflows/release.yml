@@ -45,10 +45,7 @@ jobs:
         with:
           workflow: build.yml
           name: tentris-frontend
-          path: artifacts/tentris_*
-
-      - name: zip assets
-        run: zip "tentris-frontend_v${{ env.asset_version }}.zip" -j artifacts/*
+          path: artifacts
 
       - name: Publish Release
         uses: softprops/action-gh-release@v1
