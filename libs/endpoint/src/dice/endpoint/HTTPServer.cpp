@@ -1,8 +1,7 @@
 #include "HTTPServer.hpp"
 
-#include "dice/endpoint/CountEndpoint.hpp"
-#include "dice/endpoint/SparqlEndpoint.hpp"
-#include "dice/endpoint/SparqlStreamingEndpoint.hpp"
+#include "dice/endpoint/SPARQLEndpoint.hpp"
+#include "dice/endpoint/SPARQLStreamEndpoint.hpp"
 
 #include <spdlog/spdlog.h>
 
@@ -15,29 +14,23 @@ namespace dice::endpoint {
 		static constexpr bool use_connection_count_limiter = true;
 	};
 
-	HTTPServer::HTTPServer(tf::Executor &executor, triple_store::TripleStore &triplestore, EndpointCfg const &cfg)
+	HTTPServer::HTTPServer(tf::Executor &executor, triplestore::TripleStore &triplestore, EndpointCfg const &cfg)
 		: executor_(executor),
 		  triplestore_(triplestore),
-		  sparql_query_cache_(),// TODO: override default parameter
 		  router_(std::make_unique<restinio::router::express_router_t<>>()),
 		  cfg_(cfg) {}
 
 	void HTTPServer::operator()() {
 		spdlog::info("Available endpoints:");
-		router_->http_get(R"(/sparql)",
-						  SPARQLEndpoint{executor_, triplestore_, sparql_query_cache_, cfg_.timeout_duration});
-		spdlog::info("  GET /sparql?query= for normal queries");
+		router_->add_handler(restinio::router::any_of_methods(restinio::http_method_get(), restinio::http_method_post()),
+							 R"(/sparql)",
+							 SPARQLEndpoint{executor_, triplestore_, cfg_.timeout_duration});
+		spdlog::info("  GET (/sparql?query=), POST application/sparql-query (/sparql) or POST application/x-www-form-urlencoded (/sparql) for SPARQL queries. Supported result formats: XML and JSON (default: JSON; choose using the request header \"Accept\").");
 
-		router_->http_get(R"(/stream)",
-						  SPARQLStreamingEndpoint{executor_, triplestore_, sparql_query_cache_, cfg_.timeout_duration});
-		spdlog::info("  GET  /stream?query= for queries with huge results");
-
-		router_->http_get(R"(/count)",
-						  CountEndpoint{executor_, triplestore_, sparql_query_cache_, cfg_.timeout_duration});
-		spdlog::info("  GET  /count?query= as a workaround for count");
-
-		spdlog::info("  GET  /ask?query= as a workaround for ask");
-
+		router_->add_handler(restinio::router::any_of_methods(restinio::http_method_get(), restinio::http_method_post()),
+							 R"(/stream)",
+							 SPARQLStreamEndpoint{executor_, triplestore_, cfg_.timeout_duration});
+		spdlog::info("  GET (/stream?query=), POST application/sparql-query (/stream) or POST application/x-www-form-urlencoded (/stream) for SPARQL SELECT queries with big result sets (only JSON results)");
 
 		router_->non_matched_request_handler(
 				[](auto req) -> restinio::request_handling_status_t {

@@ -3,20 +3,14 @@ add_executable(tentris_server
         )
 
 find_package(Threads REQUIRED)
-find_package(Taskflow REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(cxxopts REQUIRED)
-find_package(restinio REQUIRED)
-find_package(Metall REQUIRED)
 
 target_link_libraries(tentris_server PRIVATE
         Threads::Threads
-        tentris::tentris
-        restinio::restinio
-        Taskflow::Taskflow
+        tentris-frontend::tentris-frontend
         spdlog::spdlog
         cxxopts::cxxopts
-        Metall::Metall
         )
 
 if (CMAKE_BUILD_TYPE MATCHES "Release")

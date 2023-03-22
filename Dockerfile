@@ -1,4 +1,4 @@
-FROM alpine:edge AS builder
+FROM alpine:3.17 AS builder
 # todo: fix version as soon as clang15 is available outside of edge
 ARG MARCH="x86-64-v3"
 ARG CONAN_USER="none"
@@ -22,7 +22,7 @@ ENV CXXFLAGS="${CXXFLAGS} -march=${MARCH}"
 RUN rm /usr/bin/ld && ln -s /usr/bin/mold /usr/bin/ld # use mold as default linker
 
 
-# Compile more recent tcmalloc-minimal with clang-14 + -march
+# Compile more recent tcmalloc-minimal with clang-15 + -march
 RUN git clone --quiet --branch gperftools-2.9.1 --depth 1 https://github.com/gperftools/gperftools
 WORKDIR /gperftools
 RUN ./autogen.sh
@@ -36,7 +36,7 @@ RUN ./configure \
 WORKDIR /
 
 # install and configure conan
-RUN pip3 install conan && \
+RUN pip3 install conan==1.59.0 && \
     conan user && \
     conan profile new --detect default && \
     conan profile update settings.compiler=clang default && \
@@ -83,7 +83,5 @@ RUN make -j $(nproc)
 FROM scratch
 COPY --from=builder /tentris/execs/build/tentris-server/tentris_server /tentris_server
 COPY --from=builder /tentris/execs/build/tentris-loader/tentris_loader /tentris_loader
-COPY --from=builder /tentris/execs/build/tools/deduplicated-nt/deduplicated_nt /deduplicated_nt
-COPY --from=builder /tentris/execs/build/tools/rdf2ids/rdf2ids /rdf2ids
 COPY README.MD README.MD
 ENTRYPOINT ["/tentris_server"]

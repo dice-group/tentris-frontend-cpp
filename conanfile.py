@@ -1,9 +1,9 @@
 import os
 import re
 
-from conans import ConanFile, CMake
-from conans.tools import load
-from conans.util.files import rmdir
+from conan.tools.cmake import CMake
+from conan.tools.files import load, rmdir
+from conan import ConanFile
 
 
 class Recipe(ConanFile):
@@ -19,26 +19,22 @@ class Recipe(ConanFile):
         "shared": False,
         "fPIC": True,
         "with_exec_deps": False,
-        "restinio:asio": "boost",
+        "restinio:asio": "boost",  # todo: that might not be the optimal spot here
     }
 
     def requirements(self):
         public_reqs = [
-            "boost/1.80.0",
-            "fmt/8.1.1",
+            "tentris/2.1.0",
+            "boost/1.80.0",  # overrides for version conflict
+            "fmt/8.1.1",  # overrides for version conflict
             "restinio/0.6.17",
             "expected-lite/0.6.2",  # overrides restinio dependency
-            "hypertrie/0.9.3",
-            "metall/0.21",
-            "rdf4cpp/0.0.6",
-            "dice-hash/0.4.0",
-            "robin-hood-hashing/3.11.5",
             "cxxopts/2.2.1",
-            "sparql-parser-base/0.3.0",
             "taskflow/3.4.0",
             "cppitertools/2.1",
             "spdlog/1.10.0",
             "rapidjson/cci.20220822",
+            "pugixml/1.13",
         ]
 
         private_reqs = [
@@ -57,7 +53,7 @@ class Recipe(ConanFile):
             for req in exec_reqs:
                 self.requires(req)
 
-    generators = ("cmake_find_package",)
+    generators = ("CMakeDeps", "CMakeToolchain")
 
     # Sources are located in the same place as this recipe, copy them to the recipe
     exports_sources = "libs/*", "CMakeLists.txt", "cmake/*"
@@ -68,15 +64,15 @@ class Recipe(ConanFile):
 
     def set_name(self):
         if not hasattr(self, 'name') or self.version is None:
-            cmake_file = load(os.path.join(self.recipe_folder, "CMakeLists.txt"))
+            cmake_file = load(self, os.path.join(self.recipe_folder, "CMakeLists.txt"))
             self.name = re.search(r"project\(\s*([a-z\-]+)\s+VERSION", cmake_file).group(1)
 
     def set_version(self):
         if not hasattr(self, 'version') or self.version is None:
-            cmake_file = load(os.path.join(self.recipe_folder, "CMakeLists.txt"))
+            cmake_file = load(self, os.path.join(self.recipe_folder, "CMakeLists.txt"))
             self.version = re.search(r"project\([^)]*VERSION\s+(\d+\.\d+.\d+)[^)]*\)", cmake_file).group(1)
         if not hasattr(self, 'description') or self.description is None:
-            cmake_file = load(os.path.join(self.recipe_folder, "CMakeLists.txt"))
+            cmake_file = load(self, os.path.join(self.recipe_folder, "CMakeLists.txt"))
             self.description = re.search(r"project\([^)]*DESCRIPTION\s+\"([^\"]+)\"[^)]*\)", cmake_file).group(1)
 
     _cmake = None
@@ -85,8 +81,7 @@ class Recipe(ConanFile):
         if self._cmake:
             return self._cmake
         self._cmake = CMake(self)
-        self._cmake.definitions['CONAN_CMAKE'] = False
-        self._cmake.configure()
+        self._cmake.configure(variables={"USE_CONAN": False})
         return self._cmake
 
     def build(self):
@@ -94,74 +89,36 @@ class Recipe(ConanFile):
         cmake.build()
 
     def package(self):
-        cmake = self._configure_cmake()
-        cmake.install()
-        for dir in ("res", "share"):
-            rmdir(os.path.join(self.package_folder, dir))
+        self._configure_cmake().install()
+        rmdir(self, os.path.join(self.package_folder, "cmake"))
+        rmdir(self, os.path.join(self.package_folder, "share"))
 
     def package_info(self):
-        self.cpp_info.components["global"].set_property("cmake_target_name", "tentris::tentris")
-        self.cpp_info.components["global"].names["cmake_find_package_multi"] = "tentris"
-        self.cpp_info.components["global"].names["cmake_find_package"] = "tentris"
-        self.cpp_info.components["global"].includedirs = [f"include/tentris/tentris"]
+        self.cpp_info.set_property("cmake_target_name", f"{self.name}")
+        self.cpp_info.set_property("cmake_file_name", f"{self.name}")
+
+        self.cpp_info.components["global"].set_property("cmake_target_name", f"{self.name}::{self.name}")
+        self.cpp_info.components["global"].names["cmake_find_package_multi"] = f"{self.name}"
+        self.cpp_info.components["global"].names["cmake_find_package"] = f"{self.name}"
+        self.cpp_info.components["global"].includedirs = [f"include/{self.name}/{self.name}"]
         self.cpp_info.components["global"].libdirs = []
-        self.cpp_info.set_property("cmake_file_name", "tentris")
         self.cpp_info.components["global"].requires = [
-            "node-store", "rdf-tensor", "sparql2tensor", "triple-store", "endpoint",
-            "boost::boost",
-            "fmt::fmt",
-            "restinio::restinio",
-            "hypertrie::hypertrie",
-            "metall::metall",
-            "rdf4cpp::rdf4cpp",
-            "sparql-parser-base::sparql-parser-base",
-            "dice-hash::dice-hash",
-            "cxxopts::cxxopts",
-            "robin-hood-hashing::robin-hood-hashing",
-            "expected-lite::expected-lite",
-            "restinio::restinio",
-            "taskflow::taskflow",
-            "cppitertools::cppitertools",
-            "spdlog::spdlog",
+            "endpoint",
         ]
 
-        for component in ["node-store", "rdf-tensor", "sparql2tensor", "triple-store", "endpoint"]:
+        for component in ["endpoint"]:
             self.cpp_info.components[f"{component}"].names["cmake_find_package_multi"] = f"{component}"
             self.cpp_info.components[f"{component}"].names["cmake_find_package"] = f"{component}"
-            self.cpp_info.components[f"{component}"].includedirs = [f"include/tentris/{component}"]
+            self.cpp_info.components[f"{component}"].includedirs = [f"include/{self.name}/{component}"]
 
-        for component in ["node-store", "sparql2tensor", "triple-store", "endpoint"]:
-            self.cpp_info.components[f"{component}"].libdirs = [f"lib/tentris/{component}"]
-            self.cpp_info.components[f"{component}"].libs = [f"{component}"]
-
-        self.cpp_info.components["rdf-tensor"].requires = [
-            "rdf4cpp::rdf4cpp",
-            "hypertrie::hypertrie",
-            "boost::boost",
-            "metall::metall",
-        ]
-
-        self.cpp_info.components["node-store"].requires = [
-            "rdf-tensor",
-        ]
-
-        self.cpp_info.components["sparql2tensor"].requires = [
-            "node-store",
-            "robin-hood-hashing::robin-hood-hashing",
-            "sparql-parser-base::sparql-parser-base",
-        ]
-
-        self.cpp_info.components["triple-store"].requires = [
-            "sparql2tensor",
-            "rdf-tensor",
-        ]
         self.cpp_info.components["endpoint"].requires = [
-            "rdf-tensor",
-            "restinio::restinio",
+            "tentris::tentris",
             "taskflow::taskflow",
-            "cppitertools::cppitertools",
+            "restinio::restinio",
             "spdlog::spdlog",
+            "cppitertools::cppitertools",
             "rapidjson::rapidjson",
+            "pugixml::pugixml"
         ]
         if self.options.get_safe("with_exec_deps"):
             self.cpp_info.components["global"].requires += [

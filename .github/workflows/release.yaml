@@ -6,7 +6,7 @@ on:
 
 env:
   os: ubuntu-22.04
-  compiler: gcc-12
+  compiler: clang-14
 
 jobs:
   create_release:
@@ -25,7 +25,7 @@ jobs:
       - name: Install conan
         shell: bash
         run: |
-          pip3 install conan
+          pip3 install "conan<2.0"
           conan profile new --detect default
           conan profile update settings.compiler.libcxx=libstdc++11 default
           conan profile update env.CXX="${CXX}" default
@@ -102,7 +102,7 @@ jobs:
         env:
           asset_version: ${{ env.asset_version }}
           asset_dir: ${{ steps.extract.outputs.destination }}
-        run: zip "tentris_${asset_version}_clang14_libstdcxx12.zip" -j ${asset_dir}/*
+        run: zip "tentris_${asset_version}_${{ env.compiler }}.zip" -j ${asset_dir}/*
 
       - name: Upload to artifactory
         shell: bash
@@ -114,6 +114,6 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            tentris_${{ env.asset_version }}_clang14_libstdcxx12.zip
+            tentris_${{ env.asset_version }}_${{ env.compiler }}.zip
           tag_name: "v${{ env.asset_version }}"
           draft: true
