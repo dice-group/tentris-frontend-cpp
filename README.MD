@@ -3,8 +3,8 @@
 This provides frontends for the [Tᴇɴᴛʀɪs](https://github.com/dice-group/tentris-lib) library. Two binaries form the
 frontend:
 
-**tentris_loader** loads an RDF file into a disc-based index. **tentris_server** loads that index and provides an SPARQL
-endpoint via HTTP. Checkout the `tentris_loader --help` and `tentris_server --help` for details.
+**tentris_loader** loads an RDF file into a disc-based index. **tentris_server** loads a specific index and provides
+SPARQL endpoints to query the data stored in the loaded index.
 
 # Production Build
 
