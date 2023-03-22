@@ -29,13 +29,14 @@ else ()
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -fomit-frame-pointer")
 endif ()
 
-option(STATIC "Build tentris executables statically" OFF)
+option(STATIC "Link binaries fully statically." OFF)
 if (STATIC)
+    message(STATUS "Binaries are linked fully statically.")
     SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--eh-frame-hdr -static")
     SET(CMAKE_FIND_LIBRARY_SUFFIXES .a)
 endif ()
 
-option(WITH_TCMALLOC "Build tentris with tcmalloc." OFF)
+option(WITH_TCMALLOC "Link and use tcmalloc." OFF)
 if (WITH_TCMALLOC)
     find_library(TCMALLOCMINIMAL tcmalloc_minimal)
     if (NOT TCMALLOCMINIMAL)
@@ -44,14 +45,14 @@ if (WITH_TCMALLOC)
     if (NOT TCMALLOCMINIMAL)
         message(FATAL_ERROR "Neither tcmalloc-minimal nor tcmalloc_minimal was found")
     endif ()
-    message(STATUS "tcmalloc minimal ${TCMALLOCMINIMAL}")
+    message(STATUS "Linking against tcmalloc minimal ${TCMALLOCMINIMAL}")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${TCMALLOCMINIMAL}")
 endif ()
 
 
 # set library options
 include(${CMAKE_SOURCE_DIR}/../cmake/conan_cmake.cmake)
-install_packages_via_conan("${CMAKE_SOURCE_DIR}/../conanfile.py" "with_exec_deps=True ")
+install_packages_via_conan("${CMAKE_SOURCE_DIR}/../conanfile.py" "with_exec_deps=True")
 
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/.. ${CMAKE_CURRENT_BINARY_DIR}/tentris-frontend)
 

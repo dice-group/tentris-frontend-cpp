@@ -1,87 +1,61 @@
-# Tᴇɴᴛʀɪs: A Tensor-based Triple Store
+# Tᴇɴᴛʀɪs-fontend
 
-<p><img src = "https://tentris.dice-research.org/iswc2020/assets/img/Tentris_logo.svg" alt = "Tᴇɴᴛʀɪs Logo" width = "30%" align = "center"></p>
+This provides frontends for the [Tᴇɴᴛʀɪs](https://github.com/dice-group/tentris-lib) library. Two binaries form the
+frontend:
 
-Tᴇɴᴛʀɪs is a tensor-based RDF triple store with SPARQL support. It is introduced and described in:
-> [Alexander Bigerl, Felix Conrads, Charlotte Behning, Mohamed Ahmed Sherif, Muhammad Saleem and Axel-Cyrille Ngonga Ngomo (2020)
-**Tentris – A Tensor-Based Triple Store.
-** In: The Semantic Web – ISWC 2020](https://tentris.dice-research.org/iswc2020/)
+**tentris_loader** loads an RDF file into a disc-based index. **tentris_server** loads that index and provides an SPARQL
+endpoint via HTTP. Checkout the `tentris_loader --help` and `tentris_server --help` for details.
 
-and
+# Production Build
 
-> [Alexander Bigerl, Lixi Conrads, Charlotte Behning, Muhammad Saleem and Axel-Cyrille Ngonga Ngomo (2022) Hashing the Hypertrie: Space- and Time-Efficient Indexing for SPARQL in Tensors. In: The Semantic Web – ISWC 2022 Hashing the Hypertrie: Space- and Time-Efficient Indexing for SPARQL in Tensors](https://tentris.dice-research.org/iswc2022/)
+You should use the [Dockerfile](./Dockerfile) to build tentris-frontend. It is based on alpine linux to provide fully
+statically linked executables based on musl instead of glibc. Linking fully statically is broken with glibc.
 
-## Get It
-
-* download [static prebuilt binaries](https://github.com/dice-group/tentris-private/releases)
-  and [try them out](#running-tentris)
-* [build it with docker](#docker)
-
-## Running Tᴇɴᴛʀɪs
-
-<details><summary> </summary>
-
-#### Bulk-load Data
-
-Provide an NTRIPLE or TURTLE file to build the an index. By default, the index is stored in the current directory. The
-path can be changed with the option `--storage`.
-
-```shell
-tentris_loader --file my_nt_file.nt
-```
-
-#### Start HTTP endpoint
-
-To start Tᴇɴᴛʀɪs as a HTTP endpoint on port 9080 run now:
-
-```
-tentris_server -p 9080
-``` 
-
-#### Query
-
-The SPARQL endpoint may now be queried locally at: `127.0.0.1:9080/sparql?query=*your query*`. You can execute queries
-with the following curl command:
-
-```shell
-curl -G \
---data-urlencode 'query=SELECT * WHERE { ?s ?p ?o . }' \
-'127.0.0.1:9080/sparql'
-```
-
-If you want to type the query in your browser, the query string must be URL encoded. You can use any online URL encoder
-like <https://meyerweb.com/eric/tools/dencoder>.
-
-The following endpoints are available:
-Available endpoints:
-
-- HTTP GET `/sparql?query=` for normal queries
-- HTTP GET `/stream?query=` for queries with huge results
-- HTTP GET `/count?query=` as a workaround for count (consumes a select query)
-
-</details>
-
-## Docker
-
-<details><summary> </summary>
-
-Use the [Dockerfile](./Dockerfile) to build tentris. make sure to provide credentials
+Make sure to provide credentials
 for https://conan.dice-research.org/artifactory/api/conan/tentris-private via `CONAN_USER` and `CONAN_USER`:
 
-* A docker image is available on [docker hub](https://hub.docker.com/r/dicegroup/tentris_server). Get it with
-    ```shell script
-    docker build -f Dockerfile --build-arg CONAN_USER=xx --build-arg CONAN_PW=yyy .
-    docker pull dicegroup/tentris_server
-    ```
+```shell script
+docker build -f Dockerfile --build-arg CONAN_USER=xx --build-arg CONAN_PW=yyy .
+```
 
-</details>
+After you built the docker image you can extract the binaries with:
 
-## Build It Yourself
+```shell script
+id=$(docker create tentris_docker_alpine:latest)
+docker export $id | tar -x --wildcards "tentris_*"
+docker rm $id
+```
 
-<details><summary> </summary>
+# Development
 
-Tᴇɴᴛʀɪs is known to build on Ubuntu 22.04 and newer.
-Building was tested with Clang 14. As standard library, only libstdc++11 (v12) was tested. For details
-refer to the [Dockerfile](./Dockerfile) or github actions.
+Required tools: clang >=14 or gcc >=12, libstdc++(gcc) >=12, CMake >=3.21, conan >=1.59,<2.0
 
-</details>
+You must have [tentris](https://conan.dice-research.org/artifactory/api/conan/tentris)
+and [tentris-private](https://conan.dice-research.org/artifactory/api/conan/tentris-private) in your conan remotes.
+tentris-private requires credentials to be accessed.
+
+There are two CMake files of relevance:
+
+- The library tentris-frontend providesare managed at [CMakeLists.txt](./CMakeLists.txt)
+  ```bash
+  cd execs
+  cmake --build build_dir --config Release # or Debug/RelWithDebInfo/MinSizeRel
+  cmake -G Ninja -B build_dir
+  ```
+
+  Additionally, these CMake options are available:
+
+    - `-DBUILD_SHARED_LIBS=ON/OFF [default: OFF]`: Build a shared library instead of a static one.
+    - `-DUSE_CONAN=ON/OFF [default: ON]`: If available and this is the top project, use Conan to retrieve dependencies.
+
+- The binaries are built via [execs/CMakeLists.txt](./execs/CMakeLists.txt) that includes
+  ```bash
+  cmake --build build_dir --config Release # or Debug/RelWithDebInfo/MinSizeRel
+  cmake -G Ninja -B build_dir
+  ```
+  Additionally, these CMake options are available:
+
+    - `-DSTATIC=ON/OFF [default: OFF]`: Link binaries fully statically.
+    - `-DWITH_TCMALLOC=ON/OFF [default: OFF]`: Link and use tcmalloc.
+
+  
