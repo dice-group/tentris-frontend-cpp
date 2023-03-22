@@ -25,16 +25,16 @@ jobs:
             "CONAN_USER=${{ secrets.CONAN_USER }}"
             "CONAN_PW=${{ secrets.CONAN_PW }}"
       - uses: shrink/actions-docker-extract@v2
+        id: extract
         name: Extracting executables from docker image
         with:
           image: tentris_server:latest
           path: /.
-          destination: artifacts
       - uses: actions/upload-artifact@v3
         name: Uploading executables as artifacts
         with:
           name: tentris-frontend
-          path: artifacts/tentris_*
+          path: ${{ steps.extract.outputs.destination }}/tentris_*
 
 
 
