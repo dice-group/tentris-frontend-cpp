@@ -1,9 +1,6 @@
 name: Build Dockerfile
 
-on:
-  push:
-    branches:
-      - '*'
+on: push
 
 concurrency:
   group: build-${{ github.workflow }}-${{ github.ref }}
