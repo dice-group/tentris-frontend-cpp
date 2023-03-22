@@ -1,5 +1,6 @@
 #ifndef TENTRIS_SPARQLJSONRESULTSAXWRITER_HPP
 #define TENTRIS_SPARQLJSONRESULTSAXWRITER_HPP
+#include "SPARQLResultWriter.hpp"
 
 #include <utility>
 
@@ -14,20 +15,13 @@
 #include <cppitertools/itertools.hpp>
 #include <rdf4cpp/rdf.hpp>
 
-#include <dice/rdf-tensor/Query.hpp>
+#include <dice/query.hpp>
 
 namespace dice::endpoint {
 
-	class SparqlJsonResultSAXWriter {
-		using Node = rdf4cpp::rdf::Node;
-		using Literal = rdf4cpp::rdf::Literal;
+	class SparqlJsonResultSAXWriter : public SPARQLResultWriter {
 		using IRI = rdf4cpp::rdf::IRI;
-		using BlankNode = rdf4cpp::rdf::BlankNode;
 		using Variable = rdf4cpp::rdf::query::Variable;
-		using Entry = dice::rdf_tensor::Entry;
-
-		std::size_t number_of_solutions_ = 0;
-		std::size_t number_of_bindings_ = 0;
 
 		size_t buffer_size;
 		rapidjson::StringBuffer buffer;
@@ -41,7 +35,7 @@ namespace dice::endpoint {
 	public:
 		explicit SparqlJsonResultSAXWriter(const std::vector<Variable>& variables, size_t buffer_size)
 			: buffer_size(buffer_size),
-			  buffer(nullptr, size_t(buffer_size * 1.3)),
+			  buffer(nullptr, size_t(double(buffer_size) * 1.3)),
 			  writer(buffer) {
 			writer.StartObject();
 			writer.Key("head");
@@ -65,17 +59,22 @@ namespace dice::endpoint {
 			writer.StartArray();
 		}
 
-		void close() {
+		[[nodiscard]] std::string ask_query_result(bool result) override {
+			std::string ask_res_str = result ? "true" : "false";
+			return R"({ "head" : {}, "boolean" : )" + ask_res_str + " }";
+		}
+
+		void close() override {
 			writer.EndArray();
 			writer.EndObject();
 			writer.EndObject();
 		}
 
-		void add(Entry const &entry) {
+		void add(SolutionMapping const &solution_mapping) override {
 
-			for (size_t i = 0; i < size_t(entry.value()); ++i) {
+			for (size_t i = 0; i < size_t(solution_mapping.value()); ++i) {
 				writer.StartObject();
-				for (const auto &[term, var] : iter::zip(entry.key(), variables_)) {
+				for (const auto &[term, var] : iter::zip(solution_mapping.key(), variables_)) {
 					if (term.null())
 						continue;
 					writer.Key(to_rapidjson(var));
@@ -84,14 +83,14 @@ namespace dice::endpoint {
 					if (term.is_iri()) {
 						writer.String("uri");
 						writer.Key("value");
-						auto const &identifier = ((IRI) term).identifier();
+						auto const &identifier = term.as_iri().identifier();
 						writer.String(identifier.data(), identifier.size());
 					} else if (term.is_literal()) {
 						writer.String("literal");
 
-						auto literal = (Literal) term;
+						auto literal = term.as_literal();
 
-						static const IRI xsd_str{"http://www.w3.org/2001/XMLSchema#string"};
+						static const IRI xsd_str{rdf4cpp::rdf::datatypes::xsd::String::identifier};
 						auto datatype = literal.datatype();
 						if (datatype != xsd_str) {
 							auto const &lang = literal.language_tag();
@@ -109,7 +108,7 @@ namespace dice::endpoint {
 					} else if (term.is_blank_node()) {
 						writer.String("bnode");
 						writer.Key("value");
-						auto const &identifier = ((BlankNode) term).identifier();
+						auto const &identifier = term.as_blank_node().identifier();
 						writer.String(identifier.data(), identifier.size());
 					} else {
 						throw std::runtime_error("Node with incorrect type (none of Literal, BNode, URI) detected.");
@@ -121,31 +120,27 @@ namespace dice::endpoint {
 				writer.EndObject();
 			}
 
-			number_of_solutions_ += entry.value();
+			number_of_solutions_ += solution_mapping.value();
 		}
 
 		[[nodiscard]] std::size_t size() const {
 			return buffer.GetSize();
 		}
 
-		[[nodiscard]] std::size_t number_of_written_solutions() const {
-			return number_of_solutions_;
-		}
-
-		[[nodiscard]] std::size_t number_of_written_bindings() const {
-			return number_of_bindings_;
-		}
-
 		[[nodiscard]] bool full() const {
 			return buffer.GetSize() > this->buffer_size;
 		};
 
-		std::string_view string_view() {
+		[[nodiscard]] std::string_view string_view() override {
 			writer.Flush();
 			return {buffer.GetString(), buffer.GetSize()};
 		}
 
-		void clear() {
+		[[nodiscard]] std::string content_type() override {
+			return "application/sparql-results+json";
+		}
+
+		void clear() override {
 			this->buffer.Clear();
 		}
 	};

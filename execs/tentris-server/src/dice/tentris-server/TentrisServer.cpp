@@ -10,9 +10,10 @@
 #include <taskflow/taskflow.hpp>
 
 #include <dice/endpoint/HTTPServer.hpp>
-#include <dice/node-store/PersistentNodeStorageBackend.hpp>
-#include <dice/triple-store/TripleStore.hpp>
+#include <dice/metall-node-storage/MetallNodeStorageBackend.hpp>
+#include <dice/triplestore/TripleStore.hpp>
 
+#include <dice/tentris-frontend/tentris-frontend_version.hpp>
 #include <dice/tentris/tentris_version.hpp>
 
 int main(int argc, char *argv[]) {
@@ -22,7 +23,7 @@ int main(int argc, char *argv[]) {
 	/*
 	 * Parse Commandline Arguments
 	 */
-	std::string version = fmt::format("tentris-server v{} is based on hypertrie v{} and rdf4cpp {}.", dice::tentris::version, hypertrie::version, dice::tentris::rdf4cpp_version);
+	std::string version = fmt::format("tentris-server v{} is using tentris v{}, hypertrie v{} and rdf4cpp {}.", dice::tentris_frontend::version, dice::tentris::version, hypertrie::version, "_todo_");// TODO
 
 	cxxopts::Options options("tentris-server",
 							 fmt::format("{}\nA tensor-based triple store.", version));
@@ -95,7 +96,7 @@ int main(int argc, char *argv[]) {
 			.threads = parsed_args["threads"].as<uint16_t>(),
 			.timeout_duration = std::chrono::seconds{parsed_args["timeout"].as<uint>()}};
 
-	using metall_manager = rdf_tensor::metall_manager;
+	using metall_manager = dice::tentris::defs::metall_manager;
 
 	auto const storage_path = fs::absolute(fs::path{parsed_args["storage"].as<std::string>()}).append("tentris_data");
 	if (not metall_manager::consistent(storage_path.c_str())) {
@@ -120,15 +121,15 @@ int main(int argc, char *argv[]) {
 
 	{// set up node store
 		using namespace rdf4cpp::rdf::storage::node;
-		using namespace dice::node_store;
-		auto *nodestore_backend = storage_manager.find_or_construct<PersistentNodeStorageBackendImpl>("node-store")(storage_manager.get_allocator());
+		using namespace dice::metall_node_storage;
+		auto *nodestore_backend = storage_manager.find_or_construct<MetallNodeStorageBackendImpl>("node-store")(storage_manager.get_allocator());
 		NodeStorage::default_instance(
-				NodeStorage::new_instance<PersistentNodeStorageBackend>(nodestore_backend));
+				NodeStorage::new_instance<MetallNodeStorageBackend>(nodestore_backend));
 	}
 
 	// setup triple store
-	auto &rdf_tensor = [&storage_manager]() -> rdf_tensor::BoolHypertrie & {
-		auto [ptr, cnt] = storage_manager.find<rdf_tensor::BoolHypertrie>("rdf-tensor");
+	auto &rdf_tensor = [&storage_manager]() -> dice::tentris::defs::BoolHypertrie & {
+		auto [ptr, cnt] = storage_manager.find<dice::tentris::defs::BoolHypertrie>("rdf-tensor");
 		if (cnt != 1UL) {
 			spdlog::error("Storage is readable but contains no rdf-tensor with index data. Please create a new index using tentris_loader.");
 			exit(0);
@@ -136,7 +137,7 @@ int main(int argc, char *argv[]) {
 		return *ptr;
 	}();
 	{
-		triple_store::TripleStore triplestore{rdf_tensor};
+		triplestore::TripleStore triplestore{rdf_tensor};
 		// initialize task runners
 		tf::Executor executor(endpoint_cfg.threads);
 		// setup and configure endpoints

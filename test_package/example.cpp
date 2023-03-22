@@ -1,6 +1,7 @@
-#include <dice/node-store/PersistentNodeStorageBackend.hpp>
+#include <dice/tentris-frontend/tentris-frontend_version.hpp>
+
+#include <iostream>
 
 int main() {
-	dice::rdf_tensor::metall_manager x{metall::create_only, "abc"};
-	dice::node_store::PersistentNodeStorageBackendImpl y{x.get_allocator()};
+	std::cout << dice::tentris_frontend::version << std::endl;
 }
