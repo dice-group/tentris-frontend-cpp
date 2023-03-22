@@ -1,0 +1,54 @@
+name: Publish release
+
+on:
+  workflow_run:
+    workflows: [ "Build Dockerfile" ]
+    branches: [ main ]
+    types:
+      - completed
+
+concurrency:
+  group: publish-release-${{ github.workflow }}-${{ github.ref }}
+
+jobs:
+  create_release:
+    defaults:
+      run:
+        shell: bash
+
+    name: Creates a release with static binaries
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checking if tag exists already
+        uses: mukunku/tag-exists-action@v1.0.0
+        id: checkTag
+        with:
+          tag: v${{ env.asset_version }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Fail if tag exists already
+        if: steps.checkTag.outputs.exists == 'true'
+        uses: actions/github-script@v6
+        with:
+          result-encoding: string
+          script: |
+            core.setFailed('There is already a tag for this version. Dump the version in CMakeLists.txt and try again.')
+
+
+      - uses: dawidd6/action-download-artifact@v2
+        name: Download executables artifacts built by 'Build Dockerfile' workflow
+        with:
+          workflow: build.yaml
+          name: tentris-frontend
+          path: artifacts/tentris_*
+
+      - name: zip assets
+        run: zip "tentris-frontend_v${{ env.asset_version }}.zip" -j artifacts/*
+
+      - name: Publish Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            "tentris-frontend_v${{ env.asset_version }}.zip"
+          tag_name: "v${{ env.asset_version }}"
