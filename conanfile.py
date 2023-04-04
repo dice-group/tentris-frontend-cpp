@@ -24,8 +24,7 @@ class Recipe(ConanFile):
 
     def requirements(self):
         public_reqs = [
-            "tentris/2.1.0",
-            "hypertrie/0.13.0@dice-group/feature-cartesian-nodes",
+            "tentris/2.1.0@dice-group/bench-cartesian-node-bench-setup",
             "boost/1.80.0",  # overrides for version conflict
             "fmt/8.1.1",  # overrides for version conflict
             "restinio/0.6.17",
