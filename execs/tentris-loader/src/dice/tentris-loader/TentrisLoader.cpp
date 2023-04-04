@@ -128,11 +128,27 @@ int main(int argc, char *argv[]) {
 								 final_hypertrie_size_after = hypertrie_size_after;
 								 batch_loading_time.reset();
 							 });
+
 		spdlog::info("loading finished: {} triples processed, {} triples added, {} elapsed, {} triples in storage.",
 					 total_processed_entries, total_inserted_entries, std::chrono::duration<double>(loading_time.elapsed()).count(), final_hypertrie_size_after);
-		const auto cards = triplestore.get_hypertrie().get_cards({0, 1, 2});
-		spdlog::info("Storage stats: {} triples ({} distinct subjects, {} distinct predicates, {} distinct objects)",
-					 triplestore.size(), cards[0], cards[1], cards[2]);
+
+		{
+			const auto cards = triplestore.get_hypertrie().get_cards({0, 1, 2});
+			spdlog::info("Storage stats: {} triples ({} distinct subjects, {} distinct predicates, {} distinct objects)",
+						 triplestore.size(), cards[0], cards[1], cards[2]);
+		}
+
+		{
+			using namespace hypertrie::internal::raw;
+
+			auto const &node_storage = triplestore.get_hypertrie().context()->raw_context().node_storage_;
+			auto const n_fns = node_storage.template nodes<1, FullNode>().nodes().size() + node_storage.template nodes<2, FullNode>().nodes().size() + node_storage.template nodes<3, FullNode>().nodes().size();
+			auto const n_sens = node_storage.template nodes<2, SingleEntryNode>().nodes().size() + node_storage.template nodes<3, SingleEntryNode>().nodes().size();
+			auto const n_xns = node_storage.template nodes<2, CartesianNode>().nodes().size() + node_storage.template nodes<3, CartesianNode>().nodes().size();
+
+			spdlog::info("Node stats: {} Full Nodes, {} (non-inplace) Single Entry Nodes, {} Cartesian Nodes",
+						 n_fns, n_sens, n_xns);
+		}
 	}
 
 	// create snapshot
