@@ -142,12 +142,18 @@ int main(int argc, char *argv[]) {
 			using namespace hypertrie::internal::raw;
 
 			auto const &node_storage = triplestore.get_hypertrie().context()->raw_context().node_storage_;
-			auto const n_fns = node_storage.template nodes<1, FullNode>().nodes().size() + node_storage.template nodes<2, FullNode>().nodes().size() + node_storage.template nodes<3, FullNode>().nodes().size();
-			auto const n_sens = node_storage.template nodes<2, SingleEntryNode>().nodes().size() + node_storage.template nodes<3, SingleEntryNode>().nodes().size();
-			auto const n_xns = node_storage.template nodes<2, CartesianNode>().nodes().size() + node_storage.template nodes<3, CartesianNode>().nodes().size();
+			auto const n_fns1 = node_storage.template nodes<1, FullNode>().nodes().size();
+			auto const n_fns2 = node_storage.template nodes<2, FullNode>().nodes().size();
+			auto const n_fns3 = node_storage.template nodes<3, FullNode>().nodes().size();
 
-			spdlog::info("Node stats: {} Full Nodes, {} (non-inplace) Single Entry Nodes, {} Cartesian Nodes",
-						 n_fns, n_sens, n_xns);
+			auto const n_sens2 = node_storage.template nodes<2, SingleEntryNode>().nodes().size();
+			auto const n_sens3 = node_storage.template nodes<3, SingleEntryNode>().nodes().size();
+
+			auto const n_xns2 = node_storage.template nodes<2, CartesianNode>().nodes().size();
+			auto const n_xns3 = node_storage.template nodes<3, CartesianNode>().nodes().size();
+
+			spdlog::info("Node stats: {}@D3 + {}@D2 + {}@D1 Full Nodes, {}@D3 + {}@D2 Single Entry Nodes, {}@D3 + {}@D2 Cartesian Nodes",
+						 n_fns3, n_fns2, n_fns1, n_sens3, n_sens2, n_xns3, n_xns2);
 		}
 	}
 
