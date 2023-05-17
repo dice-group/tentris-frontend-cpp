@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.21)
 project(tentris-frontend
-        VERSION 2.0.1
+        VERSION 2.0.2
         DESCRIPTION "tensor-based triplestore")
 
 include(cmake/boilerplate_init.cmake)

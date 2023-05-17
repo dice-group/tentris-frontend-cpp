@@ -3,6 +3,7 @@
 
 #include <spdlog/spdlog.h>
 
+#include <restinio/helpers/http_field_parsers/accept.hpp>
 #include <restinio/helpers/http_field_parsers/content-type.hpp>
 #include <restinio/request_handler.hpp>
 #include <restinio/uri_helpers.hpp>
@@ -18,17 +19,34 @@ namespace dice::endpoint {
 
 	inline std::string parse_sparql_query_param(restinio::request_handle_t &req, ResultFormat *format = nullptr) {
 		using namespace restinio;
+		using namespace restinio::http_field_parsers;
 		if (format != nullptr) {
 			auto accept_header = req->header().opt_value_of(http_field::accept);
 			if (accept_header.has_value()) {
-				auto const &accept_header_value = accept_header.value();
-				// default (*/*) to JSON
-				if (accept_header_value == "*/*" or accept_header_value == "application/sparql-results+json") {
-					*format = ResultFormat::JSON;
-				} else if (accept_header_value == "application/sparql-results+xml") {
-					*format = ResultFormat::XML;
+				const auto parsed = accept_value_t::try_parse(*accept_header);
+				if (parsed.has_value()) {
+					uint32_t selected_priority = 0;
+					for (const auto &v : parsed->items) {
+						if (v.media_type.type != "application")
+							continue;
+						if (v.media_type.subtype == "sparql-results+json") {
+							uint32_t p = v.weight.has_value() ? v.weight->as_uint() : 1000;
+							if (p > selected_priority) {
+								*format = ResultFormat::JSON;
+								selected_priority = p;
+							}
+						} else if (v.media_type.subtype == "sparql-results+xml") {
+							uint32_t p = v.weight.has_value() ? v.weight->as_uint() : 1000;
+							if (p > selected_priority) {
+								*format = ResultFormat::XML;
+								selected_priority = p;
+							}
+						}
+					}
+					if (selected_priority == 0)
+						*format = ResultFormat::JSON;
 				} else {
-					static auto const message = "The requested result format is not supported. Currently only XML and JSON formats are supported";
+					static auto const message = "The requested result format is invalid";
 					spdlog::warn("HTTP response {}: {}", status_bad_request(), message);
 					req->create_response(status_bad_request()).set_body(message).done();
 					return {};
@@ -55,7 +73,7 @@ namespace dice::endpoint {
 		}
 		// post request
 		auto content_type = req->header().opt_value_of(http_field::content_type);
-		auto content_type_value = http_field_parsers::content_type_value_t::try_parse(*content_type);
+		auto content_type_value = content_type_value_t::try_parse(*content_type);
 		if (not content_type_value.has_value() or
 			content_type_value.value().media_type.type != "application" or
 			(content_type_value.value().media_type.subtype != "sparql-query" and
