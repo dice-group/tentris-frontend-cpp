@@ -5,7 +5,6 @@
 
 #include <restinio/helpers/http_field_parsers/accept.hpp>
 #include <restinio/helpers/http_field_parsers/content-type.hpp>
-#include <restinio/helpers/http_field_parsers/try_parse_field.hpp>
 #include <restinio/request_handler.hpp>
 #include <restinio/uri_helpers.hpp>
 
@@ -21,7 +20,6 @@ namespace dice::endpoint {
 	inline std::string parse_sparql_query_param(restinio::request_handle_t &req, ResultFormat *format = nullptr) {
 		using namespace restinio;
 		using namespace restinio::http_field_parsers;
-		// no idea why try_parse_field<accept_value_t> does not compile
 		if (format != nullptr) {
 			auto accept_header = req->header().opt_value_of(http_field::accept);
 			if (accept_header.has_value()) {
@@ -75,7 +73,7 @@ namespace dice::endpoint {
 		}
 		// post request
 		auto content_type = req->header().opt_value_of(http_field::content_type);
-		auto content_type_value = http_field_parsers::content_type_value_t::try_parse(*content_type);
+		auto content_type_value = content_type_value_t::try_parse(*content_type);
 		if (not content_type_value.has_value() or
 			content_type_value.value().media_type.type != "application" or
 			(content_type_value.value().media_type.subtype != "sparql-query" and
