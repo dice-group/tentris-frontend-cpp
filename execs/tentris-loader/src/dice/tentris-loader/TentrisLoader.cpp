@@ -96,14 +96,10 @@ int main(int argc, char *argv[]) {
 	{
 		using namespace rdf4cpp::rdf::storage::node;
 		using namespace dice::metall_node_storage;
-		auto *nodestore_backend = storage_manager.find_or_construct<MetallNodeStorageBackendImpl>("node-store")(storage_manager.get_allocator());
-		NodeStorage::default_instance(
-				NodeStorage::new_instance<MetallNodeStorageBackend>(nodestore_backend));
+		NodeStorage::default_instance(NodeStorage::new_instance<MetallNodeStorageBackend>(tentris::defs::persistent, storage_manager, "test"));
 	}
 	// setup triple store
-	auto &ht_context = *storage_manager.find_or_construct<dice::tentris::defs::HypertrieContext>("hypertrie-context")(storage_manager.get_allocator());
-	auto &rdf_tensor = *storage_manager.find_or_construct<dice::tentris::defs::BoolHypertrie>("rdf-tensor")(3, dice::tentris::defs::HypertrieContext_ptr{&ht_context});
-	triplestore::TripleStore triplestore{rdf_tensor};
+	triplestore::TripleStore triplestore{tentris::defs::persistent, storage_manager, "test"};
 	fs::path ttl_file(parsed_args["file"].as<std::string>());
 	{// load data
 		spdlog::info("Loading triples from file {}.", fs::absolute(ttl_file).string());
@@ -130,7 +126,8 @@ int main(int argc, char *argv[]) {
 							 });
 		spdlog::info("loading finished: {} triples processed, {} triples added, {} elapsed, {} triples in storage.",
 					 total_processed_entries, total_inserted_entries, std::chrono::duration<double>(loading_time.elapsed()).count(), final_hypertrie_size_after);
-		const auto cards = triplestore.get_hypertrie().get_cards({0, 1, 2});
+		auto const &hypertrie = std::as_const(triplestore).hypertrie();
+		auto const cards = hypertrie.get_cards({0, 1, 2});
 		spdlog::info("Storage stats: {} triples ({} distinct subjects, {} distinct predicates, {} distinct objects)",
 					 triplestore.size(), cards[0], cards[1], cards[2]);
 	}

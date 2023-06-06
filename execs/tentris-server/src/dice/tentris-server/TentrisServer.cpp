@@ -122,9 +122,9 @@ int main(int argc, char *argv[]) {
 	{// set up node store
 		using namespace rdf4cpp::rdf::storage::node;
 		using namespace dice::metall_node_storage;
-		auto *nodestore_backend = storage_manager.find_or_construct<MetallNodeStorageBackendImpl>("node-store")(storage_manager.get_allocator());
+		auto *nodestore_backend = storage_manager.find_or_construct<MetallNodeStorageBackendImpl>("test")(storage_manager.get_allocator());
 		NodeStorage::default_instance(
-				NodeStorage::new_instance<MetallNodeStorageBackend>(nodestore_backend));
+				NodeStorage::new_instance<MetallNodeStorageBackend>(tentris::defs::PersistentFlag{}, storage_manager, "test"));
 	}
 
 	// setup triple store
@@ -137,12 +137,13 @@ int main(int argc, char *argv[]) {
 		return *ptr;
 	}();
 	{
-		triplestore::TripleStore triplestore{rdf_tensor};
+		triplestore::TripleStore triplestore{tentris::defs::PersistentFlag{}, storage_manager, "test"};
 		// initialize task runners
 		tf::Executor executor(endpoint_cfg.threads);
 		// setup and configure endpoints
 		endpoint::HTTPServer http_server{executor, triplestore, endpoint_cfg};
-		const auto cards = triplestore.get_hypertrie().get_cards({0, 1, 2});
+		auto const &hypertrie = std::as_const(triplestore).hypertrie();
+		auto const cards = hypertrie.get_cards({0, 1, 2});
 		spdlog::info("Storage stats: {} triples ({} distinct subjects, {} distinct predicates, {} distinct objects)",
 					 triplestore.size(), cards[0], cards[1], cards[2]);
 		spdlog::info("SPARQL endpoint serving sparkling linked data treasures on {} threads at http://0.0.0.0:{}/ with {} request timeout.",
