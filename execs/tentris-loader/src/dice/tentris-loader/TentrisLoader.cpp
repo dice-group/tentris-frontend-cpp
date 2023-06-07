@@ -96,7 +96,7 @@ int main(int argc, char *argv[]) {
 	{
 		using namespace rdf4cpp::rdf::storage::node;
 		using namespace dice::metall_node_storage;
-		NodeStorage::default_instance(NodeStorage::new_instance<MetallNodeStorageBackend>(tentris::defs::persistent, storage_manager, "test"));
+		NodeStorage::set_default_instance(NodeStorage::new_instance<MetallNodeStorageBackend>(tentris::defs::persistent, storage_manager, "test"));
 	}
 	// setup triple store
 	triplestore::TripleStore triplestore{tentris::defs::persistent, storage_manager, "test"};
@@ -137,4 +137,8 @@ int main(int argc, char *argv[]) {
 	auto snapshot_path = fs::absolute(storage_path.string().append("_snapshot"));
 	storage_manager.snapshot(snapshot_path.c_str());
 	spdlog::info("Finished loading: {}.", ttl_file.string());
+	{
+		using namespace rdf4cpp::rdf::storage::node;
+		auto *leak = new NodeStorage{NodeStorage::default_instance()};
+	}
 }

@@ -122,20 +122,10 @@ int main(int argc, char *argv[]) {
 	{// set up node store
 		using namespace rdf4cpp::rdf::storage::node;
 		using namespace dice::metall_node_storage;
-		auto *nodestore_backend = storage_manager.find_or_construct<MetallNodeStorageBackendImpl>("test")(storage_manager.get_allocator());
-		NodeStorage::default_instance(
-				NodeStorage::new_instance<MetallNodeStorageBackend>(tentris::defs::PersistentFlag{}, storage_manager, "test"));
+		NodeStorage::set_default_instance(NodeStorage::new_instance<MetallNodeStorageBackend>(tentris::defs::PersistentFlag{}, storage_manager, "test"));
 	}
 
 	// setup triple store
-	auto &rdf_tensor = [&storage_manager]() -> dice::tentris::defs::BoolHypertrie & {
-		auto [ptr, cnt] = storage_manager.find<dice::tentris::defs::BoolHypertrie>("rdf-tensor");
-		if (cnt != 1UL) {
-			spdlog::error("Storage is readable but contains no rdf-tensor with index data. Please create a new index using tentris_loader.");
-			exit(0);
-		}
-		return *ptr;
-	}();
 	{
 		triplestore::TripleStore triplestore{tentris::defs::PersistentFlag{}, storage_manager, "test"};
 		// initialize task runners
@@ -154,6 +144,10 @@ int main(int argc, char *argv[]) {
 	}
 
 	// warping up node storage
+	{
+		using namespace rdf4cpp::rdf::storage::node;
+		auto *leak = new NodeStorage{NodeStorage::default_instance()};
+	}
 	spdlog::info("Shutdown successful.");
 	return EXIT_SUCCESS;
 }
