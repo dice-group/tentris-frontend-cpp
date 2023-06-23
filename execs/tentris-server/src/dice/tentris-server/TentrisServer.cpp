@@ -119,12 +119,6 @@ int main(int argc, char *argv[]) {
 	metall_manager storage_manager{metall::open_only, storage_path.c_str()};
 
 
-	{// set up node store
-		using namespace rdf4cpp::rdf::storage::node;
-		using namespace dice::metall_node_storage;
-		NodeStorage::set_default_instance(NodeStorage::new_instance<MetallNodeStorageBackend>(tentris::defs::PersistentFlag{}, storage_manager, "test"));
-	}
-
 	// setup triple store
 	{
 		triplestore::TripleStore triplestore{tentris::defs::PersistentFlag{}, storage_manager, "test"};
@@ -143,11 +137,6 @@ int main(int argc, char *argv[]) {
 		http_server();
 	}
 
-	// warping up node storage
-	{
-		using namespace rdf4cpp::rdf::storage::node;
-		auto *leak = new NodeStorage{NodeStorage::default_instance()};
-	}
 	spdlog::info("Shutdown successful.");
 	return EXIT_SUCCESS;
 }
