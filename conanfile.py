@@ -24,7 +24,7 @@ class Recipe(ConanFile):
 
     def requirements(self):
         public_reqs = [
-            "tentris/2.1.2",
+            "tentris/2.1.2@dice-group/develop",
             "boost/1.80.0",  # overrides for version conflict
             "fmt/8.1.1",  # overrides for version conflict
             "restinio/0.6.17",
