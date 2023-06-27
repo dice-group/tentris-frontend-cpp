@@ -27,25 +27,26 @@ int main(int argc, char *argv[]) {
 
 	cxxopts::Options options("tentris-server",
 							 fmt::format("{}\nA tensor-based triple store.", version));
-	options.add_options()                                                                                                                                                                    //
-			("s,storage", "Location where the index is stored.", cxxopts::value<std::string>()->default_value(fs::current_path().string()))                                                  //
-			("t,timeout", "Time out in seconds for answering requests.", cxxopts::value<uint>()->default_value("180"))                                                                       //
-			("j,threads", "Number of threads used by the endpoint.", cxxopts::value<uint16_t>()->default_value(std::to_string(std::thread::hardware_concurrency())))                         //
-			("p,port", "Port to be used by the endpoint.", cxxopts::value<uint16_t>()->default_value("9080"))                                                                                //
-			("l,loglevel", fmt::format("Details of logging. Available values are: [{}, {}, {}, {}, {}, {}, {}]",                                                                             //
-									   spdlog::level::to_string_view(spdlog::level::trace),                                                                                                  //
-									   spdlog::level::to_string_view(spdlog::level::debug),                                                                                                  //
-									   spdlog::level::to_string_view(spdlog::level::info),                                                                                                   //
-									   spdlog::level::to_string_view(spdlog::level::warn),                                                                                                   //
-									   spdlog::level::to_string_view(spdlog::level::err),                                                                                                    //
-									   spdlog::level::to_string_view(spdlog::level::critical),                                                                                               //
-									   spdlog::level::to_string_view(spdlog::level::off)),                                                                                                   //
-			 cxxopts::value<std::string>()->default_value("info"))                                                                                                                           //
-			("logfile", "If log is written to files.", cxxopts::value<bool>()->default_value("true"))                                                                                        //
-			("logstdout", "If log is written to stdout.", cxxopts::value<bool>()->default_value("false"))                                                                                    //
-			("logfiledir", "A folder path where to write the logfiles. Default is the current working directory.", cxxopts::value<std::string>()->default_value(fs::current_path().string()))//
-			("v,version", "Version info.")                                                                                                                                                   //
-			("h,help", "Print this help page.")                                                                                                                                              //
+	options.add_options()                                                                                                                                                                                 //
+			("s,storage", "Location where the index is stored.", cxxopts::value<std::string>()->default_value(fs::current_path().string()))                                                               //
+			("t,timeout", "Time out in seconds for answering requests.", cxxopts::value<uint>()->default_value("180"))                                                                                    //
+			("j,query-eval-threads", "Number of threads used by the endpoint to evaluate queries.", cxxopts::value<uint16_t>()->default_value(std::to_string(512 + std::thread::hardware_concurrency()))) //
+			("i,io-threads", "Number of io threads used by the endpoint to accept queries", cxxopts::value<uint16_t>()->default_value(std::to_string(std::thread::hardware_concurrency())))               //
+			("p,port", "Port to be used by the endpoint.", cxxopts::value<uint16_t>()->default_value("9080"))                                                                                             //
+			("l,loglevel", fmt::format("Details of logging. Available values are: [{}, {}, {}, {}, {}, {}, {}]",                                                                                          //
+									   spdlog::level::to_string_view(spdlog::level::trace),                                                                                                               //
+									   spdlog::level::to_string_view(spdlog::level::debug),                                                                                                               //
+									   spdlog::level::to_string_view(spdlog::level::info),                                                                                                                //
+									   spdlog::level::to_string_view(spdlog::level::warn),                                                                                                                //
+									   spdlog::level::to_string_view(spdlog::level::err),                                                                                                                 //
+									   spdlog::level::to_string_view(spdlog::level::critical),                                                                                                            //
+									   spdlog::level::to_string_view(spdlog::level::off)),                                                                                                                //
+			 cxxopts::value<std::string>()->default_value("info"))                                                                                                                                        //
+			("logfile", "If log is written to files.", cxxopts::value<bool>()->default_value("true"))                                                                                                     //
+			("logstdout", "If log is written to stdout.", cxxopts::value<bool>()->default_value("false"))                                                                                                 //
+			("logfiledir", "A folder path where to write the logfiles. Default is the current working directory.", cxxopts::value<std::string>()->default_value(fs::current_path().string()))             //
+			("v,version", "Version info.")                                                                                                                                                                //
+			("h,help", "Print this help page.")                                                                                                                                                           //
 			;
 
 	auto parsed_args = options.parse(argc, argv);
@@ -93,7 +94,7 @@ int main(int argc, char *argv[]) {
 	 */
 	const endpoint::EndpointCfg endpoint_cfg{
 			.port = parsed_args["port"].as<uint16_t>(),
-			.threads = parsed_args["threads"].as<uint16_t>(),
+			.threads = parsed_args["io-threads"].as<uint16_t>(),
 			.timeout_duration = std::chrono::seconds{parsed_args["timeout"].as<uint>()}};
 
 	using metall_manager = dice::tentris::defs::metall_manager;
@@ -121,7 +122,7 @@ int main(int argc, char *argv[]) {
 	triplestore::TripleStore triplestore{triplestore::defs::persistent, storage_manager, "tentris-triplestore"};
 
 	// initialize task runners
-	tf::Executor executor(endpoint_cfg.threads);
+	tf::Executor executor(parsed_args["query-eval-threads"].as<uint16_t>());
 
 	// setup and configure endpoints
 	endpoint::HTTPServer http_server{executor, triplestore, endpoint_cfg};
