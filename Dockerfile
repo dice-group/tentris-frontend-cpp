@@ -11,14 +11,14 @@ RUN apk update && \
     clang15 clang15-dev clang15-libs clang15-extra-tools clang15-static lldb llvm15 llvm15-dev\
     openjdk11-jdk \
     pythonispython3 py3-pip \
-    bash git libtool util-linux-dev linux-headers \
-    && \
-    apk add mold --repository=https://mirrors.edge.kernel.org/alpine/edge/testing
+    bash git libtool util-linux-dev linux-headers
+    # && \
+    # apk add mold --repository=https://mirrors.edge.kernel.org/alpine/edge/testing
 
 ARG CC="clang"
 ARG CXX="clang++"
 ENV CXXFLAGS="${CXXFLAGS} -march=${MARCH}"
-RUN rm /usr/bin/ld && ln -s /usr/bin/mold /usr/bin/ld # use mold as default linker
+# RUN rm /usr/bin/ld && ln -s /usr/bin/mold /usr/bin/ld # use mold as default linker
 
 
 # Compile more recent tcmalloc-minimal with clang-15 + -march
@@ -81,6 +81,7 @@ RUN make -j $(nproc)
 
 FROM scratch
 COPY --from=builder /tentris/execs/build/tentris-server/tentris_server /tentris_server
+COPY --from=builder /tentris/execs/build/tentris-server-in-memory/tentris_server_in_memory /tentris_server_in_memory
 COPY --from=builder /tentris/execs/build/tentris-loader/tentris_loader /tentris_loader
 COPY README.MD README.MD
 ENTRYPOINT ["/tentris_server"]

@@ -49,6 +49,8 @@ if (WITH_TCMALLOC)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${TCMALLOCMINIMAL}")
 endif ()
 
+# increase thread stack size to 8MiB (by default, musl has a lower stack size)
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-z,stack-size=8388608")
 
 # set library options
 include(${CMAKE_SOURCE_DIR}/../cmake/conan_cmake.cmake)
