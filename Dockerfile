@@ -81,7 +81,7 @@ COPY src src
 # Unfortunately conan can't really do that.
 RUN sed -i 's|https://github.com/|ssh://git@github.com/|g' Cargo.toml
 
-RUN --mount=type=ssh cargo build --release --features static-build
+RUN --mount=type=ssh cargo build -vv --release --features static-build
 RUN ldd target/release/tentris-server-rs
 
 FROM scratch
