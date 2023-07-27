@@ -84,5 +84,5 @@ RUN --mount=type=ssh cargo build --release --features static-build
 RUN ldd target/release/tentris-server-rs
 
 FROM scratch
-COPY --from=builder /usr/local/src/tentris/target/release/tentris-server-rs /tentris-server-rs
+COPY --from=builder /usr/local/src/tentris-server/target/release/tentris-server-rs /tentris-server-rs
 ENTRYPOINT ["/tentris-server-rs", "--help"]
