@@ -1,44 +1,59 @@
-FROM alpine:3.17 AS builder
-ARG MARCH="x86-64-v3"
-ARG CONAN_USER="none"
-ARG CONAN_PW="none"
-
+FROM rustlang/rust:nightly-alpine3.17 AS builder
 
 RUN apk update && \
     apk add \
     make cmake autoconf automake pkgconfig \
     gcc g++ gdb \
-    clang15 clang15-dev clang15-libs clang15-extra-tools clang15-static lldb llvm15 llvm15-dev\
+    clang15 clang15-static clang15-dev clang15-libs clang15-static llvm15 llvm15-static llvm15-dev \
+    compiler-rt musl-dev \
     openjdk11-jdk \
     pythonispython3 py3-pip \
-    bash git libtool util-linux-dev linux-headers \
+    bash git libtool util-linux-dev linux-headers curl ninja \
     && \
     apk add mold --repository=https://mirrors.edge.kernel.org/alpine/edge/testing
 
-ARG CC="clang"
-ARG CXX="clang++"
-ENV CXXFLAGS="${CXXFLAGS} -march=${MARCH}"
-RUN rm /usr/bin/ld && ln -s /usr/bin/mold /usr/bin/ld # use mold as default linker
+# Copy over required compiler wrappers for alpine
+COPY --chmod=755 clangxx.wrap /usr/local/bin
+COPY --chmod=755 rustc.wrap /usr/local/bin
 
+# Ensure only mold is used to link
+# And ensure linker finds static C runtime
+RUN rm -f /usr/bin/ld && \
+    ln -s /usr/bin/mold /usr/bin/ld && \
+    ln -s /usr/lib/gcc/x86_64-alpine-linux-musl/12.2.1/* /usr/lib/
 
+ARG MARCH="x86-64-v3"
+ENV CC="/usr/bin/clang"
+ENV CFLAGS="${CFLAGS} -march=${MARCH} -mtune=${MARCH}"
+ENV CXX="/usr/local/bin/clangxx.wrap"
+ENV CXXFLAGS="${CXXFLAGS} -march=${MARCH} -mtune=${MARCH}"
+ENV RUSTC="/usr/local/bin/rustc.wrap"
+ENV RUSTFLAGS="${RUSTFLAGS} -C target-cpu=${MARCH} -Z tune-cpu=${MARCH}"
+
+# TODO performance wise this may or may not matter; if it does: copy some stuff over from old tentris-frontend to make use of this
 # Compile more recent tcmalloc-minimal with clang-15 + -march
-RUN git clone --quiet --branch gperftools-2.9.1 --depth 1 https://github.com/gperftools/gperftools
-WORKDIR /gperftools
-RUN ./autogen.sh
-RUN ./configure \
-    --enable-minimal \
-    --disable-debugalloc \
-    --enable-sized-delete \
-    --enable-dynamic-sized-delete-support && \
-    make -j$(nproc) && \
-    make install
-WORKDIR /
+#RUN git clone --quiet --branch gperftools-2.9.1 --depth 1 https://github.com/gperftools/gperftools
+#WORKDIR /gperftools
+#RUN ./autogen.sh
+#RUN ./configure \
+#    --enable-minimal \
+#    --disable-debugalloc \
+#    --enable-sized-delete \
+#    --enable-dynamic-sized-delete-support && \
+#    make -j$(nproc) && \
+#    make install
+#WORKDIR /
 
-# install and configure conan
-RUN pip3 install conan==1.59.0 && \
+ARG CONAN_USER="none"
+ARG CONAN_PW="none"
+
+# Install and configure conan
+# TODO PyYAML~6 doesn't really want to build right now so explicitly choosing 5.3
+RUN pip3 install PyYAML==5.3 conan==1.60.1 && \
     conan user && \
     conan profile new --detect default && \
     conan profile update settings.compiler=clang default && \
+    conan profile update settings.compiler.version=15 default && \
     conan profile update settings.compiler.libcxx=libstdc++11 default && \
     conan profile update settings.compiler.cppstd=20 default && \
     conan profile update env.CXXFLAGS="${CXXFLAGS}" default && \
@@ -47,40 +62,27 @@ RUN pip3 install conan==1.59.0 && \
     conan profile update options.boost:extra_b2_flags="cxxflags=\\\"${CXXFLAGS}\\\"" default && \
     conan profile update options.boost:header_only=True default && \
     conan profile update options.restinio:asio=boost default
-# note: the conan package for boost (as of 1.79.x/1.80.0) does not build properly on alpine. Therefore, we use only the header_only parts
-# todo: remove header_only as soon as build works on alpine
+# Note: the conan package for boost (as of 1.79.x/1.80.0) does not build properly on alpine. Therefore, we use only the header_only parts
+# TODO: remove header_only as soon as build works on alpine
 
-# add conan repositories
-RUN conan remote add dice-group https://conan.dice-research.org/artifactory/api/conan/tentris
-RUN conan remote add tentris-private https://conan.dice-research.org/artifactory/api/conan/tentris-private
-RUN conan user ${CONAN_USER} -p ${CONAN_PW} -r tentris-private
+# Add conan repositories
+RUN conan remote add dice-group https://conan.dice-research.org/artifactory/api/conan/tentris && \
+    conan remote add tentris-private https://conan.dice-research.org/artifactory/api/conan/tentris-private && \
+    conan user ${CONAN_USER} -p ${CONAN_PW} -r tentris-private
 
-# build and cache dependencies via conan
-WORKDIR /conan_cache
-COPY conanfile.py .
-COPY CMakeLists.txt .
-RUN conan install . --build=* --profile default
-# import project files
-WORKDIR /tentris
-COPY libs libs
-COPY execs execs
-COPY cmake cmake
-COPY CMakeLists.txt .
-COPY conanfile.py .
+# Import project files
+WORKDIR /usr/local/src/tentris-server
+COPY Cargo.toml Cargo.toml
+COPY Cargo.lock Cargo.lock
+COPY src src
 
-##build
-WORKDIR /tentris/execs/build
-# todo: should be replaced with toolchain file like https://github.com/ruslo/polly/blob/master/clang-libcxx17-static.cmake
-RUN cmake \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DWITH_TCMALLOC=true \
-    -DSTATIC=true \
-    -DMARCH=${MARCH} \
-    ..
-RUN make -j $(nproc)
+# Using ssh in container because it doesn't leak access tokens.
+# Unfortunately conan can't really do that.
+RUN sed -i 's|https://github.com/|ssh://git@github.com/|g' Cargo.toml
+
+RUN --mount=type=ssh cargo build --release --features static-build
+RUN ldd target/release/tentris-server-rs
 
 FROM scratch
-COPY --from=builder /tentris/execs/build/tentris-server/tentris_server /tentris_server
-COPY --from=builder /tentris/execs/build/tentris-loader/tentris_loader /tentris_loader
-COPY README.MD README.MD
-ENTRYPOINT ["/tentris_server"]
+COPY --from=builder /usr/local/src/tentris/target/release/tentris-server-rs /tentris-server-rs
+ENTRYPOINT ["/tentris-server-rs", "--help"]
