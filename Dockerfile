@@ -23,12 +23,13 @@ RUN rm -f /usr/bin/ld && \
     ln -s /usr/lib/gcc/x86_64-alpine-linux-musl/12.2.1/* /usr/lib/
 
 ARG MARCH="x86-64-v3"
+ARG MTUNE=""
 ENV CC="/usr/bin/clang"
-ENV CFLAGS="${CFLAGS} -march=${MARCH} -mtune=${MARCH}"
+ENV CFLAGS="${CFLAGS} -march=${MARCH} -mtune=${MTUNE}"
 ENV CXX="/usr/local/bin/clangxx.wrap"
-ENV CXXFLAGS="${CXXFLAGS} -march=${MARCH} -mtune=${MARCH}"
+ENV CXXFLAGS="${CXXFLAGS} -march=${MARCH} -mtune=${MTUNE}"
 ENV RUSTC="/usr/local/bin/rustc.wrap"
-ENV RUSTFLAGS="${RUSTFLAGS} -C target-cpu=${MARCH} -Z tune-cpu=${MARCH}"
+ENV RUSTFLAGS="${RUSTFLAGS} -C target-cpu=${MARCH} -Z tune-cpu=${MTUNE}"
 
 # TODO performance wise this may or may not matter; if it does: copy some stuff over from old tentris-frontend to make use of this
 # Compile more recent tcmalloc-minimal with clang-15 + -march
@@ -85,4 +86,4 @@ RUN ldd target/release/tentris-server-rs
 
 FROM scratch
 COPY --from=builder /usr/local/src/tentris-server/target/release/tentris-server-rs /tentris-server-rs
-ENTRYPOINT ["/tentris-server-rs", "--help"]
+ENTRYPOINT ["/tentris-server-rs", "-s", "/data", "serve"]

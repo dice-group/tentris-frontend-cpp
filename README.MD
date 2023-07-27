@@ -21,16 +21,9 @@ Steps:
     ssh-add
     ```
 
-3. Build the image using docker or podman:
+3. Build the executable:
     ```bash
-    docker build . --tag tentris --build-arg CONAN_USER=xx --build-arg CONAN_PW=yyy --ssh=default
-    ```
-
-4. After you built the docker image you can extract the binary using:
-    ```bash
-    id=$(docker create tentris)
-    docker cp $id:/tentris-server-rs .
-    docker rm $id
+    ./package.sh YOUR_CONAN_USER YOUR_CONAN_PW
     ```
 
 ## Development
