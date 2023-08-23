@@ -21,6 +21,12 @@ pub enum UserFacingError {
         expected: Vec<ContentType>,
         got: ContentType,
     },
+
+    #[error("Unauthorized")]
+    Unauthorized,
+
+    #[error("Empty query provided")]
+    EmptyQuery { provided_content_type: ContentType },
 }
 
 impl IntoResponse for UserFacingError {
@@ -54,6 +60,26 @@ impl IntoResponse for UserFacingError {
                             "expected": format!("{expected:?}"),
                             "got": format!("{got}"),
                             "error_message": format!("Invalid content type, expected any of {expected:?} but got {got} instead"),
+                        }
+                    }
+                };
+
+                (StatusCode::BAD_REQUEST, body)
+            },
+            UserFacingError::Unauthorized => {
+                let body = json! {
+                    {
+                        "Unauthorized": {}
+                    }
+                };
+
+                (StatusCode::UNAUTHORIZED, body)
+            },
+            UserFacingError::EmptyQuery { provided_content_type } => {
+                let body = json! {
+                    {
+                        "EmptyQuery": {
+                            "provided_content_type": provided_content_type.to_string(),
                         }
                     }
                 };

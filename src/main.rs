@@ -10,7 +10,7 @@ use std::{
     net::{IpAddr, SocketAddr},
     path::PathBuf,
 };
-
+use tracing_subscriber::EnvFilter;
 
 #[derive(Parser)]
 #[command(version, about)]
@@ -73,7 +73,10 @@ pub const TRIPLESTORE_NAME: &str = "tentris-triplestore";
 fn main() {
     let opts: Commandline = Commandline::parse();
 
-    tracing_subscriber::fmt().with_writer(std::io::stderr).init();
+    tracing_subscriber::fmt()
+        .with_env_filter(EnvFilter::from_default_env())
+        .with_writer(std::io::stderr)
+        .init();
 
     match opts.sub {
         SubCommand::Load => load::load(&opts.datastore_path).unwrap(),

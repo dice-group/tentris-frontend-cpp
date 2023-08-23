@@ -27,7 +27,7 @@ pub fn backup(datastore_path: &Path) -> anyhow::Result<()> {
         tracing::info!("Snapshotting");
         let metall_manager = MetallManager::open(datastore_path).context("Failed to open datastore")?;
 
-        if let Err(_) = metall_manager.snapshot(&snapshot_path) {
+        if metall_manager.snapshot(&snapshot_path).is_err() {
             anyhow::bail!("Unable to create snapshot for exporting");
         }
     }

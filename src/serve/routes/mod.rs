@@ -1,10 +1,11 @@
 pub mod error;
 mod results_writer;
 
+use super::AppState;
 use axum::{
     body::StreamBody,
     extract::{Query, State},
-    headers::ContentType,
+    headers::{authorization::Basic, Authorization, ContentType},
     http::{header, HeaderValue},
     response::{IntoResponse, Response},
     TypedHeader,
@@ -14,17 +15,9 @@ use mime::Mime;
 use results_writer::SparqlJsonSaxResultsWriter;
 use serde::Deserialize;
 use serde_json::ser::CompactFormatter;
-use std::{io, mem, sync::Arc, time::Duration};
-use tentris::triplestore::TripleStore;
+use std::{io, mem};
 use tokio::sync::{mpsc, oneshot};
 use tokio_stream::wrappers::UnboundedReceiverStream;
-
-#[derive(Clone)]
-pub struct AppState {
-    pub triplestore: Arc<TripleStore>,
-    pub request_timeout: Option<Duration>,
-    pub serialization_mem: usize,
-}
 
 #[derive(Deserialize)]
 pub struct QueryParams {
@@ -32,7 +25,81 @@ pub struct QueryParams {
     query: String,
 }
 
+pub async fn sparql_route_get(
+    State(state): State<AppState>,
+    Query(params): Query<QueryParams>,
+) -> Result<Response, UserFacingError> {
+    route_impl(state, params.query).await
+}
+
+pub async fn sparql_route_post(
+    TypedHeader(Authorization(credentials)): TypedHeader<Authorization<Basic>>,
+    TypedHeader(content_type): TypedHeader<ContentType>,
+    State(state): State<AppState>,
+    Query(params): Query<QueryParams>,
+    body: String,
+) -> Result<Response, UserFacingError> {
+    check_auth(&state, credentials)?;
+    let query = extract_query(content_type, params, body)?;
+    route_impl(state, query).await
+}
+
+pub async fn sparql_streaming_route_get(
+    State(state): State<AppState>,
+    Query(params): Query<QueryParams>,
+) -> Result<Response, UserFacingError> {
+    streaming_route_impl(state, params.query).await
+}
+
+pub async fn sparql_streaming_route_post(
+    TypedHeader(Authorization(credentials)): TypedHeader<Authorization<Basic>>,
+    TypedHeader(content_type): TypedHeader<ContentType>,
+    State(state): State<AppState>,
+    Query(params): Query<QueryParams>,
+    body: String,
+) -> Result<Response, UserFacingError> {
+    check_auth(&state, credentials)?;
+    let query = extract_query(content_type, params, body)?;
+    streaming_route_impl(state, query).await
+}
+
+fn check_auth(state: &AppState, credentials: Basic) -> Result<(), UserFacingError> {
+    let Some(user) = state.users.iter().find(|u| u.name == credentials.username()) else {
+        return Err(UserFacingError::Unauthorized);
+    };
+
+    if credentials.password() != user.password {
+        Err(UserFacingError::Unauthorized)
+    } else {
+        Ok(())
+    }
+}
+
+fn extract_query(content_type: ContentType, params: QueryParams, body: String) -> Result<String, UserFacingError> {
+    let body_content_type = ContentType::from("application/sparql-query".parse::<Mime>().unwrap());
+    let query_param_content_type = ContentType::form_url_encoded();
+
+    let query = if content_type == body_content_type {
+        body
+    } else if content_type == query_param_content_type {
+        params.query
+    } else {
+        return Err(UserFacingError::InvalidContentType {
+            expected: vec![body_content_type, query_param_content_type],
+            got: content_type,
+        });
+    };
+
+    if query.is_empty() {
+        Err(UserFacingError::EmptyQuery { provided_content_type: content_type })
+    } else {
+        Ok(query)
+    }
+}
+
 async fn route_impl(state: AppState, query: String) -> Result<Response, UserFacingError> {
+    tracing::debug!(query);
+
     let (tx, rx) = oneshot::channel();
 
     rayon::spawn(move || {
@@ -163,40 +230,5 @@ async fn streaming_route_impl(state: AppState, query: String) -> Result<Response
             io::ErrorKind::Other,
             "unknown internal server error",
         ))),
-    }
-}
-
-pub async fn sparql_route_get(
-    State(state): State<AppState>,
-    Query(params): Query<QueryParams>,
-) -> Result<Response, UserFacingError> {
-    route_impl(state, params.query).await
-}
-
-pub async fn sparql_streaming_route_get(
-    State(state): State<AppState>,
-    Query(params): Query<QueryParams>,
-) -> Result<Response, UserFacingError> {
-    streaming_route_impl(state, params.query).await
-}
-
-pub async fn sparql_streaming_route_post(
-    TypedHeader(content_type): TypedHeader<ContentType>,
-    State(state): State<AppState>,
-    Query(params): Query<QueryParams>,
-    body: String,
-) -> Result<Response, UserFacingError> {
-    let body_content_type = ContentType::from("application/sparql-query".parse::<Mime>().unwrap());
-    let query_param_content_type = ContentType::form_url_encoded();
-
-    if content_type == body_content_type {
-        streaming_route_impl(state, body).await
-    } else if content_type == query_param_content_type {
-        streaming_route_impl(state, params.query).await
-    } else {
-        Err(UserFacingError::InvalidContentType {
-            expected: vec![body_content_type, query_param_content_type],
-            got: content_type,
-        })
     }
 }

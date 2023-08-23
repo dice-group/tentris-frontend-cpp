@@ -8,6 +8,20 @@ use tentris::{metall::MetallManager, triplestore::TripleStore};
 use tokio::signal::unix::SignalKind;
 use tracing::instrument;
 
+#[derive(Clone)]
+pub struct User {
+    name: String,
+    password: String,
+}
+
+#[derive(Clone)]
+pub struct AppState {
+    pub triplestore: Arc<TripleStore>,
+    pub request_timeout: Option<Duration>,
+    pub serialization_mem: usize,
+    pub users: Vec<User>,
+}
+
 #[instrument(err)]
 pub fn serve(
     datastore_path: &Path,
@@ -41,10 +55,14 @@ pub fn serve(
             .context("Could not open persisted triplestore")?,
     );
 
-    let state = routes::AppState {
+    let state = AppState {
         triplestore,
         request_timeout: request_timeout_ms.map(Duration::from_millis),
         serialization_mem: query_eval_serialization_mem,
+        users: vec![
+            User { name: "read-only".to_owned(), password: "password".to_owned() },
+            User { name: "read-write".to_owned(), password: "password".to_owned() },
+        ],
     };
 
     runtime.block_on(async move {
@@ -53,7 +71,7 @@ pub fn serve(
                 "/stream",
                 get(routes::sparql_streaming_route_get).post(routes::sparql_streaming_route_post),
             )
-            .route("/sparql", get(routes::sparql_route_get))
+            .route("/sparql", get(routes::sparql_route_get).post(routes::sparql_route_post))
             .with_state(state.clone())
             .layer(
                 tower::ServiceBuilder::new()
