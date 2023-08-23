@@ -1,6 +1,6 @@
 use serde_json::ser::Formatter;
 use std::{io, io::Write, mem};
-use tentris::rdf4cpp::{NodeType, SolutionMapping, Variable};
+use tentris::rdf4cpp::{SolutionMapping, Variable};
 
 pub struct SparqlJsonSaxResultsWriter<W, F> {
     proj_vars: Vec<String>,
@@ -107,44 +107,28 @@ impl<W: Write, F: Formatter> SparqlJsonSaxResultsWriter<W, F> {
             } else {
                 self.fmt.begin_object(&mut self.writer)?;
 
-                match term.node_type() {
-                    NodeType::Iri => {
-                        let value = unsafe { term.to_iri().identifier() };
-                        string_field(&mut self.fmt, &mut self.writer, "type", "iri", true)?;
-                        string_field(&mut self.fmt, &mut self.writer, "value", value, false)?;
-                    },
-                    NodeType::BNode => {
-                        let value = unsafe { term.to_bnode().identifier() };
-                        string_field(&mut self.fmt, &mut self.writer, "type", "bnode", true)?;
-                        string_field(&mut self.fmt, &mut self.writer, "value", value, false)?;
-                    },
-                    NodeType::Literal => {
-                        let lit = term.to_literal();
-                        let lex = unsafe { lit.lexical_form() };
+                if let Some(iri) = term.to_iri() {
+                    let value = iri.identifier();
+                    string_field(&mut self.fmt, &mut self.writer, "type", "iri", true)?;
+                    string_field(&mut self.fmt, &mut self.writer, "value", value, false)?;
+                } else if let Some(bnode) = term.to_bnode() {
+                    let value = bnode.identifier();
+                    string_field(&mut self.fmt, &mut self.writer, "type", "bnode", true)?;
+                    string_field(&mut self.fmt, &mut self.writer, "value", value, false)?;
+                } else if let Some(literal) = term.to_literal() {
+                    let lex = literal.lexical_form();
 
-                        string_field(&mut self.fmt, &mut self.writer, "type", "literal", true)?;
-                        string_field(
-                            &mut self.fmt,
-                            &mut self.writer,
-                            "value",
-                            &lex,
-                            false,
-                        )?;
+                    string_field(&mut self.fmt, &mut self.writer, "type", "literal", true)?;
+                    string_field(&mut self.fmt, &mut self.writer, "value", &lex, false)?;
 
-                        let lang_tag = unsafe { lit.language_tag() };
-                        if !lang_tag.is_empty() {
-                            string_field(&mut self.fmt, &mut self.writer, "xml:lang", lang_tag, false)?;
-                        } else {
-                            string_field(
-                                &mut self.fmt,
-                                &mut self.writer,
-                                "datatype",
-                                unsafe { lit.datatype() },
-                                false,
-                            )?;
-                        }
-                    },
-                    NodeType::Variable => unreachable!(),
+                    let lang_tag = literal.language_tag();
+                    if !lang_tag.is_empty() {
+                        string_field(&mut self.fmt, &mut self.writer, "xml:lang", lang_tag, false)?;
+                    } else {
+                        string_field(&mut self.fmt, &mut self.writer, "datatype", literal.datatype(), false)?;
+                    }
+                } else {
+                    unreachable!();
                 }
 
                 self.fmt.end_object(&mut self.writer)?;

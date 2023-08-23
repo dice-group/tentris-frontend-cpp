@@ -1,29 +1,52 @@
 [package]
-name = "tentris-server-rs"
-description = "A proof of concept tentris server implementation in rust"
-version = "0.1.0"
+name = "tentris-frontend"
+description = "The tentris server implementation"
+version = "0.1.0+tentris-lib.2.1.2"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[[bin]]
+name = "tentris"
+path = "src/main.rs"
 
 [features]
 default = []
 static-build = ["tentris/static-build"]
 
+
 [dependencies]
-anyhow = "1.0.71"
-axum = { version = "0.6.18", features = ["headers", "macros", "http2"] }
-clap = { version = "4.3.0", features = ["derive", "string"] }
-serde = { version = "1.0.163", features = ["derive"] }
-serde_json = "1.0.96"
 tentris = { git = "https://github.com/dice-group/tentris-lib-rs", branch = "init" }
+
+# Error handling
+anyhow = "1.0.71"
+thiserror = "1.0.40"
+
+# Runtime
 tokio = { version = "1.28.1", features = ["full"] }
 tokio-stream = "0.1.14"
-mime = "0.3.16"
-thiserror = "1.0.40"
+rayon = "1.7.0"
 num_cpus = "1.15.0"
+
+# Webserver
+axum = { version = "0.6.18", features = ["headers", "macros", "http2"] }
 tower = { version = "0.4.13", features = ["limit", "load-shed"] }
 tower-http = { version = "0.4.0", features = ["trace"] }
+mime = "0.3.16"
+
+# Serialization/Deserialization
+serde = { version = "1.0.163", features = ["derive"] }
+serde_json = "1.0.96"
+
+# Logging
 tracing = "0.1.37"
 tracing-subscriber = "0.3.17"
-rayon = "1.7.0"
+
+# Commandline Interface
+clap = { version = "4.3.0", features = ["derive", "string"] }
+color-print = "0.3.4"
+
+# Backup and Restore subcommands
+tempdir = "0.3.7"
+tar = "0.4.39"
+zstd = "0.12.3"
