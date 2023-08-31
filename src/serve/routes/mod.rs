@@ -4,7 +4,9 @@ mod results_writer;
 mod utils;
 
 use super::AppState;
-use crate::serve::routes::utils::{extract_query, extract_update, QueryParams};
+use crate::serve::routes::utils::{
+    extract_query, extract_update, handle_ask_query, select_results_writer, QueryParams,
+};
 use axum::{
     body::StreamBody,
     extract::{Query, RawQuery, State},
@@ -14,9 +16,8 @@ use axum::{
     TypedHeader,
 };
 use error::UserFacingError;
-use results_writer::SparqlJsonSaxResultsWriter;
-use serde_json::ser::CompactFormatter;
 use std::{io, mem};
+use tentris::triplestore::QueryType;
 use tokio::sync::{mpsc, oneshot};
 use tokio_stream::wrappers::UnboundedReceiverStream;
 
@@ -84,12 +85,13 @@ async fn route_impl(state: AppState, query: String) -> Result<Response, UserFaci
             },
         };
 
+        if gen.query_type() == QueryType::Ask {
+            let _ = tx.send(handle_ask_query(gen));
+            return;
+        }
+
         {
-            let mut writer = SparqlJsonSaxResultsWriter::new(
-                Vec::with_capacity(init_sz),
-                CompactFormatter,
-                gen.projected_variables(),
-            );
+            let mut writer = select_results_writer(&gen, Vec::with_capacity(init_sz));
 
             writer.begin().unwrap();
 
@@ -107,7 +109,7 @@ async fn route_impl(state: AppState, query: String) -> Result<Response, UserFaci
             }
 
             writer.finish().unwrap();
-            let _ = tx.send(Ok(mem::take(writer.writer_mut())));
+            let _ = tx.send(Ok(mem::take(writer.as_inner_mut())));
         }
     });
 
@@ -149,12 +151,13 @@ async fn streaming_route_impl(state: AppState, query: String) -> Result<Response
             },
         };
 
+        if gen.query_type() == QueryType::Ask {
+            let _ = tx.send(handle_ask_query(gen));
+            return;
+        }
+
         {
-            let mut writer = SparqlJsonSaxResultsWriter::new(
-                Vec::with_capacity(chunk_sz),
-                CompactFormatter,
-                gen.projected_variables(),
-            );
+            let mut writer = select_results_writer(&gen, Vec::with_capacity(chunk_sz));
 
             writer.begin().unwrap();
 
@@ -163,7 +166,7 @@ async fn streaming_route_impl(state: AppState, query: String) -> Result<Response
                     Ok(Some(solution)) => {
                         writer.write_solution(solution).unwrap();
 
-                        let buf = writer.writer_mut();
+                        let buf = writer.as_inner_mut();
                         if buf.len() >= chunk_sz {
                             tx.send(Ok(mem::replace(buf, Vec::with_capacity(chunk_sz))))
                         } else {
@@ -180,7 +183,7 @@ async fn streaming_route_impl(state: AppState, query: String) -> Result<Response
             }
 
             writer.finish().unwrap();
-            let _ = tx.send(Ok(mem::take(writer.writer_mut())));
+            let _ = tx.send(Ok(mem::take(writer.as_inner_mut())));
         }
     });
 

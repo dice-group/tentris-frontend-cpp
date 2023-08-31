@@ -1,7 +1,13 @@
-use crate::serve::routes::error::{QueryDeserializeError, UserFacingError};
+use crate::serve::routes::{
+    error::{QueryDeserializeError, UserFacingError},
+    results_writer::{NTriplesResultsWriter, ResultsWriter, SparqlJsonSaxResultsWriter},
+};
 use axum::{extract::RawQuery, headers::ContentType};
 use mime::Mime;
 use serde::Deserialize;
+use serde_json::{json, ser::CompactFormatter};
+use std::io::Write;
+use tentris::triplestore::{QueryType, SolutionGenerator};
 
 #[derive(Deserialize)]
 pub struct QueryParams {
@@ -68,5 +74,36 @@ pub fn extract_query(content_type: ContentType, raw_query: RawQuery, body: Strin
         ))
     } else {
         Ok(query)
+    }
+}
+
+pub fn handle_ask_query(mut gen: SolutionGenerator) -> Result<Vec<u8>, tentris::triplestore::error::Error> {
+    debug_assert!(gen.query_type() == QueryType::Ask);
+
+    let ask_result = match gen.next_solution_mapping() {
+        Ok(Some(_)) => true,
+        Ok(None) => false,
+        Err(e) => {
+            return Err(e);
+        },
+    };
+
+    Ok(serde_json::to_vec(&json!(
+        {
+            "head": {},
+            "boolean": ask_result
+        }
+    ))
+    .unwrap())
+}
+
+pub fn select_results_writer<W: Write + 'static>(gen: &SolutionGenerator, writer: W) -> Box<dyn ResultsWriter<W>> {
+    match gen.query_type() {
+        QueryType::Construct => Box::new(NTriplesResultsWriter::new(writer)),
+        _ => Box::new(SparqlJsonSaxResultsWriter::new(
+            writer,
+            CompactFormatter,
+            gen.projected_variables(),
+        )),
     }
 }

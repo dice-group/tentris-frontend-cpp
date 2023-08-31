@@ -2,6 +2,13 @@ use serde_json::ser::Formatter;
 use std::{io, io::Write, mem};
 use tentris::rdf4cpp::{SolutionMapping, Variable};
 
+pub trait ResultsWriter<W: Write> {
+    fn as_inner_mut(&mut self) -> &mut W;
+    fn begin(&mut self) -> io::Result<()>;
+    fn write_solution(&mut self, solution: SolutionMapping) -> io::Result<()>;
+    fn finish(&mut self) -> io::Result<()>;
+}
+
 pub struct SparqlJsonSaxResultsWriter<W, F> {
     proj_vars: Vec<String>,
     writer: W,
@@ -44,12 +51,14 @@ impl<W: Write, F: Formatter> SparqlJsonSaxResultsWriter<W, F> {
             first_binding: true,
         }
     }
+}
 
-    pub fn writer_mut(&mut self) -> &mut W {
+impl<W: Write, F: Formatter> ResultsWriter<W> for SparqlJsonSaxResultsWriter<W, F> {
+    fn as_inner_mut(&mut self) -> &mut W {
         &mut self.writer
     }
 
-    pub fn begin(&mut self) -> io::Result<()> {
+    fn begin(&mut self) -> io::Result<()> {
         self.fmt.begin_object(&mut self.writer)?;
         {
             begin_field(&mut self.fmt, &mut self.writer, "head", true)?;
@@ -81,16 +90,7 @@ impl<W: Write, F: Formatter> SparqlJsonSaxResultsWriter<W, F> {
         Ok(())
     }
 
-    pub fn finish(&mut self) -> io::Result<()> {
-        self.fmt.end_array(&mut self.writer)?;
-        end_field(&mut self.fmt, &mut self.writer)?;
-        self.fmt.end_object(&mut self.writer)?;
-        end_field(&mut self.fmt, &mut self.writer)?;
-        self.fmt.end_object(&mut self.writer)?;
-        Ok(())
-    }
-
-    pub fn write_solution(&mut self, solution: SolutionMapping) -> io::Result<()> {
+    fn write_solution(&mut self, solution: SolutionMapping) -> io::Result<()> {
         debug_assert!(self.proj_vars.len() == solution.mapping.len());
 
         self.fmt
@@ -145,6 +145,45 @@ impl<W: Write, F: Formatter> SparqlJsonSaxResultsWriter<W, F> {
 
         self.fmt.end_object(&mut self.writer)?;
         self.fmt.end_array_value(&mut self.writer)?;
+        Ok(())
+    }
+
+    fn finish(&mut self) -> io::Result<()> {
+        self.fmt.end_array(&mut self.writer)?;
+        end_field(&mut self.fmt, &mut self.writer)?;
+        self.fmt.end_object(&mut self.writer)?;
+        end_field(&mut self.fmt, &mut self.writer)?;
+        self.fmt.end_object(&mut self.writer)?;
+        Ok(())
+    }
+}
+
+pub struct NTriplesResultsWriter<W>(W);
+
+impl<W> NTriplesResultsWriter<W> {
+    pub fn new(writer: W) -> Self {
+        Self(writer)
+    }
+}
+
+impl<W: Write> ResultsWriter<W> for NTriplesResultsWriter<W> {
+    fn as_inner_mut(&mut self) -> &mut W {
+        &mut self.0
+    }
+
+    fn begin(&mut self) -> io::Result<()> {
+        Ok(())
+    }
+
+    fn write_solution(&mut self, solution: SolutionMapping) -> io::Result<()> {
+        writeln!(
+            self.0,
+            "{} {} {} .",
+            solution.mapping[0], solution.mapping[1], solution.mapping[2]
+        )
+    }
+
+    fn finish(&mut self) -> io::Result<()> {
         Ok(())
     }
 }
