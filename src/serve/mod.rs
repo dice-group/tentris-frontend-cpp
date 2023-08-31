@@ -1,8 +1,9 @@
 mod auth;
 mod routes;
 
-use crate::{serve::auth::SetupAuth, ServeOpts};
+use super::ServeOpts;
 use anyhow::Context;
+use auth::SetupAuth;
 use axum::{
     error_handling::HandleErrorLayer,
     http::StatusCode,

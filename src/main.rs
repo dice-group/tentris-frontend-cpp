@@ -76,23 +76,28 @@ pub struct ServeOpts {
 
 pub const TRIPLESTORE_NAME: &str = "tentris-triplestore";
 
-fn main() -> anyhow::Result<()> {
+fn main() {
     let opts: Commandline = Commandline::parse();
 
     tracing_subscriber::fmt()
         .with_env_filter(
             EnvFilter::builder()
                 .with_default_directive(LevelFilter::INFO.into())
-                .from_env()?,
+                .from_env_lossy(),
         )
         .with_writer(std::io::stderr)
         .init();
 
-    match opts.sub {
+    let res = match opts.sub {
         SubCommand::Load => load::load(&opts.datastore_path),
         SubCommand::Serve(serve_opts) => serve::serve(&opts.datastore_path, serve_opts),
         SubCommand::Dump => dump::dump(&opts.datastore_path),
         SubCommand::Backup => backup::backup(&opts.datastore_path),
         SubCommand::Restore => restore::restore(&opts.datastore_path),
+    };
+
+    if let Err(e) = res {
+        tracing::error!("{e}");
+        std::process::exit(1);
     }
 }

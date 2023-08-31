@@ -1,25 +1,27 @@
 use anyhow::Context;
-use std::{
-    fs::File,
-    io::{BufReader, BufWriter, IsTerminal},
-    path::Path,
-};
+use std::{io::IsTerminal, path::Path};
 use tentris::metall::MetallManager;
 
 pub fn backup(datastore_path: &Path) -> anyhow::Result<()> {
-    tracing::info!("Backing up");
+    if std::io::stdout().is_terminal() {
+        anyhow::bail!("Refusing to dump binary data to terminal");
+    }
+
+    if !datastore_path.exists() {
+        anyhow::bail!("No datastore found at {}", datastore_path.display());
+    }
 
     if !MetallManager::is_consistent(datastore_path) {
-        anyhow::bail!("Datastore is inconsistent");
+        anyhow::bail!("Datastore at {} is inconsistent", datastore_path.display());
     }
 
-    if std::io::stdout().is_terminal() {
-        anyhow::bail!("Refusing to dump binary data to terminal!");
-    }
+    let workdir = datastore_path
+        .parent()
+        .context("Unable to get parent of datastore path")?;
+    let snapshot_path =
+        tempdir::TempDir::new_in(workdir, ".tentris_backup").context("Unable to create temporary directory")?;
 
-    let workdir = tempdir::TempDir::new("tentris_backup").context("Unable to create temporary directory")?;
-    let snapshot_path = workdir.path().join("snapshot");
-    let archive_path = workdir.path().join("archive");
+    tracing::info!("Starting backup");
 
     {
         tracing::info!("Snapshotting");
@@ -30,25 +32,31 @@ pub fn backup(datastore_path: &Path) -> anyhow::Result<()> {
         }
     }
 
-    {
-        tracing::info!("Archiving");
-        let archive = BufWriter::new(File::create(&archive_path).context("Unable to open output file for writing")?);
+    tracing::info!("Writing backup");
 
-        let mut tar_b = tar::Builder::new(archive);
-        tar_b
-            .append_dir_all(".", &snapshot_path)
-            .context("Unable to add datastore to archive")?;
+    std::thread::scope(move |s| -> anyhow::Result<()> {
+        let (rx, tx) = pipe::pipe_buffered();
 
-        tar_b.finish().context("Unable to write archive")?
-    }
+        let archive = s.spawn(move || {
+            let mut tar_b = tar::Builder::new(tx);
+            tar_b
+                .append_dir_all(".", &snapshot_path)
+                .context("Unable to add datastore to archive")?;
 
-    {
-        tracing::info!("Compressing");
-        let archive = BufReader::new(File::open(&archive_path).context("Unable to open archive file for reading")?);
+            tar_b.finish().context("Unable to write archive")?;
+            Ok(())
+        });
 
-        let output = std::io::stdout().lock();
-        zstd::stream::copy_encode(archive, output, 3).context("Unable to write to output file")?;
-    }
+        let compress = s.spawn(move || {
+            let output = std::io::stdout().lock();
+            zstd::stream::copy_encode(rx, output, 3).context("Unable to write to output file")?;
+            Ok(())
+        });
+
+        [archive.join().unwrap(), compress.join().unwrap()]
+            .into_iter()
+            .collect()
+    })?;
 
     tracing::info!("Backup complete");
     Ok(())
