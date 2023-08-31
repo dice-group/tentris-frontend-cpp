@@ -4,9 +4,7 @@ use std::{
     io::{BufReader, BufWriter, IsTerminal},
     path::Path,
 };
-use tracing::instrument;
 
-#[instrument(err)]
 pub fn restore(datastore_path: &Path) -> anyhow::Result<()> {
     tracing::info!("Restoring");
 

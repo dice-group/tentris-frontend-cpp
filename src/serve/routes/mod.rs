@@ -1,104 +1,75 @@
 pub mod error;
+
 mod results_writer;
+mod utils;
 
 use super::AppState;
+use crate::serve::routes::utils::{extract_query, extract_update, QueryParams};
 use axum::{
     body::StreamBody,
-    extract::{Query, State},
-    headers::{authorization::Basic, Authorization, ContentType},
+    extract::{Query, RawQuery, State},
+    headers::ContentType,
     http::{header, HeaderValue},
     response::{IntoResponse, Response},
     TypedHeader,
 };
 use error::UserFacingError;
-use mime::Mime;
 use results_writer::SparqlJsonSaxResultsWriter;
-use serde::Deserialize;
 use serde_json::ser::CompactFormatter;
 use std::{io, mem};
 use tokio::sync::{mpsc, oneshot};
 use tokio_stream::wrappers::UnboundedReceiverStream;
 
-#[derive(Deserialize)]
-pub struct QueryParams {
-    #[serde(default)]
-    query: String,
-}
-
+/// GET /sparql
 pub async fn sparql_route_get(
     State(state): State<AppState>,
-    Query(params): Query<QueryParams>,
+    Query(query): Query<QueryParams>,
 ) -> Result<Response, UserFacingError> {
-    route_impl(state, params.query).await
+    route_impl(state, query.query).await
 }
 
+/// POST /sparql
 pub async fn sparql_route_post(
-    TypedHeader(Authorization(credentials)): TypedHeader<Authorization<Basic>>,
     TypedHeader(content_type): TypedHeader<ContentType>,
     State(state): State<AppState>,
-    Query(params): Query<QueryParams>,
+    raw_query: RawQuery,
     body: String,
 ) -> Result<Response, UserFacingError> {
-    check_auth(&state, credentials)?;
-    let query = extract_query(content_type, params, body)?;
+    let query = extract_query(content_type, raw_query, body)?;
     route_impl(state, query).await
 }
 
+/// GET /stream
 pub async fn sparql_streaming_route_get(
     State(state): State<AppState>,
-    Query(params): Query<QueryParams>,
+    Query(query): Query<QueryParams>,
 ) -> Result<Response, UserFacingError> {
-    streaming_route_impl(state, params.query).await
+    streaming_route_impl(state, query.query).await
 }
 
+/// POST /stream
 pub async fn sparql_streaming_route_post(
-    TypedHeader(Authorization(credentials)): TypedHeader<Authorization<Basic>>,
     TypedHeader(content_type): TypedHeader<ContentType>,
     State(state): State<AppState>,
-    Query(params): Query<QueryParams>,
+    raw_query: RawQuery,
     body: String,
 ) -> Result<Response, UserFacingError> {
-    check_auth(&state, credentials)?;
-    let query = extract_query(content_type, params, body)?;
+    let query = extract_query(content_type, raw_query, body)?;
     streaming_route_impl(state, query).await
 }
 
-fn check_auth(state: &AppState, credentials: Basic) -> Result<(), UserFacingError> {
-    let Some(user) = state.users.iter().find(|u| u.name == credentials.username()) else {
-        return Err(UserFacingError::Unauthorized);
-    };
-
-    if credentials.password() != user.password {
-        Err(UserFacingError::Unauthorized)
-    } else {
-        Ok(())
-    }
-}
-
-fn extract_query(content_type: ContentType, params: QueryParams, body: String) -> Result<String, UserFacingError> {
-    let body_content_type = ContentType::from("application/sparql-query".parse::<Mime>().unwrap());
-    let query_param_content_type = ContentType::form_url_encoded();
-
-    let query = if content_type == body_content_type {
-        body
-    } else if content_type == query_param_content_type {
-        params.query
-    } else {
-        return Err(UserFacingError::InvalidContentType {
-            expected: vec![body_content_type, query_param_content_type],
-            got: content_type,
-        });
-    };
-
-    if query.is_empty() {
-        Err(UserFacingError::EmptyQuery { provided_content_type: content_type })
-    } else {
-        Ok(query)
-    }
+/// POST /update
+pub async fn sparql_update_route(
+    TypedHeader(content_type): TypedHeader<ContentType>,
+    State(state): State<AppState>,
+    body: String,
+) -> Result<(), UserFacingError> {
+    let query = extract_update(content_type, body)?;
+    update_route_impl(state, query).await
 }
 
 async fn route_impl(state: AppState, query: String) -> Result<Response, UserFacingError> {
-    tracing::debug!(query);
+    tracing::debug!("evaluating query={query:.80}");
 
     let (tx, rx) = oneshot::channel();
 
@@ -114,13 +85,11 @@ async fn route_impl(state: AppState, query: String) -> Result<Response, UserFaci
         };
 
         {
-            let mut writer = unsafe {
-                SparqlJsonSaxResultsWriter::new(
-                    Vec::with_capacity(init_sz),
-                    CompactFormatter,
-                    gen.projected_variables(),
-                )
-            };
+            let mut writer = SparqlJsonSaxResultsWriter::new(
+                Vec::with_capacity(init_sz),
+                CompactFormatter,
+                gen.projected_variables(),
+            );
 
             writer.begin().unwrap();
 
@@ -160,6 +129,8 @@ async fn route_impl(state: AppState, query: String) -> Result<Response, UserFaci
 }
 
 async fn streaming_route_impl(state: AppState, query: String) -> Result<Response, UserFacingError> {
+    tracing::debug!("evaluating query={query:.80}");
+
     let (tx, mut rx) = mpsc::unbounded_channel();
 
     rayon::spawn(move || {
@@ -179,13 +150,11 @@ async fn streaming_route_impl(state: AppState, query: String) -> Result<Response
         };
 
         {
-            let mut writer = unsafe {
-                SparqlJsonSaxResultsWriter::new(
-                    Vec::with_capacity(chunk_sz),
-                    CompactFormatter,
-                    gen.projected_variables(),
-                )
-            };
+            let mut writer = SparqlJsonSaxResultsWriter::new(
+                Vec::with_capacity(chunk_sz),
+                CompactFormatter,
+                gen.projected_variables(),
+            );
 
             writer.begin().unwrap();
 
@@ -227,6 +196,25 @@ async fn streaming_route_impl(state: AppState, query: String) -> Result<Response
         },
         Some(Err(e)) => Err(UserFacingError::EvalError(e)),
         None => Err(UserFacingError::Internal(io::Error::new(
+            io::ErrorKind::Other,
+            "unknown internal server error",
+        ))),
+    }
+}
+
+async fn update_route_impl(state: AppState, query: String) -> Result<(), UserFacingError> {
+    tracing::debug!("evaluating update={query:.80}");
+
+    let (tx, rx) = oneshot::channel();
+
+    rayon::spawn(move || {
+        let _ = tx.send(state.triplestore.eval_sparql_update(&query, state.request_timeout));
+    });
+
+    match rx.await {
+        Ok(Ok(())) => Ok(()),
+        Ok(Err(e)) => Err(UserFacingError::EvalError(e)),
+        Err(_) => Err(UserFacingError::Internal(io::Error::new(
             io::ErrorKind::Other,
             "unknown internal server error",
         ))),

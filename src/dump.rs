@@ -2,9 +2,7 @@ use anyhow::Context;
 use std::path::Path;
 use tentris::{metall::MetallManager, triplestore::TripleStore};
 use tokio::{io::AsyncWriteExt, signal::unix::SignalKind};
-use tracing::instrument;
 
-#[instrument(err)]
 pub fn dump(datastore_path: &Path) -> anyhow::Result<()> {
     let runtime = tokio::runtime::Builder::new_current_thread()
         .enable_io()

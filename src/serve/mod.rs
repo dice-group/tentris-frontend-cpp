@@ -1,28 +1,27 @@
+mod auth;
 mod routes;
 
-use crate::ServeOpts;
+use crate::{serve::auth::SetupAuth, ServeOpts};
 use anyhow::Context;
-use axum::{error_handling::HandleErrorLayer, http::StatusCode, response::IntoResponse, routing::get, BoxError};
-use std::{path::Path, sync::Arc, time::Duration};
+use axum::{
+    error_handling::HandleErrorLayer,
+    http::StatusCode,
+    response::IntoResponse,
+    routing::{get, post},
+    BoxError,
+};
+use std::{fs::File, path::Path, sync::Arc, time::Duration};
 use tentris::{metall::MetallManager, triplestore::TripleStore};
 use tokio::signal::unix::SignalKind;
-use tracing::instrument;
-
-#[derive(Clone)]
-pub struct User {
-    name: String,
-    password: String,
-}
+use tower_http::trace::TraceLayer;
 
 #[derive(Clone)]
 pub struct AppState {
     pub triplestore: Arc<TripleStore>,
     pub request_timeout: Option<Duration>,
     pub serialization_mem: usize,
-    pub users: Vec<User>,
 }
 
-#[instrument(err)]
 pub fn serve(
     datastore_path: &Path,
     ServeOpts {
@@ -30,9 +29,18 @@ pub fn serve(
         query_eval_threads,
         query_eval_serialization_mem,
         io_threads,
+        credentials,
         request_timeout_ms,
     }: ServeOpts,
 ) -> anyhow::Result<()> {
+    let credentials: Option<auth::Credentials> = match credentials {
+        Some(credentials) => {
+            let f = File::open(credentials).context("Failed to open credentials file")?;
+            Some(serde_json::from_reader(f).context("Failed to parse credentials")?)
+        },
+        None => None,
+    };
+
     let runtime = tokio::runtime::Builder::new_multi_thread()
         .enable_io()
         .worker_threads(io_threads)
@@ -59,20 +67,28 @@ pub fn serve(
         triplestore,
         request_timeout: request_timeout_ms.map(Duration::from_millis),
         serialization_mem: query_eval_serialization_mem,
-        users: vec![
-            User { name: "read-only".to_owned(), password: "password".to_owned() },
-            User { name: "read-write".to_owned(), password: "password".to_owned() },
-        ],
     };
 
     runtime.block_on(async move {
         let app = axum::Router::new()
             .route(
                 "/stream",
-                get(routes::sparql_streaming_route_get).post(routes::sparql_streaming_route_post),
+                get(routes::sparql_streaming_route_get)
+                    .post(routes::sparql_streaming_route_post)
+                    .setup_read_only_auth(credentials.as_ref()),
             )
-            .route("/sparql", get(routes::sparql_route_get).post(routes::sparql_route_post))
+            .route(
+                "/sparql",
+                get(routes::sparql_route_get)
+                    .post(routes::sparql_route_post)
+                    .setup_read_only_auth(credentials.as_ref()),
+            )
+            .route(
+                "/update",
+                post(routes::sparql_update_route).setup_read_write_auth(credentials.as_ref()),
+            )
             .with_state(state.clone())
+            .layer(TraceLayer::new_for_http())
             .layer(
                 tower::ServiceBuilder::new()
                     .layer(HandleErrorLayer::new(handle_load_shed_error))
@@ -80,7 +96,7 @@ pub fn serve(
                     .concurrency_limit(query_eval_threads),
             );
 
-        tracing::info!("Starting to listen on {0}/sparql and {0}/stream", bind_address);
+        tracing::info!("Starting to listen on {bind_address}/{{sparql,stream,update}}");
 
         let server = axum::Server::bind(&bind_address).serve(app.into_make_service());
 

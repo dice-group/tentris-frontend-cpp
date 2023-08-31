@@ -10,7 +10,7 @@ use std::{
     net::{IpAddr, SocketAddr},
     path::PathBuf,
 };
-use tracing_subscriber::EnvFilter;
+use tracing_subscriber::{filter::LevelFilter, EnvFilter};
 
 #[derive(Parser)]
 #[command(version, about)]
@@ -56,9 +56,15 @@ pub struct ServeOpts {
     #[clap(short = 'i', long, default_value_t = num_cpus::get())]
     io_threads: usize,
 
-    /// Timeout in milliseconds for answering requests [default: no timeout]
+    /// Timeout in milliseconds for answering requests
+    ///
+    /// [default: no timeout]
     #[clap(long)]
     request_timeout_ms: Option<u64>,
+
+    /// Credentials for the endpoint
+    #[clap(long)]
+    credentials: Option<PathBuf>,
 
     /// The address the server should bind to.
     /// Will listen on <BIND_ADDRESS>/stream and <BIND_ADDRESS>/sparql for a SPARQL query that is sent
@@ -70,19 +76,23 @@ pub struct ServeOpts {
 
 pub const TRIPLESTORE_NAME: &str = "tentris-triplestore";
 
-fn main() {
+fn main() -> anyhow::Result<()> {
     let opts: Commandline = Commandline::parse();
 
     tracing_subscriber::fmt()
-        .with_env_filter(EnvFilter::from_default_env())
+        .with_env_filter(
+            EnvFilter::builder()
+                .with_default_directive(LevelFilter::INFO.into())
+                .from_env()?,
+        )
         .with_writer(std::io::stderr)
         .init();
 
     match opts.sub {
-        SubCommand::Load => load::load(&opts.datastore_path).unwrap(),
-        SubCommand::Serve(serve_opts) => serve::serve(&opts.datastore_path, serve_opts).unwrap(),
-        SubCommand::Dump => dump::dump(&opts.datastore_path).unwrap(),
-        SubCommand::Backup => backup::backup(&opts.datastore_path).unwrap(),
-        SubCommand::Restore => restore::restore(&opts.datastore_path).unwrap(),
+        SubCommand::Load => load::load(&opts.datastore_path),
+        SubCommand::Serve(serve_opts) => serve::serve(&opts.datastore_path, serve_opts),
+        SubCommand::Dump => dump::dump(&opts.datastore_path),
+        SubCommand::Backup => backup::backup(&opts.datastore_path),
+        SubCommand::Restore => restore::restore(&opts.datastore_path),
     }
 }

@@ -36,7 +36,7 @@ fn string_field<W: Write, F: Formatter>(
 }
 
 impl<W: Write, F: Formatter> SparqlJsonSaxResultsWriter<W, F> {
-    pub unsafe fn new(writer: W, fmt: F, proj_vars: &[Variable]) -> Self {
+    pub fn new(writer: W, fmt: F, proj_vars: &[Variable]) -> Self {
         Self {
             proj_vars: proj_vars.iter().map(|&var| (*var.name()).to_owned()).collect(),
             writer,
@@ -125,7 +125,13 @@ impl<W: Write, F: Formatter> SparqlJsonSaxResultsWriter<W, F> {
                     if !lang_tag.is_empty() {
                         string_field(&mut self.fmt, &mut self.writer, "xml:lang", lang_tag, false)?;
                     } else {
-                        string_field(&mut self.fmt, &mut self.writer, "datatype", literal.datatype(), false)?;
+                        string_field(
+                            &mut self.fmt,
+                            &mut self.writer,
+                            "datatype",
+                            literal.datatype().identifier(),
+                            false,
+                        )?;
                     }
                 } else {
                     unreachable!();

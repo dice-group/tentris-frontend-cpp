@@ -5,9 +5,7 @@ use std::{
     path::Path,
 };
 use tentris::metall::MetallManager;
-use tracing::instrument;
 
-#[instrument(err)]
 pub fn backup(datastore_path: &Path) -> anyhow::Result<()> {
     tracing::info!("Backing up");
 
