@@ -1,5 +1,8 @@
 use anyhow::Context;
-use std::{io::IsTerminal, path::Path};
+use std::{
+    io::{BufWriter, IsTerminal},
+    path::Path,
+};
 use tentris::metall::MetallManager;
 
 pub fn backup(datastore_path: &Path) -> anyhow::Result<()> {
@@ -48,7 +51,7 @@ pub fn backup(datastore_path: &Path) -> anyhow::Result<()> {
         });
 
         let compress = s.spawn(move || {
-            let output = std::io::stdout().lock();
+            let output = BufWriter::new(std::io::stdout().lock());
             zstd::stream::copy_encode(rx, output, 3).context("Unable to write to output file")?;
             Ok(())
         });

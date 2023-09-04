@@ -1,5 +1,8 @@
 use anyhow::Context;
-use std::{io::IsTerminal, path::Path};
+use std::{
+    io::{BufReader, IsTerminal},
+    path::Path,
+};
 
 pub fn restore(datastore_path: &Path) -> anyhow::Result<()> {
     if std::io::stdin().is_terminal() {
@@ -19,7 +22,7 @@ pub fn restore(datastore_path: &Path) -> anyhow::Result<()> {
         let (rx, tx) = pipe::pipe_buffered();
 
         let uncompress = s.spawn(move || {
-            let input = std::io::stdin().lock();
+            let input = BufReader::new(std::io::stdin().lock());
             zstd::stream::copy_decode(input, tx)?;
             Ok(())
         });
