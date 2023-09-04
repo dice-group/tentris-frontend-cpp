@@ -22,7 +22,7 @@ pub fn dump(datastore_path: &Path) -> anyhow::Result<()> {
         let mut output = tokio::io::BufWriter::new(tokio::io::stdout());
 
         let mut iter = ts.iter();
-        while let Some([s, p, o]) = iter.next() {
+        while let Some([s, p, o]) = iter.next_triple() {
             let buf = format!("{s} {p} {o} .\n");
             output
                 .write_all(buf.as_bytes())

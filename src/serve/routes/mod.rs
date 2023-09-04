@@ -66,7 +66,18 @@ pub async fn sparql_update_route(
     body: String,
 ) -> Result<(), UserFacingError> {
     let query = extract_update(content_type, body)?;
-    update_route_impl(state, query).await
+    update_route_impl(state, query, false).await
+}
+
+
+/// POST /insert_delete_data
+pub async fn sparql_update_data_route(
+    TypedHeader(content_type): TypedHeader<ContentType>,
+    State(state): State<AppState>,
+    body: String
+) -> Result<(), UserFacingError> {
+    let query = extract_update(content_type, body)?;
+    update_route_impl(state, query, true).await
 }
 
 async fn route_impl(state: AppState, query: String) -> Result<Response, UserFacingError> {
@@ -205,13 +216,19 @@ async fn streaming_route_impl(state: AppState, query: String) -> Result<Response
     }
 }
 
-async fn update_route_impl(state: AppState, query: String) -> Result<(), UserFacingError> {
+async fn update_route_impl(state: AppState, query: String, streaming_data_parser: bool) -> Result<(), UserFacingError> {
     tracing::debug!("evaluating update={query:.80}");
 
     let (tx, rx) = oneshot::channel();
 
     rayon::spawn(move || {
-        let _ = tx.send(state.triplestore.eval_sparql_update(&query, state.request_timeout));
+        let res = if streaming_data_parser {
+            state.triplestore.eval_sparql_insert_or_delete_data(&query, state.request_timeout)
+        } else {
+            state.triplestore.eval_sparql_update(&query, state.request_timeout)
+        };
+
+        let _ = tx.send(res);
     });
 
     match rx.await {

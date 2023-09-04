@@ -88,6 +88,10 @@ pub fn serve(
                 "/update",
                 post(routes::sparql_update_route).setup_read_write_auth(credentials.as_ref()),
             )
+            .route(
+                "/update_data",
+                post(routes::sparql_update_data_route).setup_read_write_auth(credentials.as_ref()),
+            )
             .with_state(state.clone())
             .layer(TraceLayer::new_for_http())
             .layer(
@@ -97,7 +101,7 @@ pub fn serve(
                     .concurrency_limit(query_eval_threads),
             );
 
-        tracing::info!("Starting to listen on {bind_address}/{{sparql,stream,update}}");
+        tracing::info!("Starting to listen on {bind_address}/{{sparql,stream,update,update_data}}");
 
         let server = axum::Server::bind(&bind_address).serve(app.into_make_service());
 
