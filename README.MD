@@ -1,4 +1,4 @@
-# Tᴇɴᴛʀɪs fontend
+# Tᴇɴᴛʀɪs Frontend
 
 This provides an HTTP frontend for the [Tᴇɴᴛʀɪs](https://github.com/dice-group/tentris-lib) library.
 
@@ -37,7 +37,8 @@ Steps:
 
 1. Make sure to provide credentials for https://conan.dice-research.org/artifactory/api/conan/tentris-private
     via the `CONAN_USER` and `CONAN_USER` build arguments.
-2. Have an `ssh-agent` instance with your github ssh private key running. If it isn't already running, run:
+2. Have an `ssh-agent` instance with your github ssh private key running. 
+The private key must grant access to [tentris-lib-rs](https://github.com/dice-group/tentris-lib-rs). If `ssh-agent` isn't already running, run:
     ```bash
     eval $(ssh-agent)
     ssh-add

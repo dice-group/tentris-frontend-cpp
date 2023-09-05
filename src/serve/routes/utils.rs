@@ -19,6 +19,11 @@ struct UpdateParams {
     update: String,
 }
 
+/// Extracts the update query from the request body
+///
+/// If content_type == application/sparql-update the query is found unencoded in the body
+/// If content_type == application/www-form-url-encoded the query is found url-encoded in the body
+/// otherwise an error is returned
 pub fn extract_update(content_type: ContentType, body: String) -> Result<String, UserFacingError> {
     let url_encoded_content_type = ContentType::form_url_encoded();
     let body_content_type = ContentType::from("application/sparql-update".parse::<Mime>().unwrap());
@@ -49,6 +54,11 @@ pub fn extract_update(content_type: ContentType, body: String) -> Result<String,
     }
 }
 
+/// Extracts the query from the request
+///
+/// If content_type == application/sparql-query the query is found unencoded in the body
+/// If content_type == application/www-form-url-encoded the query is found url-encoded in the "query" parameter of the query part of the url
+/// otherwise an error is returned
 pub fn extract_query(content_type: ContentType, raw_query: RawQuery, body: String) -> Result<String, UserFacingError> {
     let query_param_content_type = ContentType::form_url_encoded();
     let body_content_type = ContentType::from("application/sparql-query".parse::<Mime>().unwrap());

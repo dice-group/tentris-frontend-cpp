@@ -13,8 +13,8 @@ RUN apk update && \
     apk add mold --repository=https://mirrors.edge.kernel.org/alpine/edge/testing
 
 # Copy over required compiler wrappers for alpine
-COPY --chmod=755 clangxx.wrap /usr/local/bin
-COPY --chmod=755 rustc.wrap /usr/local/bin
+COPY --chmod=755 docker/clangxx.wrap /usr/local/bin
+COPY --chmod=755 docker/rustc.wrap /usr/local/bin
 
 # Ensure only mold is used to link
 # And ensure linker finds static C runtime
@@ -81,6 +81,7 @@ COPY src src
 # Unfortunately conan can't really do that.
 RUN sed -i 's|https://github.com/|ssh://git@github.com/|g' Cargo.toml
 
+# SSH key needs to be able to access to https://github.com/dice-group/tentris-lib-rs
 RUN --mount=type=ssh cargo build -vv --release --features static-build
 RUN ldd target/release/tentris-server-rs
 
