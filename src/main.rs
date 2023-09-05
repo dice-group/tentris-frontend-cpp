@@ -6,11 +6,15 @@ mod restore;
 mod serve;
 
 use clap::Parser;
+use jemallocator::Jemalloc;
 use std::{
     net::{IpAddr, SocketAddr},
     path::PathBuf,
 };
 use tracing_subscriber::{filter::LevelFilter, EnvFilter};
+
+#[global_allocator]
+static GLOBAL: Jemalloc = Jemalloc;
 
 #[derive(Parser)]
 #[command(version, about)]

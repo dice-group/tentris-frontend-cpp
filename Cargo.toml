@@ -18,6 +18,9 @@ static-build = ["tentris/static-build"]
 [dependencies]
 tentris = { git = "https://github.com/dice-group/tentris-lib-rs", branch = "init" }
 
+# Allocator
+jemallocator = { version = "0.5.4", features = ["unprefixed_malloc_on_supported_platforms"] }
+
 # Error handling
 anyhow = "1.0.71"
 thiserror = "1.0.40"

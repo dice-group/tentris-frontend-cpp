@@ -69,12 +69,11 @@ pub async fn sparql_update_route(
     update_route_impl(state, query, false).await
 }
 
-
 /// POST /insert_delete_data
 pub async fn sparql_update_data_route(
     TypedHeader(content_type): TypedHeader<ContentType>,
     State(state): State<AppState>,
-    body: String
+    body: String,
 ) -> Result<(), UserFacingError> {
     let query = extract_update(content_type, body)?;
     update_route_impl(state, query, true).await
@@ -223,7 +222,9 @@ async fn update_route_impl(state: AppState, query: String, streaming_data_parser
 
     rayon::spawn(move || {
         let res = if streaming_data_parser {
-            state.triplestore.eval_sparql_insert_or_delete_data(&query, state.request_timeout)
+            state
+                .triplestore
+                .eval_sparql_insert_or_delete_data(&query, state.request_timeout)
         } else {
             state.triplestore.eval_sparql_update(&query, state.request_timeout)
         };
