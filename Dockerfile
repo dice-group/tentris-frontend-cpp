@@ -31,20 +31,6 @@ ENV CXXFLAGS="${CXXFLAGS} -march=${MARCH} -mtune=${MTUNE}"
 ENV RUSTC="/usr/local/bin/rustc.wrap"
 ENV RUSTFLAGS="${RUSTFLAGS} -C target-cpu=${MARCH} -Z tune-cpu=${MTUNE}"
 
-# TODO performance wise this may or may not matter; if it does: copy some stuff over from old tentris-frontend to make use of this
-# Compile more recent tcmalloc-minimal with clang-15 + -march
-#RUN git clone --quiet --branch gperftools-2.9.1 --depth 1 https://github.com/gperftools/gperftools
-#WORKDIR /gperftools
-#RUN ./autogen.sh
-#RUN ./configure \
-#    --enable-minimal \
-#    --disable-debugalloc \
-#    --enable-sized-delete \
-#    --enable-dynamic-sized-delete-support && \
-#    make -j$(nproc) && \
-#    make install
-#WORKDIR /
-
 ARG CONAN_USER="none"
 ARG CONAN_PW="none"
 
