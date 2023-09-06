@@ -1,7 +1,7 @@
 [package]
 name = "tentris-frontend"
 description = "The tentris server implementation"
-version = "0.1.0+tentris-lib.2.1.2"
+version = "0.1.0+tentris.v2.1.2"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -16,7 +16,7 @@ static-build = ["tentris/static-build"]
 
 
 [dependencies]
-tentris = { git = "https://github.com/dice-group/tentris-lib-rs", branch = "init" }
+tentris = { git = "https://github.com/dice-group/tentris-lib-rs", rev = "1127a7d" }
 
 # Allocator
 jemallocator = { version = "0.5.4", features = ["unprefixed_malloc_on_supported_platforms"] }

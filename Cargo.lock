@@ -1387,8 +1387,8 @@ dependencies = [
 
 [[package]]
 name = "tentris"
-version = "2.1.1+feature-ffi"
-source = "git+https://github.com/dice-group/tentris-lib-rs?branch=init#6c76e821f401dd8ae7ba6abeb36183a78b07a64b"
+version = "2.1.2"
+source = "git+https://github.com/dice-group/tentris-lib-rs?rev=1127a7d#1127a7d4bffcf47cb3c593bd0de4bb4013b5bb84"
 dependencies = [
  "serde",
  "tentris-sys",
@@ -1397,7 +1397,7 @@ dependencies = [
 
 [[package]]
 name = "tentris-frontend"
-version = "0.1.0+tentris-lib.2.1.2"
+version = "0.1.0+tentris.v2.1.2"
 dependencies = [
  "anyhow",
  "axum",
@@ -1426,8 +1426,8 @@ dependencies = [
 
 [[package]]
 name = "tentris-sys"
-version = "2.1.1+feature-ffi"
-source = "git+https://github.com/dice-group/tentris-lib-rs?branch=init#6c76e821f401dd8ae7ba6abeb36183a78b07a64b"
+version = "2.1.2"
+source = "git+https://github.com/dice-group/tentris-lib-rs?rev=1127a7d#1127a7d4bffcf47cb3c593bd0de4bb4013b5bb84"
 dependencies = [
  "bindgen",
  "cc",
