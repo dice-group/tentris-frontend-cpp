@@ -1,4 +1,4 @@
-FROM rustlang/rust:nightly-alpine3.17 AS builder
+FROM rust:1.72.0-alpine3.17 AS builder
 
 RUN apk update && \
     apk add \
@@ -12,9 +12,16 @@ RUN apk update && \
     && \
     apk add mold --repository=https://mirrors.edge.kernel.org/alpine/edge/testing
 
+# Install nightly
+RUN rustup toolchain install nightly-x86_64-unknown-linux-musl
+
 # Copy over required compiler wrappers for alpine
 COPY --chmod=755 docker/clangxx.wrap /usr/local/bin
 COPY --chmod=755 docker/rustc.wrap /usr/local/bin
+
+# Copy over cargo config
+RUN mkdir -p ~/.cargo
+COPY docker/config.toml ~/.cargo/config.toml
 
 # Ensure only mold is used to link
 # And ensure linker finds static C runtime
@@ -45,12 +52,7 @@ RUN pip3 install PyYAML==5.3 conan==1.60.1 && \
     conan profile update settings.compiler.cppstd=20 default && \
     conan profile update env.CXXFLAGS="${CXXFLAGS}" default && \
     conan profile update env.CXX="${CXX}" default && \
-    conan profile update env.CC="${CC}" default && \
-    conan profile update options.boost:extra_b2_flags="cxxflags=\\\"${CXXFLAGS}\\\"" default && \
-    conan profile update options.boost:header_only=True default && \
-    conan profile update options.restinio:asio=boost default
-# Note: the conan package for boost (as of 1.79.x/1.80.0) does not build properly on alpine. Therefore, we use only the header_only parts
-# TODO: remove header_only as soon as build works on alpine
+    conan profile update env.CC="${CC}" default
 
 # Add conan repositories
 RUN conan remote add dice-group https://conan.dice-research.org/artifactory/api/conan/tentris && \
@@ -58,7 +60,7 @@ RUN conan remote add dice-group https://conan.dice-research.org/artifactory/api/
     conan user ${CONAN_USER} -p ${CONAN_PW} -r tentris-private
 
 # Import project files
-WORKDIR /usr/local/src/tentris-server
+WORKDIR /usr/local/src/tentris-frontend
 COPY Cargo.toml Cargo.toml
 COPY Cargo.lock Cargo.lock
 COPY src src
@@ -68,9 +70,9 @@ COPY src src
 RUN sed -i 's|https://github.com/|ssh://git@github.com/|g' Cargo.toml
 
 # SSH key needs to be able to access to https://github.com/dice-group/tentris-lib-rs
-RUN --mount=type=ssh cargo build -vv --release --features static-build
-RUN ldd target/release/tentris-server-rs
+RUN --mount=type=ssh cargo +nightly build -vv --release --features static-build
+RUN ldd target/release/tentris
 
 FROM scratch
-COPY --from=builder /usr/local/src/tentris-server/target/release/tentris-server-rs /tentris-server-rs
-ENTRYPOINT ["/tentris-server-rs", "-s", "/data", "serve"]
+COPY --from=builder /usr/local/src/tentris-frontend/target/release/tentris /tentris
+ENTRYPOINT ["/tentris", "-s", "/data", "serve"]

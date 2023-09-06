@@ -21,5 +21,5 @@ fi
 
 ${BUILDER} build . --tag "${IMAGE_NAME}" --build-arg CONAN_USER=${CONAN_USER} --build-arg CONAN_PW=${CONAN_PW} --ssh=default "$@"
 CONTAINER_ID=$(${BUILDER} container create "${IMAGE_NAME}")
-${BUILDER} cp "${CONTAINER_ID}:/tentris-server-rs" .
+${BUILDER} cp "${CONTAINER_ID}:/tentris" .
 ${BUILDER} container rm "${CONTAINER_ID}"
