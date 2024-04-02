@@ -1,4 +1,4 @@
-FROM alpine:edge AS builder
+FROM alpine:3.17 AS builder
 # todo: fix version as soon as clang15 is available outside of edge
 ARG MARCH="x86-64-v3"
 ARG CONAN_USER="none"
@@ -9,17 +9,15 @@ RUN apk update && \
     apk add \
     make cmake autoconf automake pkgconfig \
     gcc g++ gdb \
-    clang15 clang15-dev clang15-libs clang15-extra-tools clang15-static lldb llvm15 llvm15-dev\
+    clang15 clang15-dev clang15-libs clang15-extra-tools clang15-static lldb llvm15 llvm15-dev lld \
     openjdk11-jdk \
     pythonispython3 py3-pip \
-    bash git libtool util-linux-dev linux-headers \
-    && \
-    apk add mold --repository=https://mirrors.edge.kernel.org/alpine/edge/testing
+    bash git libtool util-linux-dev linux-headers
 
 ARG CC="clang"
 ARG CXX="clang++"
 ENV CXXFLAGS="${CXXFLAGS} -march=${MARCH}"
-RUN rm /usr/bin/ld && ln -s /usr/bin/mold /usr/bin/ld # use mold as default linker
+RUN rm /usr/bin/ld && ln -s /usr/bin/lld /usr/bin/ld # use lld as default linker
 
 
 # Compile more recent tcmalloc-minimal with clang-14 + -march
@@ -35,8 +33,10 @@ RUN ./configure \
     make install
 WORKDIR /
 
+ENV CONAN_DISABLE_STRICT_MODE=1
+
 # install and configure conan
-RUN pip3 install conan && \
+RUN pip3 install conan==1.62.0 && \
     conan user && \
     conan profile new --detect default && \
     conan profile update settings.compiler=clang default && \

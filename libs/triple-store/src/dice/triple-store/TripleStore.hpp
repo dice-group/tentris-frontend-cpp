@@ -118,8 +118,6 @@ namespace dice::triple_store {
 
 		bool contains(const rdf4cpp::rdf::Statement &statement) const;
 
-		// todo: add match
-
 		[[nodiscard]] size_t size() const;
 
 		void flush() const;

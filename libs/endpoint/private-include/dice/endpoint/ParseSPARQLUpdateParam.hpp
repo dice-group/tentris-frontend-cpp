@@ -12,7 +12,7 @@
 
 namespace dice::endpoint {
 
-	inline sparql2tensor::UPDATEQuery parse_sparql_update_param(restinio::request_handle_t &req) {
+	inline sparql2tensor::UPDATEDATAQueryData parse_sparql_update_param(restinio::request_handle_t &req) {
 		using namespace dice::sparql2tensor;
 		using namespace restinio;
 		auto content_type = req->header().opt_value_of(http_field::content_type);
@@ -24,7 +24,7 @@ namespace dice::endpoint {
 		}
 		std::string sparql_update_str{req->body()};
 		try {
-			auto update_query = UPDATEQuery::parse(sparql_update_str);
+			auto update_query = UPDATEDATAQueryData::parse(sparql_update_str);
 			return update_query;
 		} catch (std::exception &ex) {
 			static constexpr auto message = "Value of parameter 'update' is not parsable: ";

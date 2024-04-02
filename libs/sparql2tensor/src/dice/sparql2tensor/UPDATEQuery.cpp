@@ -7,7 +7,6 @@
 #include <SparqlParser/SparqlParser.h>
 
 #include "dice/sparql2tensor/parser/visitors/PrologueVisitor.hpp"
-#include "dice/sparql2tensor/parser/visitors/UpdateQueryVisitor.hpp"
 #include "dice/sparql2tensor/parser/exception/SPARQLErrorListener.hpp"
 
 namespace dice::sparql2tensor {
@@ -25,7 +24,6 @@ namespace dice::sparql2tensor {
 	 * @param s input string; will be modified to not include the word after extraction
 	 * @param matcher determines the charset the word is made of
 	 * @return the extracted word
-	 * @todo when clang supports ranges properly: merge read_word and read_word_rev
 	 */
 	template<typename CharMatcher> requires std::is_nothrow_invocable_r_v<bool, CharMatcher, char>
 	static std::string_view read_word(std::string_view &s, CharMatcher &&matcher) noexcept {
@@ -116,11 +114,11 @@ namespace dice::sparql2tensor {
 		return QueryType::UNKNOWN;
 	}
 
-	UPDATEQuery UPDATEQuery::parse(std::string_view const sparql_update_str) {
+	UPDATEDATAQueryData UPDATEDATAQueryData::parse(std::string_view const sparql_update_str) {
 		std::string_view rest_mut = sparql_update_str;
 		auto const prologue = read_prologue(rest_mut);
 
-		UPDATEQuery update_query;
+		UPDATEDATAQueryData update_query;
 
 		// expected structure for fast path: 'prologue... (DELETE|INSERT) DATA { triples... }'
 		auto const query_type = read_query_type(rest_mut);
@@ -181,36 +179,10 @@ namespace dice::sparql2tensor {
 				}
 			}
 
-			update_query.query_data = UPDATEDATAQueryData{
-					.is_delete = query_type == QueryType::DELETE_DATA,
-					.entries = std::move(entries)};
+			update_query.is_delete = query_type == QueryType::DELETE_DATA;
+			update_query.entries = std::move(entries);
 		} else {
 			throw std::runtime_error{"Currently only DELETE DATA and INSERT DATA updates are supported"};
-
-			// TODO: use when other query types implemented
-			// slow path for general queries
-			// parse whole input with antlr
-			/*parser::exception::SPARQLErrorListener error_listener{};
-			antlr4::ANTLRInputStream input{sparql_update_str};
-			dice::sparql_parser::base::SparqlLexer lexer{&input};
-			antlr4::CommonTokenStream tokens{&lexer};
-			dice::sparql_parser::base::SparqlParser parser{&tokens};
-			parser.removeErrorListeners();
-			parser.addErrorListener(&error_listener);
-
-			auto update_ctx = parser.updateCommand();
-
-			{ // visit prologue and store prefixes
-				parser::visitors::PrologueVisitor p_visitor{};
-				for (auto prefix_ctx : update_ctx->prologue()) {
-					auto cur_prefixes = std::any_cast<rdf_tensor::parser::IStreamQuadIterator::prefix_storage_type>(p_visitor.visitPrologue(prefix_ctx));
-					update_query.prefixes.insert(cur_prefixes.begin(), cur_prefixes.end());
-				}
-			}
-
-			// visit body of query
-			parser::visitors::UpdateQueryVisitor update_query_visitor{update_query};
-			update_query_visitor.visitUpdateCommand(update_ctx);*/
 		}
 
 		return update_query;

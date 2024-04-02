@@ -24,9 +24,9 @@ class Recipe(ConanFile):
 
     def requirements(self):
         public_reqs = [
-            "boost/1.80.0",
+            "boost/1.83.0",
             "fmt/8.1.1",
-            "restinio/0.6.17",
+            "restinio/0.7.2",
             "expected-lite/0.6.2",  # overrides restinio dependency
             "hypertrie/0.9.3@dice-group/entry-removal",
             "metall/0.21",
@@ -37,7 +37,7 @@ class Recipe(ConanFile):
             "sparql-parser-base/0.3.0",
             "taskflow/3.4.0",
             "cppitertools/2.1",
-            "spdlog/1.10.0",
+            "spdlog/1.13.0",
             "rapidjson/cci.20220822",
         ]
 

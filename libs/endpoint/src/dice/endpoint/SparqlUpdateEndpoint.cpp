@@ -34,50 +34,39 @@ namespace dice::endpoint {
 
 				try {
 					auto update_query = parse_sparql_update_param(req);
+					spdlog::debug("Incoming {} DATA", update_query.is_delete ? "DELETE" : "INSERT");
+					spdlog::debug("Number of triples: {}", update_query.entries.size());
+					spdlog::debug("hypertrie size: {}", triplestore_.size());
 
-					std::visit(Overloaded{
-								  [&](UPDATEDATAQueryData &&update_data) noexcept {
-									  spdlog::debug("Incoming {} DATA", update_data.is_delete ? "DELETE" : "INSERT");
-									  spdlog::debug("Number of triples: {}", update_data.entries.size());
-									  spdlog::debug("hypertrie size: {}", triplestore_.size());
+					size_t const size_before = triplestore_.size();
 
-									  size_t const size_before = triplestore_.size();
+					if (update_query.is_delete) {
+						triplestore_.remove(update_query.entries);
+					} else {
+						triplestore_.insert(update_query.entries);
+					}
 
-									  if (update_data.is_delete) {
-										  triplestore_.remove(update_data.entries);
-									  } else {
-										  triplestore_.insert(update_data.entries);
-									  }
+					spdlog::debug("hypertrie size after: {}", triplestore_.size());
+					size_t const mutation_count = update_query.is_delete
+														? size_before - triplestore_.size()
+														: triplestore_.size() - size_before;
 
-									  spdlog::debug("hypertrie size after: {}", triplestore_.size());
-									  size_t const mutation_count = update_data.is_delete
-																			? size_before - triplestore_.size()
-																			: triplestore_.size() - size_before;
+					rapidjson::StringBuffer buf;
+					{
+						rapidjson::Writer<rapidjson::StringBuffer> jw{buf};
 
-									  rapidjson::StringBuffer buf;
-									  {
-										  rapidjson::Writer<rapidjson::StringBuffer> jw{buf};
+						jw.StartObject();
+						jw.Key("mutation_count");
+						jw.Uint64(mutation_count);
+						jw.EndObject();
+					}
 
-										  jw.StartObject();
-										  jw.Key("mutation_count");
-										  jw.Uint64(mutation_count);
-										  jw.EndObject();
-									  }
+					req->create_response(status_ok())
+						.append_header(http_field::content_type, "application/json")
+						.set_body(std::string{buf.GetString(), buf.GetSize()})
+						.done();
 
-									  req->create_response(status_ok())
-											  .append_header(http_field::content_type, "application/json")
-											  .set_body(std::string{buf.GetString(), buf.GetSize()})
-											  .done();
-
-									  spdlog::info("HTTP response {}, mutation_count: {}", status_ok(), mutation_count);
-								  },
-								  [&](auto const &) noexcept {
-									  spdlog::warn("Received currently unsupported query type");
-									  req->create_response(status_bad_request())
-											  .set_body("Request error: received query type is currently unsupported")
-											  .done();
-								  }},
-							   std::move(update_query.query_data));
+					spdlog::info("HTTP response {}, mutation_count: {}", status_ok(), mutation_count);
 				} catch (std::runtime_error const &e) {
 					static constexpr auto message = "Request error";
 

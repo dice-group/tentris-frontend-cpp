@@ -13,7 +13,7 @@ target_link_libraries(rdf-tensor INTERFACE
         hypertrie::hypertrie
         Metall::Metall
         Boost::headers
-        dice-hash::dice-hash # todo: shouldn't this come with hypertrie?
+        dice-hash::dice-hash
         )
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/version.hpp.in ${CMAKE_CURRENT_SOURCE_DIR}/src/dice/tentris/tentris_version.hpp)
