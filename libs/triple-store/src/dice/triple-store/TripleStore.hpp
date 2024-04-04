@@ -30,8 +30,6 @@ namespace dice::triple_store {
 	public:
 		explicit TripleStore(BoolHypertrie &hypertrie);
 
-		~TripleStore();
-
 		[[nodiscard]] BoolHypertrie const &get_hypertrie() const {
 			return hypertrie_;
 		}
@@ -93,8 +91,6 @@ namespace dice::triple_store {
 		bool contains(const rdf4cpp::rdf::Statement &statement) const;
 
 		[[nodiscard]] size_t size() const;
-
-		void flush() const;
 	};
 };    // namespace dice::triple_store
 #endif//TENTRIS_STORE_TRIPLESTORE

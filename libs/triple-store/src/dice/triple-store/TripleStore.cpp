@@ -29,8 +29,6 @@ namespace dice::triple_store {
 	}
 
 	bool TripleStore::is_rdf_list(rdf4cpp::rdf::Node list) const noexcept {
-		flush();
-
 		using IRI = rdf4cpp::rdf::IRI;
 		IRI rdf_nil("http://www.w3.org/1999/02/22-rdf-syntax-ns#nil");
 
@@ -54,7 +52,6 @@ namespace dice::triple_store {
 		return true;
 	}
 	std::vector<rdf4cpp::rdf::Node> TripleStore::get_rdf_list(rdf4cpp::rdf::Node list) const {
-		flush();
 		using IRI = rdf4cpp::rdf::IRI;
 		using Node = rdf4cpp::rdf::Node;
 
