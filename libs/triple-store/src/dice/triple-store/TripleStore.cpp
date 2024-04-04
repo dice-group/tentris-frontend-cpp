@@ -5,15 +5,10 @@
 #include <fstream>
 
 namespace dice::triple_store {
-	TripleStore::TripleStore(TripleStore::BoolHypertrie &hypertrie) : hypertrie_(hypertrie), inserter_(hypertrie_) {}
-
-	TripleStore::~TripleStore() {
-		std::unique_lock<std::shared_mutex> writer_lock{mutex_};
-		inserter_.flush();
-	}
+	TripleStore::TripleStore(TripleStore::BoolHypertrie &hypertrie) : hypertrie_(hypertrie) {}
 
 	void TripleStore::load_ttl(std::string const &file_path, uint32_t bulk_size,
-							   rdf_tensor::HypertrieBulkInserter::BulkProcessed_callback const &call_back,
+							   rdf_tensor::HypertrieBulkInserter::BulkInserted_callback const &call_back,
 							   std::function<void(rdf_tensor::parser::ParsingError const &)> const &error_callback) {
 		std::ifstream ifs{file_path};
 
@@ -21,8 +16,6 @@ namespace dice::triple_store {
 			throw std::runtime_error{"unable to open provided file " + file_path};
 		}
 
-		flush();
-		std::unique_lock<std::shared_mutex> writer_lock{mutex_};
 		HypertrieBulkInserter bulk_inserter{hypertrie_, bulk_size, call_back};
 		for (rdf4cpp::rdf::parser::IStreamQuadIterator qit{ifs}; qit != rdf4cpp::rdf::parser::IStreamQuadIterator{}; ++qit) {
 			if (qit->has_value()) {
@@ -35,35 +28,8 @@ namespace dice::triple_store {
 		}
 	}
 
-	void TripleStore::remove(std::vector<rdf_tensor::NonZeroEntry> const &entries, uint32_t const bulk_size) {
-		flush();
-		std::unique_lock<std::shared_mutex> writer_lock{mutex_};
-		HypertrieBulkRemover bulk_remover{hypertrie_, bulk_size};
-
-		for (auto const &e : entries) {
-			bulk_remover.add(e);
-		}
-	}
-
-	void TripleStore::insert(std::vector<rdf_tensor::NonZeroEntry> const &entries, uint32_t const bulk_size) {
-		flush();
-		std::unique_lock<std::shared_mutex> writer_lock{mutex_};
-		HypertrieBulkInserter bulk_inserter{hypertrie_, bulk_size};
-
-		for (auto const &e : entries) {
-			bulk_inserter.add(e);
-		}
-	}
-
-	void TripleStore::add_statement(const rdf4cpp::rdf::Statement &statement) {
-		std::unique_lock<std::shared_mutex> writer_lock{mutex_};
-		hypertrie::internal::raw::SingleEntry<3, htt_t> entry{{statement.subject(), statement.predicate(), statement.object()}};
-		inserter_.add(entry);
-	}
-
 	bool TripleStore::is_rdf_list(rdf4cpp::rdf::Node list) const noexcept {
 		flush();
-		std::shared_lock<std::shared_mutex> reader_lock{mutex_};
 
 		using IRI = rdf4cpp::rdf::IRI;
 		IRI rdf_nil("http://www.w3.org/1999/02/22-rdf-syntax-ns#nil");
@@ -89,7 +55,6 @@ namespace dice::triple_store {
 	}
 	std::vector<rdf4cpp::rdf::Node> TripleStore::get_rdf_list(rdf4cpp::rdf::Node list) const {
 		flush();
-		std::shared_lock<std::shared_mutex> reader_lock{mutex_};
 		using IRI = rdf4cpp::rdf::IRI;
 		using Node = rdf4cpp::rdf::Node;
 
@@ -147,8 +112,6 @@ namespace dice::triple_store {
 	}
 
 	std::generator<rdf_tensor::Entry const &> TripleStore::eval_select(const sparql2tensor::SPARQLQuery &query, std::chrono::steady_clock::time_point endtime) const {
-		flush();
-		std::shared_lock<std::shared_mutex> reader_lock{mutex_};
 		auto operands = generate_operands(hypertrie_, query.get_slice_keys());
 		std::vector<char> proj_vars_id{};
 		for (auto const &proj_var : query.projected_variables_) {
@@ -169,15 +132,11 @@ namespace dice::triple_store {
 		}
 	}
 	bool TripleStore::eval_ask(const sparql2tensor::SPARQLQuery &query, std::chrono::steady_clock::time_point endtime) const {
-		flush();
-		std::shared_lock<std::shared_mutex> reader_lock{mutex_};
 		auto operands = generate_operands(hypertrie_, query.get_slice_keys());
 		rdf_tensor::Query q{query.odg_, operands, {}, endtime};
 		return dice::query::Evaluation::evaluate_ask<htt_t, allocator_type>(q);
 	}
 	size_t TripleStore::count(const sparql2tensor::SPARQLQuery &query, std::chrono::steady_clock::time_point endtime) const {
-		flush();
-		std::shared_lock<std::shared_mutex> reader_lock{mutex_};
 		using namespace sparql2tensor;
 		if (query.triple_patterns_.size() == 1) {// O(1)
 			auto slice_key = query.get_slice_keys()[0];
@@ -193,15 +152,9 @@ namespace dice::triple_store {
 		}
 	}
 	bool TripleStore::contains(const rdf4cpp::rdf::Statement &statement) const {
-		std::shared_lock<std::shared_mutex> reader_lock{mutex_};
 		return hypertrie_[Key{statement.subject(), statement.predicate(), statement.object()}];
 	}
 	size_t TripleStore::size() const {
-		flush();
 		return hypertrie_.size();
-	}
-	void TripleStore::flush() const {
-		std::unique_lock<std::shared_mutex> writer_lock{mutex_};
-		inserter_.flush();
 	}
 }// namespace dice::triple_store
