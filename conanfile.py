@@ -1,9 +1,9 @@
 import os
 import re
 
-from conans import ConanFile, CMake
-from conans.tools import load
-from conans.util.files import rmdir
+from conan import ConanFile
+from conan.tools.cmake import CMake
+from conan.tools.files import rmdir, load
 
 
 class Recipe(ConanFile):
@@ -19,26 +19,26 @@ class Recipe(ConanFile):
         "shared": False,
         "fPIC": True,
         "with_exec_deps": False,
-        "restinio:asio": "boost",
+        "restinio/*:asio": "boost",
     }
 
     def requirements(self):
         public_reqs = [
-            "boost/1.83.0",
-            "fmt/8.1.1",
-            "restinio/0.7.2",
-            "expected-lite/0.6.2",  # overrides restinio dependency
-            "hypertrie/0.9.3@dice-group/entry-removal",
-            "metall/0.21",
-            "rdf4cpp/0.0.8@dice-group/parser-set-prefixes",
-            "dice-hash/0.4.0",
-            "robin-hood-hashing/3.11.5",
-            "cxxopts/2.2.1",
-            "sparql-parser-base/0.3.0",
-            "taskflow/3.4.0",
-            "cppitertools/2.1",
-            "spdlog/1.13.0",
-            "rapidjson/cci.20220822",
+           "boost/1.84.0",
+           "fmt/8.1.1",
+           "restinio/0.6.17",
+           "expected-lite/0.6.3",  # overrides restinio dependency
+           "hypertrie/0.9.3@dice-group/insdel-paper-2024",
+           "metall/0.21",
+           "rdf4cpp/0.0.8@dice-group/parser-set-prefixes",
+           "dice-hash/0.4.0",
+           "robin-hood-hashing/3.11.5",
+           "cxxopts/2.2.1",
+           "sparql-parser-base/0.3.0",
+           "taskflow/3.4.0",
+           "cppitertools/2.1",
+           "spdlog/1.10.0",
+           "rapidjson/cci.20220822",
         ]
 
         private_reqs = [
@@ -68,15 +68,15 @@ class Recipe(ConanFile):
 
     def set_name(self):
         if not hasattr(self, 'name') or self.version is None:
-            cmake_file = load(os.path.join(self.recipe_folder, "CMakeLists.txt"))
+            cmake_file = load(self, os.path.join(self.recipe_folder, "CMakeLists.txt"))
             self.name = re.search(r"project\(\s*([a-z\-]+)\s+VERSION", cmake_file).group(1)
 
     def set_version(self):
         if not hasattr(self, 'version') or self.version is None:
-            cmake_file = load(os.path.join(self.recipe_folder, "CMakeLists.txt"))
+            cmake_file = load(self, os.path.join(self.recipe_folder, "CMakeLists.txt"))
             self.version = re.search(r"project\([^)]*VERSION\s+(\d+\.\d+.\d+)[^)]*\)", cmake_file).group(1)
         if not hasattr(self, 'description') or self.description is None:
-            cmake_file = load(os.path.join(self.recipe_folder, "CMakeLists.txt"))
+            cmake_file = load(self, os.path.join(self.recipe_folder, "CMakeLists.txt"))
             self.description = re.search(r"project\([^)]*DESCRIPTION\s+\"([^\"]+)\"[^)]*\)", cmake_file).group(1)
 
     _cmake = None
