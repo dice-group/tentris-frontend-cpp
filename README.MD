@@ -65,12 +65,11 @@ Available endpoints:
 
 <details><summary> </summary>
 
-Use the [Dockerfile](./Dockerfile) to build tentris. make sure to provide credentials
-for https://conan.dice-research.org/artifactory/api/conan/tentris-private via `CONAN_USER` and `CONAN_USER`:
+Use the [Dockerfile](./Dockerfile) to build tentris.
 
 * A docker image is available on [docker hub](https://hub.docker.com/r/dicegroup/tentris_server). Get it with
     ```shell script
-    docker build -f Dockerfile --build-arg CONAN_USER=xx --build-arg CONAN_PW=yyy .
+    docker build -f Dockerfile .
     docker pull dicegroup/tentris_server
     ```
 

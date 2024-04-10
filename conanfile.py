@@ -28,9 +28,9 @@ class Recipe(ConanFile):
            "fmt/8.1.1",
            "restinio/0.6.17",
            "expected-lite/0.6.3",  # overrides restinio dependency
-           "hypertrie/0.9.3@dice-group/insdel-paper-2024-baseline",
+           "hypertrie/0.9.4",
            "metall/0.21",
-           "rdf4cpp/0.0.8@dice-group/parser-set-prefixes",
+           "rdf4cpp/0.0.8.1",
            "dice-hash/0.4.0",
            "robin-hood-hashing/3.11.5",
            "cxxopts/2.2.1",

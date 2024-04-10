@@ -1,9 +1,5 @@
 FROM alpine:3.17 AS builder
-# todo: fix version as soon as clang15 is available outside of edge
 ARG MARCH="x86-64-v3"
-ARG CONAN_USER="none"
-ARG CONAN_PW="none"
-
 
 RUN apk update && \
     apk add \
@@ -48,13 +44,9 @@ RUN pip3 install conan==1.62.0 && \
     conan profile update options.boost:extra_b2_flags="cxxflags=\\\"${CXXFLAGS}\\\"" default && \
     conan profile update options.boost:header_only=True default && \
     conan profile update options.restinio:asio=boost default
-# note: the conan package for boost (as of 1.79.x/1.80.0) does not build properly on alpine. Therefore, we use only the header_only parts
-# todo: remove header_only as soon as build works on alpine
 
 # add conan repositories
 RUN conan remote add dice-group https://conan.dice-research.org/artifactory/api/conan/tentris
-RUN conan remote add tentris-private https://conan.dice-research.org/artifactory/api/conan/tentris-private
-RUN conan user ${CONAN_USER} -p ${CONAN_PW} -r tentris-private
 
 # build and cache dependencies via conan
 WORKDIR /conan_cache
@@ -71,7 +63,6 @@ COPY conanfile.py .
 
 ##build
 WORKDIR /tentris/execs/build
-# todo: should be replaced with toolchain file like https://github.com/ruslo/polly/blob/master/clang-libcxx17-static.cmake
 RUN cmake \
     -DCMAKE_BUILD_TYPE=Release \
     -DWITH_TCMALLOC=true \
