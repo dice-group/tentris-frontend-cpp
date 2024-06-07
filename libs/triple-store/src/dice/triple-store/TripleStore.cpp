@@ -24,7 +24,7 @@ namespace dice::triple_store {
 		flush();
 		std::unique_lock<std::shared_mutex> writer_lock{mutex_};
 		HypertrieBulkInserter bulk_inserter{hypertrie_, bulk_size, call_back};
-		for (rdf4cpp::rdf::parser::IStreamQuadIterator qit{ifs}; qit != rdf4cpp::rdf::parser::IStreamQuadIterator{}; ++qit) {
+		for (rdf4cpp::rdf::parser::IStreamQuadIterator qit{ifs}; qit != std::default_sentinel; ++qit) {
 			if (qit->has_value()) {
 				auto const &quad = qit->value();
 				bulk_inserter.add(

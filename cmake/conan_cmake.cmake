@@ -22,5 +22,6 @@ macro(install_packages_via_conan conanfile conan_options)
             BUILD missing
             SETTINGS ${settings}
             OPTIONS "${conan_options}"
-            GENERATOR "CMakeDeps")
+            GENERATOR "CMakeDeps"
+            ENV_HOST "CXX=${CMAKE_CXX_COMPILER};CC=${CMAKE_C_COMPILER}")
 endmacro()
