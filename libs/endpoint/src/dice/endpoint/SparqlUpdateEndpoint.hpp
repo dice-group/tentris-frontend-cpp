@@ -1,6 +1,7 @@
 #ifndef TENTRIS_SPARQLUPDATEENDPOINT_HPP
 #define TENTRIS_SPARQLUPDATEENDPOINT_HPP
 
+#define _LARGEFILE64_SOURCE
 #include <restinio/all.hpp>
 #include <taskflow/taskflow.hpp>
 

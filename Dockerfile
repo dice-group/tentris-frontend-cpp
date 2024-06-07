@@ -1,5 +1,8 @@
 FROM alpine:3.19 AS builder
 ARG MARCH="x86-64-v3"
+# TODO: update dependencies and remove for release
+ARG CONAN_USER="none"
+ARG CONAN_PW="none"
 
 RUN apk update && \
     apk add \
@@ -33,7 +36,7 @@ ENV CONAN_DISABLE_STRICT_MODE=1
 ENV PIPX_BIN_DIR="/usr/local/bin"
 
 # install and configure conan
-RUN pipx install conan==1.62.0 && \
+RUN pipx install conan==1.62 && \
     conan user && \
     conan profile new --detect default && \
     conan profile update settings.compiler=clang default && \
@@ -48,6 +51,9 @@ RUN pipx install conan==1.62.0 && \
 
 # add conan repositories
 RUN conan remote add dice-group https://conan.dice-research.org/artifactory/api/conan/tentris
+# TODO: update dependencies and remove for release
+RUN conan remote add tentris-private https://conan.dice-research.org/artifactory/api/conan/tentris-private
+RUN conan user ${CONAN_USER} -p ${CONAN_PW} -r tentris-private
 
 # build and cache dependencies via conan
 WORKDIR /conan_cache
@@ -72,7 +78,7 @@ RUN cmake \
     ..
 RUN make -j $(nproc)
 
-FROM scratch
+FROM scratch AS binaries
 COPY --from=builder /tentris/execs/build/tentris-server/tentris_server /tentris_server
 COPY --from=builder /tentris/execs/build/tentris-loader/tentris_loader /tentris_loader
 COPY --from=builder /tentris/execs/build/tools/deduplicated-nt/deduplicated_nt /deduplicated_nt
