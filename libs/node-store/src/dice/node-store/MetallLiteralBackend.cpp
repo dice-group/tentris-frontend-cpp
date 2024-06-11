@@ -3,16 +3,12 @@
 #include <tuple>
 namespace dice::node_store {
 
-	MetallLiteralBackend::MetallLiteralBackend(std::string_view lexical, const rdf4cpp::rdf::storage::node::identifier::NodeID &datatype_id, std::string_view lang_tag, metall_manager::allocator_type<std::byte> const &allocator) noexcept
-		: datatype_id_(datatype_id),
-		  lexical(lexical, allocator),
-		  lang_tag(lang_tag, allocator),
-		  hash_(View(*this).hash()) {}
 	MetallLiteralBackend::MetallLiteralBackend(rdf4cpp::rdf::storage::node::view::LexicalFormLiteralBackendView view, metall_manager::allocator_type<std::byte> const &allocator) noexcept
-		: datatype_id_(view.datatype_id),
+		: hash_(view.hash()),
+		  datatype_id_(view.datatype_id),
 		  lexical(view.lexical_form, allocator),
 		  lang_tag(view.language_tag, allocator),
-		  hash_(View(*this).hash()) {}
+		  needs_escape_(view.needs_escape) {}
 	std::string_view MetallLiteralBackend::language_tag() const noexcept {
 		return lang_tag;
 	}
