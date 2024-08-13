@@ -32,16 +32,25 @@ namespace dice::triple_store {
 	private:
 		BoolHypertrie &hypertrie_;
 		mutable std::shared_mutex mutex_;
-		mutable HypertrieSyncBulkInserter inserter_;
-
 
 	public:
+		using ReaderLock = std::shared_lock<std::shared_mutex>;
+		using WriterLock = std::unique_lock<std::shared_mutex>;
+
 		explicit TripleStore(BoolHypertrie &hypertrie);
 
 		~TripleStore();
 
 		[[nodiscard]] BoolHypertrie const &get_hypertrie() const {
 			return hypertrie_;
+		}
+
+		ReaderLock acquire_reader_lock() const {
+			return ReaderLock{mutex_};
+		}
+
+		WriterLock acquire_writer_lock() const {
+			return WriterLock{mutex_};
 		}
 
 		/**
@@ -79,20 +88,20 @@ namespace dice::triple_store {
 		/**
 		 * @brief Removes the given set of entries from the triplestore
 		 * @note function blocks other readers and writers
-		 * @param entries the entries to remove
-		 * @param bulk_size the number of entries to remove at once
+		 * @param entries the set of entries to be removed from the triplestore.
+		 * @param writer_lock a lock ensuring that write operations on the triple store are atomic and thread-safe.
+		 * @param bulk_size defines how many entries should be removed at once. Default value is 1'000'000.
 		 */
-		void remove(std::vector<rdf_tensor::NonZeroEntry> const &entries, uint32_t bulk_size = 1'000'000);
+		void remove(std::vector<rdf_tensor::NonZeroEntry> const &entries, WriterLock const &writer_lock, uint32_t bulk_size = 1'000'000);
 
 		/**
 		 * @brief Inserts the given set of entries to the triplestore
 		 * @note function blocks other readers and writers
-		 * @param entries the entries to remove
-		 * @param bulk_size the number of entries to insert at once
+		 * @param entries the set of entries to be inserted into the triplestore.
+		 * @param writer_lock a lock ensuring that write operations on the triple store are atomic and thread-safe.
+		 * @param bulk_size defines how many entries should be inserted at once. Default value is 1'000'000.
 		 */
-		void insert(std::vector<rdf_tensor::NonZeroEntry> const &entries, uint32_t bulk_size = 1'000'000);
-
-		void add_statement(const rdf4cpp::rdf::Statement &statement);
+		void insert(std::vector<rdf_tensor::NonZeroEntry> const &entries, WriterLock const &writer_lock, uint32_t bulk_size = 1'000'000);
 
 		/**
 		 * @brief Evaluation of SPARQL SELECT queries.
@@ -119,8 +128,6 @@ namespace dice::triple_store {
 		bool contains(const rdf4cpp::rdf::Statement &statement) const;
 
 		[[nodiscard]] size_t size() const;
-
-		void flush() const;
 	};
 };    // namespace dice::triple_store
 #endif//TENTRIS_STORE_TRIPLESTORE

@@ -10,12 +10,12 @@
 namespace dice::endpoint {
 
 	// TODO move that somewhere more fitting
-	template<typename ...Fs>
+	template<typename... Fs>
 	struct Overloaded : Fs... {
 		using Fs::operator()...;
 	};
 
-	template<typename ...Fs>
+	template<typename... Fs>
 	Overloaded(Fs...) -> Overloaded<Fs...>;
 
 
@@ -35,21 +35,22 @@ namespace dice::endpoint {
 				try {
 					auto update_query = parse_sparql_update_param(req);
 					spdlog::debug("Incoming {} DATA", update_query.is_delete ? "DELETE" : "INSERT");
+					auto const writer_lock = triplestore_.acquire_writer_lock();
 					spdlog::debug("Number of triples: {}", update_query.entries.size());
 					spdlog::debug("hypertrie size: {}", triplestore_.size());
 
 					size_t const size_before = triplestore_.size();
 
 					if (update_query.is_delete) {
-						triplestore_.remove(update_query.entries);
+						triplestore_.remove(update_query.entries, writer_lock);
 					} else {
-						triplestore_.insert(update_query.entries);
+						triplestore_.insert(update_query.entries, writer_lock);
 					}
 
 					spdlog::debug("hypertrie size after: {}", triplestore_.size());
 					size_t const mutation_count = update_query.is_delete
-														? size_before - triplestore_.size()
-														: triplestore_.size() - size_before;
+														  ? size_before - triplestore_.size()
+														  : triplestore_.size() - size_before;
 
 					rapidjson::StringBuffer buf;
 					{
@@ -62,9 +63,9 @@ namespace dice::endpoint {
 					}
 
 					req->create_response(status_ok())
-						.append_header(http_field::content_type, "application/json")
-						.set_body(std::string{buf.GetString(), buf.GetSize()})
-						.done();
+							.append_header(http_field::content_type, "application/json")
+							.set_body(std::string{buf.GetString(), buf.GetSize()})
+							.done();
 
 					spdlog::info("HTTP response {}, mutation_count: {}", status_ok(), mutation_count);
 				} catch (std::runtime_error const &e) {
@@ -73,13 +74,13 @@ namespace dice::endpoint {
 					req->create_response(status_bad_request()).set_body(std::string{message} + ": " + e.what()).done();
 					spdlog::warn("HTTP response {}: {} (detail: {})", status_bad_request(), message, e.what());
 				}
-			}, std::move(req));
+			},
+								   std::move(req));
 
 			return restinio::request_accepted();
-		} else {
-			spdlog::warn("Handling request was rejected. All workers are busy.");
-			return restinio::request_rejected();
 		}
+		spdlog::warn("Handling request was rejected. All workers are busy.");
+		return restinio::request_rejected();
 	}
 
 }// namespace dice::endpoint
