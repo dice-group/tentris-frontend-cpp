@@ -5,7 +5,6 @@
 #include <restinio/all.hpp>
 #include <taskflow/taskflow.hpp>
 
-#include <dice/node-store/metall_manager.hpp>
 #include <dice/triple-store/TripleStore.hpp>
 
 #include <dice/endpoint/SparqlQueryCache.hpp>

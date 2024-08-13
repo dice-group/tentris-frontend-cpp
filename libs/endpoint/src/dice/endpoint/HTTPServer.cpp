@@ -8,8 +8,7 @@
 #include <spdlog/spdlog.h>
 
 namespace dice::endpoint {
-
-	struct tentris_restinio_traits : public restinio::traits_t<
+	struct tentris_restinio_traits : public restinio::single_thread_traits_t<
 											 restinio::null_timer_manager_t,
 											 restinio::null_logger_t,
 											 restinio::router::express_router_t<>> {
@@ -49,7 +48,7 @@ namespace dice::endpoint {
 
 		spdlog::info("Use Ctrl+C on the terminal or SIGINT to shut down tentris gracefully. If tentris is killed or crashes, the index files will be corrupted.");
 		restinio::run(
-				restinio::on_thread_pool<tentris_restinio_traits>(cfg_.threads)
+				restinio::on_this_thread<tentris_restinio_traits>()
 						.max_parallel_connections(cfg_.threads)
 						.address("0.0.0.0")
 						.port(cfg_.port)
