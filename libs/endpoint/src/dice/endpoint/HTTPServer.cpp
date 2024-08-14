@@ -8,9 +8,34 @@
 #include <spdlog/spdlog.h>
 
 namespace dice::endpoint {
-	struct tentris_restinio_traits : public restinio::single_thread_traits_t<
-											 restinio::null_timer_manager_t,
-											 restinio::null_logger_t,
+
+	class restinio_spd_logger_t {
+	public:
+		template<typename Msg_Builder>
+		void trace(Msg_Builder &&mb) {
+			spdlog::trace(mb());
+		}
+
+		template<typename Msg_Builder>
+		void info(Msg_Builder &&mb) {
+			spdlog::info(mb());
+		}
+
+		template<typename Msg_Builder>
+		void warn(Msg_Builder &&mb) {
+			spdlog::warn(mb());
+		}
+
+
+		template<typename Msg_Builder>
+		void error(Msg_Builder &&mb) {
+			spdlog::error(mb());
+		}
+	};
+
+	struct tentris_restinio_traits : public restinio::traits_t<
+											 restinio::asio_timer_manager_t,
+											 restinio_spd_logger_t,
 											 restinio::router::express_router_t<>> {
 		static constexpr bool use_connection_count_limiter = true;
 	};
@@ -25,7 +50,7 @@ namespace dice::endpoint {
 	void HTTPServer::operator()() {
 		spdlog::info("Available endpoints:");
 		router_->http_get(R"(/sparql)",
-						  SPARQLEndpoint{executor_, triplestore_, sparql_query_cache_, cfg_.timeout_duration});
+						  SPARQLEndpoint{executor_, triplestore_, sparql_query_cache_, cfg_});
 		spdlog::info("  GET /sparql?query= for normal queries");
 
 		router_->http_post(R"(/sparql)",
@@ -33,11 +58,11 @@ namespace dice::endpoint {
 		spdlog::info("  POST  /sparql for update queries");
 
 		router_->http_get(R"(/stream)",
-						  SPARQLStreamingEndpoint{executor_, triplestore_, sparql_query_cache_, cfg_.timeout_duration});
+						  SPARQLStreamingEndpoint{executor_, triplestore_, sparql_query_cache_, cfg_});
 		spdlog::info("  GET  /stream?query= for queries with huge results");
 
 		router_->http_get(R"(/count)",
-						  CountEndpoint{executor_, triplestore_, sparql_query_cache_, cfg_.timeout_duration});
+						  CountEndpoint{executor_, triplestore_, sparql_query_cache_, cfg_});
 		spdlog::info("  GET  /count?query= as a workaround for count");
 
 
@@ -47,9 +72,17 @@ namespace dice::endpoint {
 				});
 
 		spdlog::info("Use Ctrl+C on the terminal or SIGINT to shut down tentris gracefully. If tentris is killed or crashes, the index files will be corrupted.");
+		using namespace std::chrono;
+		auto const time_limit = (cfg_.opt_timeout_duration)
+										? duration_cast<steady_clock::duration>(cfg_.opt_timeout_duration.value() * 0.95)
+										: steady_clock::duration::max();
 		restinio::run(
-				restinio::on_this_thread<tentris_restinio_traits>()
+				restinio::run_async<tentris_restinio_traits>()
 						.max_parallel_connections(cfg_.threads)
+						.handle_request_timeout(time_limit)
+						.read_next_http_message_timelimit(seconds{1})
+						.write_http_response_timelimit(time_limit)
+						.max_pipelined_requests(1)
 						.address("0.0.0.0")
 						.port(cfg_.port)
 						.request_handler(std::move(router_)));

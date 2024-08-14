@@ -10,16 +10,18 @@ namespace dice::endpoint {
 	SPARQLEndpoint::SPARQLEndpoint(tf::Executor &executor,
 								   triple_store::TripleStore &triplestore,
 								   SparqlQueryCache &sparql_query_cache,
-								   std::chrono::seconds timeoutDuration)
+								   EndpointCfg const &endpoint_cfg)
 		: executor_(executor),
 		  triplestore_(triplestore),
 		  sparql_query_cache_(sparql_query_cache),
-		  timeout_duration_(timeoutDuration) {}
+		  cfg_(endpoint_cfg) {}
 
 	restinio::request_handling_status_t SPARQLEndpoint::operator()(
 			restinio::request_handle_t req,
 			[[maybe_unused]] restinio::router::route_params_t params) {
-		auto timeout = (timeout_duration_.count()) ? std::chrono::steady_clock::now() + this->timeout_duration_ : std::chrono::steady_clock::time_point::max();
+		auto const timeout = (cfg_.opt_timeout_duration)
+									 ? std::chrono::steady_clock::now() + cfg_.opt_timeout_duration.value()
+									 : std::chrono::steady_clock::time_point::max();
 		if (executor_.num_topologies() < executor_.num_workers()) {
 			executor_.silent_async([this, timeout](restinio::request_handle_t req) {
 				using namespace dice::sparql2tensor;
@@ -44,6 +46,8 @@ namespace dice::endpoint {
 							json_writer.add(entry);
 						}
 						json_writer.close();
+						if (timeout <= std::chrono::steady_clock::now())
+							throw std::runtime_error{"timeout reached"};
 
 						req->create_response(status_ok())
 								.append_header(http_field::content_type, "application/sparql-results+json")
@@ -55,10 +59,14 @@ namespace dice::endpoint {
 									 json_writer.number_of_written_solutions(),
 									 json_writer.number_of_written_bindings());
 					}
-				} catch (std::runtime_error const &timeout_exception) {
-					const auto timeout_message = fmt::format("Request processing timed out after {}.", this->timeout_duration_);
+				} catch (std::runtime_error const &) {
+					const auto timeout_message = fmt::format("Request processing timed out after {}.",
+															 this->cfg_.opt_timeout_duration.value());
 					spdlog::warn("HTTP response {}: {}", status_gateway_time_out(), timeout_message);
-					req->create_response(status_gateway_time_out()).set_body(timeout_message).done();
+					req->create_response(status_gateway_time_out())
+							.connection_close()
+							.set_body(timeout_message)
+							.done();
 				}
 			},
 								   std::move(req));

@@ -1,13 +1,15 @@
 #ifndef TENTRIS_COUNTENDPOINT_HPP
 #define TENTRIS_COUNTENDPOINT_HPP
 
+#ifndef _LARGEFILE64_SOURCE
 #define _LARGEFILE64_SOURCE
+#endif
 #include <restinio/all.hpp>
 #include <taskflow/taskflow.hpp>
 
-#include <dice/node-store/metall_manager.hpp>
 #include <dice/triple-store/TripleStore.hpp>
 
+#include <dice/endpoint/EndointCfg.hpp>
 #include <dice/endpoint/SparqlQueryCache.hpp>
 
 namespace dice::endpoint {
@@ -20,10 +22,10 @@ namespace dice::endpoint {
 
 		SparqlQueryCache &sparql_query_cache_;
 
-		std::chrono::seconds timeout_duration_;
+		EndpointCfg cfg_;
 
 	public:
-		CountEndpoint(tf::Executor &executor, triple_store::TripleStore &triplestore, SparqlQueryCache &sparql_query_cache, std::chrono::seconds timeoutDuration);
+		CountEndpoint(tf::Executor &executor, triple_store::TripleStore &triplestore, SparqlQueryCache &sparql_query_cache, EndpointCfg const &endpoint_cfg);
 
 		restinio::request_handling_status_t operator()(
 				restinio::request_handle_t req,

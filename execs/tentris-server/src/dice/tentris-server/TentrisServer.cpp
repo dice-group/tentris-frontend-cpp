@@ -95,7 +95,12 @@ int main(int argc, char *argv[]) {
 	const endpoint::EndpointCfg endpoint_cfg{
 			.port = parsed_args["port"].as<uint16_t>(),
 			.threads = parsed_args["threads"].as<uint16_t>(),
-			.timeout_duration = std::chrono::seconds{parsed_args["timeout"].as<uint>()}};
+			.opt_timeout_duration = [&parsed_args]() -> std::optional<std::chrono::steady_clock::duration> {
+				auto const arg = parsed_args["timeout"].as<uint>();
+				if (arg == 0U)
+					return std::nullopt;
+				return std::chrono::seconds{arg};
+			}()};
 
 	using metall_manager = rdf_tensor::metall_manager;
 
@@ -147,7 +152,7 @@ int main(int argc, char *argv[]) {
 		spdlog::info("Storage stats: {} triples ({} distinct subjects, {} distinct predicates, {} distinct objects)",
 					 triplestore.size(), cards[0], cards[1], cards[2]);
 		spdlog::info("SPARQL endpoint serving sparkling linked data treasures on {} threads at http://0.0.0.0:{}/ with {} request timeout.",
-					 endpoint_cfg.threads, endpoint_cfg.port, endpoint_cfg.timeout_duration);
+					 endpoint_cfg.threads, endpoint_cfg.port, endpoint_cfg.opt_timeout_duration.value());
 
 		// start http server
 		http_server();

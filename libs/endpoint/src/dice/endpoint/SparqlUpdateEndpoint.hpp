@@ -1,11 +1,12 @@
 #ifndef TENTRIS_SPARQLUPDATEENDPOINT_HPP
 #define TENTRIS_SPARQLUPDATEENDPOINT_HPP
 
+#ifndef _LARGEFILE64_SOURCE
 #define _LARGEFILE64_SOURCE
+#endif
 #include <restinio/all.hpp>
 #include <taskflow/taskflow.hpp>
 
-#include <dice/node-store/metall_manager.hpp>
 #include <dice/triple-store/TripleStore.hpp>
 
 namespace dice::endpoint {
