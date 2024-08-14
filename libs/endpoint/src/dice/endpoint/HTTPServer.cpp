@@ -82,6 +82,7 @@ namespace dice::endpoint {
 		auto const time_limit = (cfg_.opt_timeout_duration)
 										? duration_cast<steady_clock::duration>(cfg_.opt_timeout_duration.value() * 0.95)
 										: steady_clock::duration::max();
+		auto const pool_size = std::max(4, cfg_.threads / 4);
 		auto server = restinio::run_async(restinio::own_io_context(),
 
 										  restinio::server_settings_t<tentris_restinio_traits>{}
@@ -94,7 +95,7 @@ namespace dice::endpoint {
 												  .port(cfg_.port)
 												  .request_handler(std::move(router_))
 												  .cleanup_func([this]() { this->executor_.wait_for_all(); }),
-										  cfg_.threads / 2);
+										  pool_size);
 
 
 		auto signal_handler = [](int signum) {
