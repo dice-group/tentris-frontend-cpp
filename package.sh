@@ -9,11 +9,12 @@ shift 2
 VERSION_REGEX='project\([^)]*VERSION\s+(\d+\.\d+.\d+)[^)]*\)'
 TENTRIS_VER=$(grep -Poz "$VERSION_REGEX" CMakeLists.txt | grep -Poz '[0-9]+\.[0-9]+\.[0-9]+')
 CUR_BRANCH=$(git branch --show-current | sed 's|/|_|g')
-
+# get current commit hash
+COMMIT_HASH=$(git rev-parse --short HEAD)
 if [[ -n $CUR_BRANCH ]]; then
-    TENTRIS_NAME="tentris_${TENTRIS_VER}_${CUR_BRANCH}"
+    TENTRIS_NAME="tentris_${TENTRIS_VER}_${CUR_BRANCH}_${COMMIT_HASH}"
 else
-    TENTRIS_NAME="tentris_${TENTRIS_VER}"
+    TENTRIS_NAME="tentris_${TENTRIS_VER}_${COMMIT_HASH}"
 fi
 
 if podman --version > /dev/null; then
