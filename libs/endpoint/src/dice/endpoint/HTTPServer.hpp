@@ -9,7 +9,7 @@
 
 #include <dice/triple-store/TripleStore.hpp>
 
-#include <dice/endpoint/EndointCfg.hpp>
+#include <dice/endpoint/EndpointCfg.hpp>
 #include <dice/endpoint/SparqlQueryCache.hpp>
 
 

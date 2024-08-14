@@ -3,14 +3,19 @@
 
 #include <spdlog/spdlog.h>
 
+#include <restinio/helpers/http_field_parsers/content-type.hpp>
 #include <restinio/request_handler.hpp>
 #include <restinio/uri_helpers.hpp>
-#include <restinio/helpers/http_field_parsers/content-type.hpp>
 
 #include <dice/sparql2tensor/UPDATEQuery.hpp>
 
 
 namespace dice::endpoint {
+
+	struct update_error : std::runtime_error {
+		explicit update_error(const std::string &message)
+			: std::runtime_error(message) {}
+	};
 
 	inline sparql2tensor::UPDATEDATAQueryData parse_sparql_update_param(restinio::request_handle_t &req) {
 		using namespace dice::sparql2tensor;
@@ -20,7 +25,7 @@ namespace dice::endpoint {
 		if (not content_type_value.has_value() or
 			content_type_value.value().media_type.type != "application" or
 			content_type_value.value().media_type.subtype != "sparql-update") {
-			throw std::runtime_error("Expected content-type: application/sparql-update");
+			throw update_error("Expected content-type: application/sparql-update");
 		}
 		std::string sparql_update_str{req->body()};
 		try {
@@ -28,10 +33,10 @@ namespace dice::endpoint {
 			return update_query;
 		} catch (std::exception &ex) {
 			static constexpr auto message = "Value of parameter 'update' is not parsable: ";
-			throw std::runtime_error{std::string{message} + ex.what()};
+			throw update_error{std::string{message} + ex.what()};
 		} catch (...) {
 			static constexpr auto message = "Unknown error";
-			throw std::runtime_error{message};
+			throw update_error{message};
 		}
 	}
 
