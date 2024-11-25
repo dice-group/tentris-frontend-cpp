@@ -40,7 +40,7 @@ jobs:
 
       # version retrieved ✅ now the release can be put together and released
 
-      - uses: dawidd6/action-download-artifact@v2
+      - uses: dawidd6/action-download-artifact@v6
         name: Download executables artifacts built by 'Build Dockerfile' workflow
         with:
           workflow: build.yml
