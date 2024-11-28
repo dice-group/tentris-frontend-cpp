@@ -11,6 +11,7 @@ jobs:
         uses: docker/setup-buildx-action@v2
       - name: Checkout
         uses: actions/checkout@v3
+
       - name: Build Dockerfile
         uses: docker/build-push-action@v3
         with:
@@ -22,3 +23,16 @@ jobs:
           build-args: |
             "CONAN_USER=${{ secrets.CONAN_USER }}"
             "CONAN_PW=${{ secrets.CONAN_PW }}"
+
+      - uses: shrink/actions-docker-extract@v2
+        id: extract
+        name: Extracting executables from docker image
+        with:
+          image: "tentris:${{ github.sha }}"
+          path: /.
+
+      - uses: actions/upload-artifact@v3
+        name: Uploading executables as artifacts
+        with:
+          name: tentris-frontend
+          path: ${{ steps.extract.outputs.destination }}/tentris_*
