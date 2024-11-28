@@ -28,7 +28,10 @@ if (PROJECT_IS_TOP_LEVEL AND USE_CLANG_TIDY)
     include(cmake/ClangTidy.cmake)
 endif ()
 
+add_compile_definitions(Dnsel_CONFIG_SELECT_EXPECTED=nsel_EXPECTED_NONSTD)
+
 add_subdirectory(libs)
+add_subdirectory(execs)
 
 if (PROJECT_IS_TOP_LEVEL AND BUILD_TESTING)
     include(CTest)

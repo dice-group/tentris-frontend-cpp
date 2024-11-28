@@ -4,6 +4,8 @@
 #ifndef _LARGEFILE64_SOURCE
 #define _LARGEFILE64_SOURCE
 #endif
+
+#define nsel_CONFIG_SELECT_EXPECTED nsel_EXPECTED_NONSTD
 #include <restinio/all.hpp>
 #include <taskflow/taskflow.hpp>
 

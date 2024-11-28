@@ -21,6 +21,7 @@ target_include_directories(${lib} INTERFACE
 target_link_libraries(${lib} INTERFACE
         rdf4cpp::rdf4cpp
         hypertrie::hypertrie
+        hypertrie::query
         Metall::Metall
         Boost::headers
         dice-hash::dice-hash

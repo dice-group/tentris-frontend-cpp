@@ -27,28 +27,27 @@ class Recipe(ConanFile):
     generators = "CMakeDeps", "CMakeToolchain"
 
     def requirements(self):
-        self.requires("hypertrie/0.9.3@dice-group/insdel-paper-2024", transitive_headers=True)
+        self.requires("hypertrie/0.9.3@dice-group/feature-hypertrie-entry-removal-paper-insdel-candid", transitive_headers=True)
         self.requires("rdf4cpp/0.0.27.1", transitive_headers=True)
-        self.requires("dice-sparse-map/0.2.5", transitive_headers=True, force=True)
-        self.requires("dice-hash/0.4.9", transitive_headers=True, force=True)
         self.requires("sparql-parser-base/0.3.6")
         self.requires("unordered_dense/4.4.0", transitive_headers=True, force=True)
-        self.requires("robin-hood-hashing/3.11.5", transitive_headers=True, force=True)
-        self.requires("boost/1.84.0", transitive_headers=True, force=True)
-        self.requires("dice-template-library/0.2.0", transitive_headers=True, force=True)
         self.requires("cxxopts/2.2.1")
         self.requires("fmt/8.1.1", transitive_headers=True, force=True)
         self.requires("restinio/0.7.2")
-        self.requires("expected-lite/0.6.3", override=True)
+        self.requires("expected-lite/0.8.0", override=True)
         self.requires("taskflow/3.4.0")
         self.requires("cppitertools/2.1")
         self.requires("spdlog/1.14.1")
-        self.requires("rapidjson/cci.20220822", force=True)
+        self.requires("rapidjson/cci.20220822")
         self.requires("metall/0.23.1")
+        self.requires("nlohmann_json/3.11.2")
+        self.requires("vincentlaucsb-csv-parser/2.1.3")
+        self.requires("robin-hood-hashing/3.11.5", transitive_headers=True)
+        self.requires("dice-hash/0.4.6", transitive_headers=True, force=True)
+        self.requires("dice-sparse-map/0.2.5", transitive_headers=True)
+        self.requires("dice-template-library/1.9.1", transitive_headers=True)
+        self.requires("boost/1.84.0", transitive_headers=True, libs=False, force=True)
 
-        if self.options.get_safe("with_exec_deps"):
-            self.requires("nlohmann_json/3.11.2")
-            self.requires("vincentlaucsb-csv-parser/2.1.3")
 
     def set_name(self):
         if not hasattr(self, 'name') or self.version is None:
