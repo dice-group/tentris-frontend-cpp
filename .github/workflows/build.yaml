@@ -1,9 +1,5 @@
 name: Build Dockerfile
-
-on:
-  push:
-    branches:
-      - '*'
+on: push
 
 jobs:
   build_dockerfile:
@@ -26,6 +22,3 @@ jobs:
           build-args: |
             "CONAN_USER=${{ secrets.CONAN_USER }}"
             "CONAN_PW=${{ secrets.CONAN_PW }}"
-
-
-
