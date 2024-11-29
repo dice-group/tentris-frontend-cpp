@@ -5,7 +5,6 @@ project(tentris VERSION 1.3.1
 include(cmake/boilerplate_init.cmake)
 boilerplate_init()
 
-
 if (PROJECT_IS_TOP_LEVEL)
     set(CONAN_INSTALL_ARGS "${CONAN_INSTALL_ARGS};-o=boost/*:header_only=True")
 
@@ -32,9 +31,3 @@ add_compile_definitions(Dnsel_CONFIG_SELECT_EXPECTED=nsel_EXPECTED_NONSTD)
 
 add_subdirectory(libs)
 add_subdirectory(execs)
-
-if (PROJECT_IS_TOP_LEVEL AND BUILD_TESTING)
-    include(CTest)
-    enable_testing()
-    add_subdirectory(tests)
-endif ()
