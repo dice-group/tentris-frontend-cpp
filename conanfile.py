@@ -2,24 +2,21 @@ import os
 import re
 
 from conan import ConanFile
-from conan import tools
 from conan.tools.cmake import cmake_layout, CMake
-from conan.tools.files import load
+from conan.tools.files import load, rmdir, copy
 
 
 class Recipe(ConanFile):
     url = "https://tentris.dice-research.org"
-    topics = ("triplestore", "sparql", "rdf", "sematic-web", "tensor")
+    topics = "triplestore", "sparql", "rdf", "sematic-web", "tensor"
     settings = "os", "compiler", "build_type", "arch"
     options = {
         "shared": [True, False],
         "fPIC": [True, False],
-        "with_exec_deps": [True, False],
     }
     default_options = {
         "shared": False,
         "fPIC": True,
-        "with_exec_deps": False,
         "restinio/*:asio": "boost",
     }
 
@@ -79,8 +76,8 @@ class Recipe(ConanFile):
     def package(self):
         self._configure_cmake().install()
         for dir in ("res", "share", "cmake"):
-            tools.files.rmdir(self, os.path.join(self.package_folder, dir))
-        tools.files.copy(self, "LICENSE", src=self.folders.base_source, dst="licenses")
+            rmdir(self, os.path.join(self.package_folder, dir))
+        copy(self, "LICENSE", src=self.folders.base_source, dst="licenses")
 
     def package_info(self):
         main_component = self.name
