@@ -3,7 +3,6 @@ set(lib_suffix "rdf-tensor")
 set(lib "${PROJECT_NAME}-${lib_suffix}")
 
 # Find cmake packages
-# cmake_policy(SET CMP0167 NEW)
 find_package(Boost REQUIRED)
 find_package(hypertrie REQUIRED)
 find_package(Metall REQUIRED)
