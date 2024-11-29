@@ -4,8 +4,6 @@
 # log files
 tentris.log
 
-libs/hypertrie/src/dice/hypertrie/Hypertrie_version.hpp
-
 .clang-format
 .clang-tidy
 
