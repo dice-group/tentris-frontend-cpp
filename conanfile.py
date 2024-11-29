@@ -45,11 +45,6 @@ class Recipe(ConanFile):
         self.requires("dice-template-library/1.9.1", transitive_headers=True)
         self.requires("boost/1.84.0", transitive_headers=True, libs=False, force=True)
 
-
-    def config_options(self):
-        if self.settings.os == "Windows":
-            del self.options.fPIC
-
     def set_name(self):
         if not hasattr(self, 'name') or self.version is None:
             cmake_file = load(self, os.path.join(self.recipe_folder, "CMakeLists.txt"))

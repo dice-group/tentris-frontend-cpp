@@ -5,9 +5,9 @@ jobs:
   build_dockerfile:
     runs-on: ubuntu-latest
     steps:
-      - uses: docker/setup-qemu-action@v2
-      - uses: docker/setup-buildx-action@v2
-      - uses: actions/checkout@v3
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: actions/checkout@v4
 
       - name: Build Dockerfile
         uses: docker/build-push-action@v6
