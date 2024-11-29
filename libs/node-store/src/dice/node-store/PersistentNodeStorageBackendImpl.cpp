@@ -23,30 +23,30 @@ namespace dice::node_store {
 		}
 	}
 
-	template<typename Storage>
-	static size_t lookup_size(Storage &storage) {
-		std::shared_lock l{storage.mutex};
-		return storage.id2data.size();
+    template<typename Storage>
+    static size_t lookup_size(Storage &storage) {
+	    std::shared_lock l{storage.mutex};
+	    return storage.id2data.size();
 	}
 
-	size_t PersistentNodeStorageBackendImpl::size() const noexcept {
-		return lookup_size(bnode_storage_) + lookup_size(iri_storage_) + lookup_size(literal_storage_) + lookup_size(variable_storage_);
+    size_t PersistentNodeStorageBackendImpl::size() const noexcept {
+	    return lookup_size(bnode_storage_) + lookup_size(iri_storage_) + lookup_size(literal_storage_) + lookup_size(variable_storage_);
 	}
 
-	bool PersistentNodeStorageBackendImpl::has_specialized_storage_for([[maybe_unused]] identifier::LiteralType type) {
-		return false;
+    bool PersistentNodeStorageBackendImpl::has_specialized_storage_for([[maybe_unused]] identifier::LiteralType type) {
+	    return false;
 	}
 
 	/**
-	 * Synchronized lookup (and creation) of IDs by a provided view of a Node Backend.
-	 * @tparam Backend_t the Backend type. One of BNodeBackend, IRIBackend, LiteralBackend or VariableBackend
-	 * @tparam create_if_not_present enables code for creating non-existing Node Backends
-	 * @tparam NextIDFromView_func type of a function to generate the next ID which is assigned in case a new Node Backend is created
-	 * @param view contains the data of the requested Node Backend
-	 * @param storage the storage where the Node Backend is looked up
-	 * @param next_id_func function to generate the next ID which is assigned in case a new Node Backend is created
-	 * @return the NodeID for the looked up Node Backend. Result is null() if there was no matching Node Backend.
-	 */
+     * Synchronized lookup (and creation) of IDs by a provided view of a Node Backend.
+     * @tparam Backend_t the Backend type. One of BNodeBackend, IRIBackend, LiteralBackend or VariableBackend
+     * @tparam create_if_not_present enables code for creating non-existing Node Backends
+     * @tparam NextIDFromView_func type of a function to generate the next ID which is assigned in case a new Node Backend is created
+     * @param view contains the data of the requested Node Backend
+     * @param storage the storage where the Node Backend is looked up
+     * @param next_id_func function to generate the next ID which is assigned in case a new Node Backend is created
+     * @return the NodeID for the looked up Node Backend. Result is null() if there was no matching Node Backend.
+     */
 	template<class Backend_t, bool create_if_not_present, class NextIDFromView_func = void *>
 	inline identifier::NodeID lookup_or_insert_impl(typename Backend_t::View const &view,
 													auto &storage,
@@ -83,7 +83,7 @@ namespace dice::node_store {
 	identifier::NodeID PersistentNodeStorageBackendImpl::find_or_make_id(view::LiteralBackendView const &view) noexcept {
 		return lookup_or_insert_impl<MetallLiteralBackend, true>(
 				view.get_lexical(), literal_storage_,
-				[this]([[maybe_unused]] view::LexicalFormLiteralBackendView const &literal_view) {
+				[this](view::LexicalFormLiteralBackendView const &literal_view) {
 					return identifier::NodeID{next_literal_id++,
 											  identifier::iri_node_id_to_literal_type(literal_view.datatype_id)};
 				});
