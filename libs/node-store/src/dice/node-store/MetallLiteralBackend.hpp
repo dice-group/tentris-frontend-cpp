@@ -14,10 +14,9 @@ namespace dice::node_store {
 		size_t hash_;
 
 	public:
-		using View = rdf4cpp::rdf::storage::node::view::LiteralBackendView;
+		using View = rdf4cpp::rdf::storage::node::view::LexicalFormLiteralBackendView;
 
-		MetallLiteralBackend(std::string_view lexical, const rdf4cpp::rdf::storage::node::identifier::NodeID &datatype_id, std::string_view lang_tag, metall_manager::allocator_type<std::byte> const &allocator) noexcept;
-		MetallLiteralBackend(rdf4cpp::rdf::storage::node::view::LiteralBackendView view, metall_manager::allocator_type<std::byte> const &allocator) noexcept;
+		MetallLiteralBackend(rdf4cpp::rdf::storage::node::view::LexicalFormLiteralBackendView view, metall_manager::allocator_type<std::byte> const &allocator) noexcept;
 
 		[[nodiscard]] std::string_view lexical_form() const noexcept;
 
@@ -27,7 +26,7 @@ namespace dice::node_store {
 
 		[[nodiscard]] size_t hash() const noexcept { return hash_; }
 
-		explicit operator rdf4cpp::rdf::storage::node::view::LiteralBackendView() const noexcept;
+		explicit operator rdf4cpp::rdf::storage::node::view::LexicalFormLiteralBackendView() const noexcept;
 	};
 
 }// namespace dice::node_store
