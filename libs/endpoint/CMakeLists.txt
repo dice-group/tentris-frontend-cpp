@@ -14,6 +14,7 @@ add_library(${lib}
         src/dice/endpoint/CountEndpoint.cpp
         src/dice/endpoint/SparqlStreamingEndpoint.cpp
         src/dice/endpoint/SparqlQueryCache.cpp
+        src/dice/endpoint/Endpoint.cpp
         )
 add_library(${PROJECT_NAME}::${lib_suffix} ALIAS ${lib})
 
