@@ -138,7 +138,7 @@ namespace dice::triple_store {
 		if (query.triple_patterns_.size() == 1) {// O(1)
 			auto slice_key = query.get_slice_keys()[0];
 			if (slice_key.get_fixed_depth() == 3)
-				return (size_t) std::get<bool>(get_hypertrie()[slice_key]);
+				return static_cast<size_t>(std::get<bool>(get_hypertrie()[slice_key]));
 			else
 				return std::get<const_BoolHypertrie>(get_hypertrie()[slice_key]).size();
 		} else {
