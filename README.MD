@@ -69,7 +69,7 @@ Use the [Dockerfile](./Dockerfile) to build tentris.
 
 * A docker image is available on [docker hub](https://hub.docker.com/r/dicegroup/tentris_server). Get it with
     ```shell script
-    docker build -f Dockerfile --build-arg CONAN_USER=xx --build-arg CONAN_PW=yyy .
+    docker build -f Dockerfile .
     docker pull dicegroup/tentris_server
     ```
 
@@ -80,7 +80,7 @@ Use the [Dockerfile](./Dockerfile) to build tentris.
 <details><summary> </summary>
 
 Tᴇɴᴛʀɪs is known to build on Ubuntu 22.04 and newer.
-Building was tested with Clang 15. As standard library, only libstdc++11 (v12) was tested. For details
+Building was tested with Clang 17 & 19. As standard library, only libstdc++11 (v13) was tested. For details
 refer to the [Dockerfile](./Dockerfile) or github actions.
 
 </details>
