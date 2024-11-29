@@ -1,8 +1,5 @@
 FROM alpine:3.20 AS builder
 ARG MARCH="x86-64-v3"
-# TODO: update dependencies and remove for release
-ARG CONAN_USER="none"
-ARG CONAN_PW="none"
 
 RUN apk update && \
     apk add \
@@ -50,9 +47,6 @@ RUN pipx install conan==2.9.3 && \
 
 # add conan repositories
 RUN conan remote add dice-group https://conan.dice-research.org/artifactory/api/conan/tentris
-# TODO: update dependencies and remove for release
-RUN conan remote add tentris-private https://conan.dice-research.org/artifactory/api/conan/tentris-private
-RUN conan remote login tentris-private ${CONAN_USER} -p ${CONAN_PW}
 
 # import project files
 WORKDIR /usr/local/src/tentris
