@@ -8,10 +8,11 @@
 namespace dice::node_store {
 
 	class MetallLiteralBackend {
+		size_t hash_;
 		rdf4cpp::rdf::storage::node::identifier::NodeID datatype_id_;
 		metall_string lexical;
 		metall_string lang_tag;
-		size_t hash_;
+		bool needs_escape_;
 
 	public:
 		using View = rdf4cpp::rdf::storage::node::view::LexicalFormLiteralBackendView;
@@ -23,6 +24,8 @@ namespace dice::node_store {
 		[[nodiscard]] const rdf4cpp::rdf::storage::node::identifier::NodeID &datatype_id() const noexcept;
 
 		[[nodiscard]] std::string_view language_tag() const noexcept;
+
+		[[nodiscard]] bool needs_escape() const noexcept;
 
 		[[nodiscard]] size_t hash() const noexcept { return hash_; }
 

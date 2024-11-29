@@ -3,7 +3,7 @@ import re
 
 from conan import ConanFile
 from conan.tools.cmake import cmake_layout, CMake
-from conan.tools.files import load
+from conan.tools.files import load, rmdir, copy
 
 
 class Recipe(ConanFile):
@@ -63,25 +63,24 @@ class Recipe(ConanFile):
             cmake_file = load(self, os.path.join(self.recipe_folder, "CMakeLists.txt"))
             self.description = re.search(r"project\([^)]*DESCRIPTION\s+\"([^\"]+)\"[^)]*\)", cmake_file).group(1)
 
+    def layout(self):
+        cmake_layout(self)
+
     _cmake = None
 
     def _configure_cmake(self):
-        if self._cmake:
-            return self._cmake
-        self._cmake = CMake(self)
-        self._cmake.definitions['CONAN_CMAKE'] = False
-        self._cmake.configure()
-        return self._cmake
+        if self._cmake is None:
+            self._cmake = CMake(self)
+            self._cmake.configure()
 
     def build(self):
-        cmake = self._configure_cmake()
-        cmake.build()
+        self._configure_cmake().build()
 
     def package(self):
-        cmake = self._configure_cmake()
-        cmake.install()
-        for dir in ("res", "share"):
+        self._configure_cmake().install()
+        for dir in ("res", "share", "cmake"):
             rmdir(self, os.path.join(self.package_folder, dir))
+        copy(self, "LICENSE", src=self.folders.base_source, dst="licenses")
 
     def package_info(self):
         main_component = self.name

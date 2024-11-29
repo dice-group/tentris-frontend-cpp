@@ -7,6 +7,7 @@ find_package(hypertrie REQUIRED)
 find_package(robin_hood REQUIRED)
 find_package(dice-hash REQUIRED)
 find_package(Boost REQUIRED)
+find_package(rdf4cpp REQUIRED)
 
 # Define the library
 add_library(${lib}
@@ -21,6 +22,7 @@ add_library(${PROJECT_NAME}::${lib_suffix} ALIAS ${lib})
 
 target_link_libraries(${lib} PUBLIC
         ${PROJECT_NAME}::rdf-tensor
+        rdf4cpp::rdf4cpp
         )
 
 target_include_directories(${lib} PUBLIC

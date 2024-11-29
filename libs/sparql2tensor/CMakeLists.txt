@@ -20,7 +20,7 @@ add_library(${PROJECT_NAME}::${lib_suffix} ALIAS ${lib})
 target_include_directories(${lib} PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
         PRIVATE
-        private-include
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/private-include>
         )
 
 target_link_libraries(${lib} PUBLIC

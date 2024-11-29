@@ -380,9 +380,9 @@ namespace dice::sparql2tensor::parser::visitors {
 
 	std::any SelectAskQueryVisitor::visitBooleanLiteral(SparqlParser::BooleanLiteralContext *ctx) {
 		if (ctx->TRUE())
-			return rdf4cpp::rdf::Literal::make_typed("true", rdf4cpp::rdf::IRI("http://www.w3.org/2001/XMLSchema#boolean"));
+			return rdf4cpp::rdf::Literal::make_boolean(true);
 		else
-			return rdf4cpp::rdf::Literal::make_typed("false", rdf4cpp::rdf::IRI("http://www.w3.org/2001/XMLSchema#boolean"));
+			return rdf4cpp::rdf::Literal::make_boolean(false);
 	}
 
 	std::any SelectAskQueryVisitor::visitString(SparqlParser::StringContext *ctx) {

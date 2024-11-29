@@ -17,8 +17,8 @@ target_include_directories(${lib} PUBLIC
         )
 
 target_link_libraries(${lib} PUBLIC
-        tentris::sparql2tensor
-        tentris::rdf-tensor
+        ${PROJECT_NAME}::sparql2tensor
+        ${PROJECT_NAME}::rdf-tensor
         )
 
 include(${CMAKE_SOURCE_DIR}/cmake/install_components.cmake)

@@ -10,7 +10,7 @@ namespace dice::sparql2tensor::parser::visitors {
 			visitPrefixDecl(pref_ctx);
 		for ([[maybe_unused]] auto base_ctx : ctx->baseDecl())
 			throw std::runtime_error("Base Declarations not supported yet.");
-		return prefixes_;
+		return nullptr;
 	}
 
 	std::any PrologueVisitor::visitBaseDecl([[maybe_unused]] SparqlParser::BaseDeclContext *ctx) {
