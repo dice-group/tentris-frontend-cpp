@@ -2,6 +2,10 @@
 
 set -euo pipefail
 
+CONAN_USER="$1"
+CONAN_PW="$2"
+shift 2
+
 VERSION_REGEX='project\([^)]*VERSION\s+(\d+\.\d+.\d+)[^)]*\)'
 TENTRIS_VER=$(grep -Poz "$VERSION_REGEX" CMakeLists.txt | grep -Poz '[0-9]+\.[0-9]+\.[0-9]+')
 CUR_BRANCH=$(git branch --show-current | sed 's|/|_|g')
@@ -34,7 +38,7 @@ trap 'rm -rf "$TEMP_DIR"' EXIT
 cleanup_and_tmpdir
 
 mkdir -p "${TENTRIS_NAME}"
-${BUILDER} build . --output="${TEMP_DIR}" --target=binaries
+${BUILDER} build . --output="${TEMP_DIR}" --target=binaries --build-arg CONAN_USER="${CONAN_USER}" --build-arg CONAN_PW="${CONAN_PW}"
 echo "${TEMP_DIR}"
 ls -lah "${TEMP_DIR}"
 cp -r "${TEMP_DIR}/." "./${TENTRIS_NAME}/"
