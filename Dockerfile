@@ -1,7 +1,5 @@
 FROM alpine:3.17 AS builder
 ARG MARCH="x86-64-v3"
-ARG CONAN_USER="none"
-ARG CONAN_PW="none"
 
 
 RUN apk update && \
@@ -52,8 +50,6 @@ RUN pip3 install conan==1.59.0 && \
 
 # add conan repositories
 RUN conan remote add dice-group https://conan.dice-research.org/artifactory/api/conan/tentris
-RUN conan remote add tentris-private https://conan.dice-research.org/artifactory/api/conan/tentris-private
-RUN conan user ${CONAN_USER} -p ${CONAN_PW} -r tentris-private
 
 # build and cache dependencies via conan
 WORKDIR /conan_cache
